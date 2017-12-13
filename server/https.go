@@ -159,7 +159,13 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 
 	s.sessions[acquired.id] = acquired
 
-	json.NewEncoder(w).Encode(acquired.id)
+	type result struct {
+		Session string `json:"session"`
+	}
+
+	json.NewEncoder(w).Encode(result{
+		Session: acquired.id,
+	})
 }
 
 func (s *server) Release(w http.ResponseWriter, r *http.Request) {
