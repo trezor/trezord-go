@@ -237,13 +237,19 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	binary.BigEndian.PutUint16(header[0:2], kind)
 	binary.BigEndian.PutUint32(header[2:6], size)
 
-	_, err := w.Write(header[:])
+	var s string
+	s = hex.EncodeToString(header[:])
+	_, err := w.Write([]byte(s))
+	if err != nil {
+		return err
+	}
+	s = hex.EncodeToString(data)
+	_, err = w.Write([]byte(s))
 	if err != nil {
 		return err
 	}
 
-	_, err = w.Write(data)
-	return err
+	return nil
 }
 
 func respondError(w http.ResponseWriter, err error) {
