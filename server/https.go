@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
+	"time"
 	"trezord-go/wire"
 
 	"github.com/gorilla/handlers"
@@ -49,7 +51,7 @@ func New(bus *wire.Bus) (*server, error) {
 
 	r.HandleFunc("/", s.Info)
 	r.HandleFunc("/configure", s.Info)
-	r.HandleFunc("/listen", s.Enumerate)
+	r.HandleFunc("/listen", s.Listen)
 	r.HandleFunc("/enumerate", s.Enumerate)
 	r.HandleFunc("/acquire/{path}", s.Acquire)
 	r.HandleFunc("/acquire/{path}/{session}", s.Acquire)
@@ -89,21 +91,62 @@ func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
-	type entry struct {
-		Path    string  `json:"path"`
-		Vendor  int     `json:"vendor"`
-		Product int     `json:"product"`
-		Session *string `json:"session"`
+type entry struct {
+	Path    string  `json:"path"`
+	Vendor  int     `json:"vendor"`
+	Product int     `json:"product"`
+	Session *string `json:"session"`
+}
+
+func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
+	const (
+		iterMax   = 600
+		iterDelay = 500 // ms
+	)
+	var entries []entry
+
+	json.NewDecoder(r.Body).Decode(entries)
+
+	if entries == nil {
+		e, err := s.enumerate()
+		if err != nil {
+			respondError(w, err)
+			return
+		}
+		entries = e
 	}
 
-	paths, err := s.bus.Enumerate()
+	for i := 0; i < iterMax; i++ {
+		e, err := s.enumerate()
+		if err != nil {
+			respondError(w, err)
+			return
+		}
+		if reflect.DeepEqual(entries, e) {
+			time.Sleep(iterDelay * time.Millisecond)
+		} else {
+			entries = e
+			break
+		}
+	}
+	json.NewEncoder(w).Encode(entries)
+}
+
+func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
+	e, err := s.enumerate()
 	if err != nil {
 		respondError(w, err)
 		return
 	}
+	json.NewEncoder(w).Encode(e)
+}
 
-	entries := make([]entry, 0)
+func (s *server) enumerate() ([]entry, error) {
+	paths, err := s.bus.Enumerate()
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]entry, 0, len(paths))
 	for _, path := range paths {
 		e := entry{
 			Path:    path,
@@ -117,7 +160,7 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 		}
 		entries = append(entries, e)
 	}
-	json.NewEncoder(w).Encode(entries)
+	return entries, nil
 }
 
 var (
