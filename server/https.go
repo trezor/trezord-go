@@ -9,8 +9,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"trezord-go/wire"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -46,13 +48,22 @@ func New(bus *wire.Bus) (*server, error) {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", s.Info)
+	r.HandleFunc("/configure", s.Info)
 	r.HandleFunc("/listen", s.Enumerate)
 	r.HandleFunc("/enumerate", s.Enumerate)
 	r.HandleFunc("/acquire/{path}", s.Acquire)
 	r.HandleFunc("/acquire/{path}/{session}", s.Acquire)
 	r.HandleFunc("/release/{session}", s.Release)
 	r.HandleFunc("/call/{session}", s.Call)
-	https.Handler = r
+
+	headers := handlers.AllowedHeaders([]string{"Content-Type"})
+	origins := handlers.AllowedOrigins([]string{"https://wallet.trezor.io", "https://dev.trezor.io"})
+	methods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "OPTIONS"})
+
+	var h http.Handler = r
+	h = handlers.LoggingHandler(os.Stdout, h)
+	h = handlers.CORS(headers, origins, methods)(h)
+	https.Handler = h
 
 	return s, nil
 }
@@ -74,7 +85,7 @@ func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info{
 		Version:    "2.0.0",
 		Configured: true,
-		ValidUntil: 0,
+		ValidUntil: 4294967295,
 	})
 }
 
