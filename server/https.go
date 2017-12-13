@@ -103,12 +103,13 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var e entry
-	var entries []entry
+	entries := make([]entry, 0)
 	for _, path := range paths {
-		e.Path = path
-		e.Vendor = int(s.bus.Vid)
-		e.Product = int(s.bus.Pid)
+		e := entry{
+			Path:    path,
+			Vendor:  int(s.bus.Vid),
+			Product: int(s.bus.Pid),
+		}
 		for _, ss := range s.sessions {
 			if ss.path == path {
 				e.Session = &ss.id
