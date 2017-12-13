@@ -34,16 +34,16 @@ func Validate(buf []byte) error {
 		}
 
 		// read the field value
-		val, err := binary.ReadVarint(r)
+		val, err := binary.ReadUvarint(r)
 		if err != nil {
 			return err
 		}
 		if typ == wireData {
 			// field is length-delimited data, skip the data
-			if val < 0 || val > maxFieldSize {
+			if val > maxFieldSize {
 				return ErrMalformedProtobuf
 			}
-			_, err = r.Seek(val, io.SeekCurrent)
+			_, err = r.Seek(int64(val), io.SeekCurrent)
 			if err != nil {
 				return err
 			}
