@@ -282,6 +282,10 @@ func decodeRaw(r io.Reader) (*wire.Message, error) {
 		return nil, ErrMalformedData
 	}
 
+	if wire.Validate(data) != nil {
+		return nil, ErrMalformedData
+	}
+
 	return &wire.Message{
 		Kind: kind,
 		Data: data,
