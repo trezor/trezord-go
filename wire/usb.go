@@ -58,7 +58,7 @@ const (
 	ifaceNum  = 0
 	epIn      = 0x82
 	epOut     = 0x02
-	epTimeout = 2000
+	epTimeout = 0
 )
 
 var (
