@@ -211,6 +211,9 @@ func decodeRaw(r io.Reader) (*wire.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(body) < 6 {
+		return nil, ErrMalformedData
+	}
 	kind := binary.BigEndian.Uint16(body[0:2])
 	size := binary.BigEndian.Uint32(body[2:6])
 	data := body[6:]
