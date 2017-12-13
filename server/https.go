@@ -317,6 +317,7 @@ func respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
+	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(jsonError{
 		Error: err.Error(),
 	})
