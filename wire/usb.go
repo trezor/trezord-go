@@ -4,17 +4,21 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 
 	"github.com/deadsy/libusb"
 )
 
+const (
+	vendorID  = 0x534c
+	productID = 0x0001
+)
+
 type Bus struct {
 	usb libusb.Context
-	Vid uint16
-	Pid uint16
 }
 
-func Init(vid uint16, pid uint16, debug int) (*Bus, error) {
+func Init(debug int) (*Bus, error) {
 	var usb libusb.Context
 
 	err := libusb.Init(&usb)
@@ -24,8 +28,7 @@ func Init(vid uint16, pid uint16, debug int) (*Bus, error) {
 	libusb.Set_Debug(usb, debug)
 
 	return &Bus{
-		Vid: vid,
-		Pid: pid,
+		usb: usb,
 	}, nil
 }
 
@@ -47,7 +50,7 @@ func (b *Bus) Enumerate() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if b.Vid == dd.IdVendor && b.Pid == dd.IdProduct {
+		if vendorID == dd.IdVendor && productID == dd.IdProduct {
 			ids = append(ids, identify(dev))
 		}
 	}
@@ -75,8 +78,8 @@ func identify(dev libusb.Device) string {
 	return hex.EncodeToString(digest[:])
 }
 
-func locate(usb libusb.Context, id string) (libusb.Device_Handle, error) {
-	list, err := libusb.Get_Device_List(usb)
+func (b *Bus) Connect(id string) (Device, error) {
+	list, err := libusb.Get_Device_List(b.usb)
 	if err != nil {
 		return nil, err
 	}
@@ -86,42 +89,51 @@ func locate(usb libusb.Context, id string) (libusb.Device_Handle, error) {
 		if identify(dev) != id {
 			continue
 		}
-		return libusb.Open(dev)
+		if isWebUSB(dev) {
+			return b.connectWebUSB(dev)
+		}
 	}
 	return nil, ErrNotFound
 }
 
-type Device struct {
-	dev libusb.Device_Handle
-	vid uint16
-	pid uint16
-}
-
-func (b *Bus) Connect(id string) (*Device, error) {
-	dev, err := locate(b.usb, id)
+func (b *Bus) connectWebUSB(dev libusb.Device) (*WebUSB, error) {
+	d, err := libusb.Open(dev)
 	if err != nil {
 		return nil, err
 	}
-	err = libusb.Claim_Interface(dev, ifaceNum)
+	err = libusb.Claim_Interface(d, ifaceNum)
 	if err != nil {
-		libusb.Close(dev)
+		libusb.Close(d)
 		return nil, err
 	}
-	return &Device{
-		dev: dev,
+	return &WebUSB{
+		dev: d,
 	}, nil
 }
 
-func (d *Device) Close() {
-	libusb.Close(d.dev)
+type Device interface {
+	io.ReadWriteCloser
 }
 
-func (d *Device) Write(buf []byte) (int, error) {
+type WebUSB struct {
+	dev libusb.Device_Handle
+}
+
+func isWebUSB(libusb.Device) bool {
+	return true
+}
+
+func (d *WebUSB) Close() error {
+	libusb.Close(d.dev)
+	return nil
+}
+
+func (d *WebUSB) Write(buf []byte) (int, error) {
 	p, err := libusb.Interrupt_Transfer(d.dev, epOut, buf, epTimeout)
 	return len(p), err
 }
 
-func (d *Device) Read(buf []byte) (int, error) {
+func (d *WebUSB) Read(buf []byte) (int, error) {
 	p, err := libusb.Interrupt_Transfer(d.dev, epIn, buf, epTimeout)
 	return len(p), err
 }

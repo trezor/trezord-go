@@ -21,7 +21,7 @@ import (
 type session struct {
 	path string
 	id   string
-	dev  *wire.Device
+	dev  wire.Device
 }
 
 type server struct {
@@ -93,8 +93,6 @@ func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 
 type entry struct {
 	Path    string  `json:"path"`
-	Vendor  int     `json:"vendor"`
-	Product int     `json:"product"`
 	Session *string `json:"session"`
 }
 
@@ -149,9 +147,7 @@ func (s *server) enumerate() ([]entry, error) {
 	entries := make([]entry, 0, len(paths))
 	for _, path := range paths {
 		e := entry{
-			Path:    path,
-			Vendor:  int(s.bus.Vid),
-			Product: int(s.bus.Pid),
+			Path: path,
 		}
 		for _, ss := range s.sessions {
 			if ss.path == path {
