@@ -14,6 +14,10 @@ const (
 	productID = 0x0001
 )
 
+var (
+	ErrNotFound = fmt.Errorf("device not found")
+)
+
 type Bus struct {
 	usb libusb.Context
 }
@@ -57,27 +61,6 @@ func (b *Bus) Enumerate() ([]string, error) {
 	return ids, nil
 }
 
-const (
-	ifaceNum  = 0
-	epIn      = 0x82
-	epOut     = 0x02
-	epTimeout = 0
-)
-
-var (
-	ErrNotFound = fmt.Errorf("device not found")
-)
-
-func identify(dev libusb.Device) string {
-	var (
-		bus    = libusb.Get_Bus_Number(dev)
-		addr   = libusb.Get_Device_Address(dev)
-		desc   = fmt.Sprintf("%d:%d", bus, addr)
-		digest = sha256.Sum256([]byte(desc))
-	)
-	return hex.EncodeToString(digest[:])
-}
-
 func (b *Bus) Connect(id string) (Device, error) {
 	list, err := libusb.Get_Device_List(b.usb)
 	if err != nil {
@@ -96,6 +79,27 @@ func (b *Bus) Connect(id string) (Device, error) {
 	return nil, ErrNotFound
 }
 
+func identify(dev libusb.Device) string {
+	var (
+		bus    = libusb.Get_Bus_Number(dev)
+		addr   = libusb.Get_Device_Address(dev)
+		desc   = fmt.Sprintf("%d:%d", bus, addr)
+		digest = sha256.Sum256([]byte(desc))
+	)
+	return hex.EncodeToString(digest[:])
+}
+
+type Device interface {
+	io.ReadWriteCloser
+}
+
+const (
+	ifaceNum  = 0
+	epIn      = 0x82
+	epOut     = 0x02
+	epTimeout = 0
+)
+
 func (b *Bus) connectWebUSB(dev libusb.Device) (*WebUSB, error) {
 	d, err := libusb.Open(dev)
 	if err != nil {
@@ -109,10 +113,6 @@ func (b *Bus) connectWebUSB(dev libusb.Device) (*WebUSB, error) {
 	return &WebUSB{
 		dev: d,
 	}, nil
-}
-
-type Device interface {
-	io.ReadWriteCloser
 }
 
 type WebUSB struct {
