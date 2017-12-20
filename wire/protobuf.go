@@ -40,7 +40,7 @@ func Validate(buf []byte) error {
 		}
 		if typ == wireData {
 			// field is length-delimited data, skip the data
-			if val > maxFieldSize {
+			if val > maxFieldSize || int64(val) < 0 {
 				return ErrMalformedProtobuf
 			}
 			_, err = r.Seek(int64(val), io.SeekCurrent)
