@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/deadsy/libusb"
+	"github.com/karalabe/hid"
 )
 
 const (
@@ -72,7 +73,10 @@ func (b *Bus) Connect(id string) (Device, error) {
 		if identify(dev) != id {
 			continue
 		}
-		if isWebUSB(dev) {
+		switch {
+		case isHID(dev):
+			return b.connectHID(dev)
+		case isWebUSB(dev):
 			return b.connectWebUSB(dev)
 		}
 	}
@@ -93,19 +97,32 @@ type Device interface {
 	io.ReadWriteCloser
 }
 
+// WebUSB
+// ======
+
 const (
-	ifaceNum  = 0
-	epIn      = 0x82
-	epOut     = 0x02
-	epTimeout = 0
+	webIfaceNum   = 0
+	webAltSetting = 0
+	webEpIn       = 0x81
+	webEpOut      = 0x01
 )
+
+func isWebUSB(dev libusb.Device) bool {
+	c, err := libusb.Get_Active_Config_Descriptor(dev)
+	if err != nil {
+		return false
+	}
+	return c.BNumInterfaces > webIfaceNum &&
+		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
+		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == libusb.CLASS_VENDOR_SPEC
+}
 
 func (b *Bus) connectWebUSB(dev libusb.Device) (*WebUSB, error) {
 	d, err := libusb.Open(dev)
 	if err != nil {
 		return nil, err
 	}
-	err = libusb.Claim_Interface(d, ifaceNum)
+	err = libusb.Claim_Interface(d, webIfaceNum)
 	if err != nil {
 		libusb.Close(d)
 		return nil, err
@@ -119,21 +136,72 @@ type WebUSB struct {
 	dev libusb.Device_Handle
 }
 
-func isWebUSB(libusb.Device) bool {
-	return true
-}
-
 func (d *WebUSB) Close() error {
 	libusb.Close(d.dev)
 	return nil
 }
 
 func (d *WebUSB) Write(buf []byte) (int, error) {
-	p, err := libusb.Interrupt_Transfer(d.dev, epOut, buf, epTimeout)
+	p, err := libusb.Interrupt_Transfer(d.dev, webEpOut, buf, 0) // infinite timeout
 	return len(p), err
 }
 
 func (d *WebUSB) Read(buf []byte) (int, error) {
-	p, err := libusb.Interrupt_Transfer(d.dev, epIn, buf, epTimeout)
+	p, err := libusb.Interrupt_Transfer(d.dev, webEpIn, buf, 0) // infinite timeout
 	return len(p), err
+}
+
+// HIDAPI
+// ======
+
+const (
+	hidIfaceNum   = 0
+	hidAltSetting = 0
+	hidUsagePage  = 0xFF00
+)
+
+func isHID(dev libusb.Device) bool {
+	c, err := libusb.Get_Active_Config_Descriptor(dev)
+	if err != nil {
+		return false
+	}
+	return c.BNumInterfaces > hidIfaceNum &&
+		c.Interface[hidIfaceNum].Num_altsetting > hidAltSetting &&
+		c.Interface[hidIfaceNum].Altsetting[hidAltSetting].BInterfaceClass == libusb.CLASS_HID
+}
+
+func (b *Bus) connectHID(dev libusb.Device) (*HID, error) {
+	list := hid.Enumerate(0, 0)
+
+	for _, info := range list {
+		if vendorID != info.VendorID || productID != info.ProductID {
+			continue
+		}
+		if hidIfaceNum == info.Interface || hidUsagePage == info.UsagePage {
+			d, err := info.Open()
+			if err != nil {
+				return nil, err
+			}
+			return &HID{
+				dev: d,
+			}, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+type HID struct {
+	dev *hid.Device
+}
+
+func (d *HID) Close() error {
+	return d.dev.Close()
+}
+
+func (d *HID) Write(buf []byte) (int, error) {
+	return d.dev.Write(buf)
+}
+
+func (d *HID) Read(buf []byte) (int, error) {
+	return d.dev.Read(buf)
 }
