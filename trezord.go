@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 	"trezord-go/server"
-	"trezord-go/wire"
+	"trezord-go/usb"
 )
 
 func main() {
@@ -13,10 +13,15 @@ func main() {
 	)
 	flag.Parse()
 
-	b, err := wire.Init(*debug)
+	w, err := usb.InitWebUSB(*debug)
 	if err != nil {
-		log.Fatalf("bus: %s", err)
+		log.Fatalf("webusb: %s", err)
 	}
+	h, err := usb.InitHIDAPI()
+	if err != nil {
+		log.Fatalf("hidapi: %s", err)
+	}
+	b := usb.Init(w, h)
 
 	s, err := server.New(b)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"time"
+	"trezord-go/usb"
 	"trezord-go/wire"
 
 	"github.com/gorilla/handlers"
@@ -21,16 +22,16 @@ import (
 type session struct {
 	path string
 	id   string
-	dev  wire.Device
+	dev  usb.Device
 }
 
 type server struct {
 	https    *http.Server
-	bus      *wire.Bus
+	bus      *usb.USB
 	sessions map[string]*session
 }
 
-func New(bus *wire.Bus) (*server, error) {
+func New(bus *usb.USB) (*server, error) {
 	certs, err := downloadCerts()
 	if err != nil {
 		return nil, err
