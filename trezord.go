@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"log"
-	"trezord-go/server"
-	"trezord-go/usb"
+
+	"github.com/jpochyla/trezord-go/server"
+	"github.com/jpochyla/trezord-go/usb"
 )
 
 func main() {

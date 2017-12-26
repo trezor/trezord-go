@@ -12,8 +12,9 @@ import (
 	"os"
 	"reflect"
 	"time"
-	"trezord-go/usb"
-	"trezord-go/wire"
+
+	"github.com/jpochyla/trezord-go/usb"
+	"github.com/jpochyla/trezord-go/wire"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
