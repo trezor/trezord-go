@@ -94,6 +94,8 @@ func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 
 type entry struct {
 	Path    string  `json:"path"`
+	Vendor  int     `json:"vendor"`
+	Product int     `json:"product"`
 	Session *string `json:"session"`
 }
 
@@ -141,17 +143,19 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) enumerate() ([]entry, error) {
-	paths, err := s.bus.Enumerate()
+	infos, err := s.bus.Enumerate()
 	if err != nil {
 		return nil, err
 	}
-	entries := make([]entry, 0, len(paths))
-	for _, path := range paths {
+	entries := make([]entry, 0, len(infos))
+	for _, info := range infos {
 		e := entry{
-			Path: path,
+			Path:    info.Path,
+			Vendor:  info.VendorID,
+			Product: info.ProductID,
 		}
 		for _, ss := range s.sessions {
-			if ss.path == path {
+			if ss.path == info.Path {
 				e.Session = &ss.id
 			}
 		}

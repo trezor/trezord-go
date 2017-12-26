@@ -36,21 +36,29 @@ func (b *WebUSB) Close() {
 	libusb.Exit(b.usb)
 }
 
-func (b *WebUSB) Enumerate() ([]string, error) {
+func (b *WebUSB) Enumerate() ([]Info, error) {
 	list, err := libusb.Get_Device_List(b.usb)
 	if err != nil {
 		return nil, err
 	}
 	defer libusb.Free_Device_List(list, 1) // unlink devices
 
-	var paths []string
+	var infos []Info
 
 	for _, dev := range list {
 		if b.match(dev) {
-			paths = append(paths, b.identify(dev))
+			dd, err := libusb.Get_Device_Descriptor(dev)
+			if err != nil {
+				continue
+			}
+			infos = append(infos, Info{
+				Path:      b.identify(dev),
+				VendorID:  int(dd.IdVendor),
+				ProductID: int(dd.IdProduct),
+			})
 		}
 	}
-	return paths, nil
+	return infos, nil
 }
 
 func (b *WebUSB) Has(path string) bool {
@@ -92,7 +100,11 @@ func (b *WebUSB) match(dev libusb.Device) bool {
 	if err != nil {
 		return false
 	}
-	if vendorT1 != dd.IdVendor || productT1 != dd.IdProduct {
+	vid := dd.IdVendor
+	pid := dd.IdProduct
+	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
+	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
+	if !trezor1 && !trezor2 {
 		return false
 	}
 	c, err := libusb.Get_Active_Config_Descriptor(dev)

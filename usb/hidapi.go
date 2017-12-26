@@ -14,23 +14,26 @@ const (
 	hidUsagePage = 0xFF00
 )
 
-type HIDAPI struct{}
+type HIDAPI struct {
+}
 
 func InitHIDAPI() (*HIDAPI, error) {
 	return &HIDAPI{}, nil
 }
 
-func (b *HIDAPI) Enumerate() ([]string, error) {
-	list := hid.Enumerate(0, 0)
+func (b *HIDAPI) Enumerate() ([]Info, error) {
+	var infos []Info
 
-	var paths []string
-
-	for _, dev := range list {
+	for _, dev := range hid.Enumerate(0, 0) { // enumerate all devices
 		if b.match(&dev) {
-			paths = append(paths, b.identify(&dev))
+			infos = append(infos, Info{
+				Path:      b.identify(&dev),
+				VendorID:  int(dev.VendorID),
+				ProductID: int(dev.ProductID),
+			})
 		}
 	}
-	return paths, nil
+	return infos, nil
 }
 
 func (b *HIDAPI) Has(path string) bool {
@@ -38,9 +41,7 @@ func (b *HIDAPI) Has(path string) bool {
 }
 
 func (b *HIDAPI) Connect(path string) (Device, error) {
-	list := hid.Enumerate(0, 0)
-
-	for _, dev := range list {
+	for _, dev := range hid.Enumerate(0, 0) { // enumerate all devices
 		if b.match(&dev) && b.identify(&dev) == path {
 			d, err := dev.Open()
 			if err != nil {
@@ -54,10 +55,12 @@ func (b *HIDAPI) Connect(path string) (Device, error) {
 	return nil, ErrNotFound
 }
 
-func (b *HIDAPI) match(dev *hid.DeviceInfo) bool {
-	return (dev.VendorID == vendorT1 &&
-		dev.ProductID == productT1 &&
-		(dev.Interface == hidIfaceNum || dev.UsagePage == hidUsagePage))
+func (b *HIDAPI) match(d *hid.DeviceInfo) bool {
+	vid := d.VendorID
+	pid := d.ProductID
+	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
+	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
+	return (trezor1 || trezor2) && (d.Interface == hidIfaceNum || d.UsagePage == hidUsagePage)
 }
 
 func (b *HIDAPI) identify(dev *hid.DeviceInfo) string {
