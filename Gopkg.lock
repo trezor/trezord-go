@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/trezor/usbhid"
   packages = ["."]
-  revision = "b89ed57c7b882a5c3d24f395fc24dba581f56e64"
+  revision = "71cb1b74e04a07fc456ad7cfb5f5a0f432e89bc2"
 
 [solve-meta]
   analyzer-name = "dep"

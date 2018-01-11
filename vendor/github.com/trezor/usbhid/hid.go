@@ -77,8 +77,8 @@ var ErrDeviceClosed = errors.New("hid: device closed")
 // operating system is not supported by the library.
 var ErrUnsupportedPlatform = errors.New("hid: unsupported platform")
 
-// DeviceInfo is a hidapi info structure.
-type DeviceInfo struct {
+// HidDeviceInfo is a hidapi info structure.
+type HidDeviceInfo struct {
 	Path         string // Platform-specific device path
 	VendorID     uint16 // Device Vendor ID
 	ProductID    uint16 // Device Product ID
@@ -110,19 +110,12 @@ func init() {
 	C.hid_init()
 }
 
-// Supported returns whether this platform is supported by the HID library or not.
-// The goal of this method is to allow programatically handling platforms that do
-// not support USB HID and not having to fall back to build constraints.
-func Supported() bool {
-	return true
-}
-
 // Enumerate returns a list of all the HID devices attached to the system which
 // match the vendor and product id:
 //  - If the vendor id is set to 0 then any vendor matches.
 //  - If the product id is set to 0 then any product matches.
 //  - If the vendor and product id are both 0, all HID devices are returned.
-func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
+func HidEnumerate(vendorID uint16, productID uint16) []HidDeviceInfo {
 	enumerateLock.Lock()
 	defer enumerateLock.Unlock()
 
@@ -134,9 +127,9 @@ func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 	defer C.hid_free_enumeration(head)
 
 	// Iterate the list and retrieve the device details
-	var infos []DeviceInfo
+	var infos []HidDeviceInfo
 	for ; head != nil; head = head.next {
-		info := DeviceInfo{
+		info := HidDeviceInfo{
 			Path:      C.GoString(head.path),
 			VendorID:  uint16(head.vendor_id),
 			ProductID: uint16(head.product_id),
@@ -160,7 +153,7 @@ func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 }
 
 // Open connects to an HID device by its path name.
-func (info DeviceInfo) Open() (*HidDevice, error) {
+func (info HidDeviceInfo) Open() (*HidDevice, error) {
 	path := C.CString(info.Path)
 	defer C.free(unsafe.Pointer(path))
 
@@ -169,14 +162,14 @@ func (info DeviceInfo) Open() (*HidDevice, error) {
 		return nil, errors.New("hidapi: failed to open device")
 	}
 	return &HidDevice{
-		DeviceInfo: info,
+		HidDeviceInfo: info,
 		device:     device,
 	}, nil
 }
 
 // Device is a live HID USB connected device handle.
 type HidDevice struct {
-	DeviceInfo // Embed the infos for easier access
+	HidDeviceInfo // Embed the infos for easier access
 
 	device *C.hid_device // Low level HID device to communicate through
 	lock   sync.Mutex
