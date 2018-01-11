@@ -2,51 +2,99 @@
 // Copyright (c) 2017 Péter Szilágyi. All rights reserved.
 //
 // This file is released under the 3-clause BSD license. Note however that Linux
-// support depends on libusb, released under LGNU GPL 2.1 or later.
+// support depends on libusb, released under GNU LGPL 2.1 or later.
+
+// Package hid provides an interface for USB HID devices.
 
 // +build linux,cgo darwin,!ios,cgo windows,cgo
 
-package hid
+package usbhid
 
 /*
-#cgo CFLAGS: -I./hidapi/hidapi
+#cgo CFLAGS: -I./c/hidapi -I./c/libusb
 
-#cgo linux CFLAGS: -I./libusb/libusb -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
+#cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
 #cgo linux,!android LDFLAGS: -lrt
-#cgo darwin CFLAGS: -DOS_DARWIN
-#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
-#cgo windows CFLAGS: -DOS_WINDOWS
+#cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
+#cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo windows LDFLAGS: -lsetupapi
+
 
 #ifdef OS_LINUX
 	#include <sys/poll.h>
+
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
-
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"
-
-	#include "core.c"
-	#include "descriptor.c"
-	#include "hotplug.c"
-	#include "io.c"
-	#include "strerror.c"
-	#include "sync.c"
-
-	#include "hidapi/libusb/hid.c"
 #elif OS_DARWIN
-	#include "hidapi/mac/hid.c"
+	#include <sys/poll.h>
+
+	#include "os/threads_posix.c"
+	#include "os/poll_posix.c"
+	#include "os/darwin_usb.c"
 #elif OS_WINDOWS
-	#include "hidapi/windows/hid.c"
+	#include <oledlg.h>
+
+  #include "os/poll_windows.c"
+	#include "os/threads_windows.c"
 #endif
+
+#include "core.c"
+#include "descriptor.c"
+#include "hotplug.c"
+#include "io.c"
+#include "strerror.c"
+#include "sync.c"
+
+#ifdef OS_LINUX
+	#include "linux/hid.c"
+#elif OS_DARWIN
+	#include "mac/hid.c"
+#elif OS_WINDOWS
+	#include "windows/hid.c"
+
+	#include "os/windows_nt_common.c"
+	#include "os/windows_winusb.c"
+#endif
+
 */
 import "C"
+
 import (
 	"errors"
 	"runtime"
 	"sync"
 	"unsafe"
 )
+
+// ErrDeviceClosed is returned for operations where the device closed before or
+// during the execution.
+var ErrDeviceClosed = errors.New("hid: device closed")
+
+// ErrUnsupportedPlatform is returned for all operations where the underlying
+// operating system is not supported by the library.
+var ErrUnsupportedPlatform = errors.New("hid: unsupported platform")
+
+// DeviceInfo is a hidapi info structure.
+type DeviceInfo struct {
+	Path         string // Platform-specific device path
+	VendorID     uint16 // Device Vendor ID
+	ProductID    uint16 // Device Product ID
+	Release      uint16 // Device Release Number in binary-coded decimal, also known as Device Version Number
+	Serial       string // Serial Number
+	Manufacturer string // Manufacturer String
+	Product      string // Product string
+	UsagePage    uint16 // Usage Page for this Device/Interface (Windows/Mac only)
+	Usage        uint16 // Usage for this Device/Interface (Windows/Mac only)
+
+	// The USB interface which this logical device
+	// represents. Valid on both Linux implementations
+	// in all cases, and valid on the Windows implementation
+	// only if the device contains more than one interface.
+	Interface int
+}
 
 // enumerateLock is a mutex serializing access to USB device enumeration needed
 // by the macOS USB HID system calls, which require 2 consecutive method calls
@@ -112,7 +160,7 @@ func Enumerate(vendorID uint16, productID uint16) []DeviceInfo {
 }
 
 // Open connects to an HID device by its path name.
-func (info DeviceInfo) Open() (*Device, error) {
+func (info DeviceInfo) Open() (*HidDevice, error) {
 	path := C.CString(info.Path)
 	defer C.free(unsafe.Pointer(path))
 
@@ -120,14 +168,14 @@ func (info DeviceInfo) Open() (*Device, error) {
 	if device == nil {
 		return nil, errors.New("hidapi: failed to open device")
 	}
-	return &Device{
+	return &HidDevice{
 		DeviceInfo: info,
 		device:     device,
 	}, nil
 }
 
 // Device is a live HID USB connected device handle.
-type Device struct {
+type HidDevice struct {
 	DeviceInfo // Embed the infos for easier access
 
 	device *C.hid_device // Low level HID device to communicate through
@@ -135,7 +183,7 @@ type Device struct {
 }
 
 // Close releases the HID USB device handle.
-func (dev *Device) Close() error {
+func (dev *HidDevice) Close() error {
 	dev.lock.Lock()
 	defer dev.lock.Unlock()
 
@@ -150,7 +198,7 @@ func (dev *Device) Close() error {
 //
 // Write will send the data on the first OUT endpoint, if one exists. If it does
 // not, it will send the data through the Control Endpoint (Endpoint 0).
-func (dev *Device) Write(b []byte) (int, error) {
+func (dev *HidDevice) Write(b []byte) (int, error) {
 	// Abort if nothing to write
 	if len(b) == 0 {
 		return 0, nil
@@ -193,7 +241,7 @@ func (dev *Device) Write(b []byte) (int, error) {
 }
 
 // Read retrieves an input report from a HID device.
-func (dev *Device) Read(b []byte) (int, error) {
+func (dev *HidDevice) Read(b []byte) (int, error) {
 	// Aborth if nothing to read
 	if len(b) == 0 {
 		return 0, nil

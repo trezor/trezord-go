@@ -3,15 +3,18 @@
 
 Golang wrapper for libusb-1.0
 
+Copyright (c) 2017 Jason T. Harris
+
 */
 //-----------------------------------------------------------------------------
 
 // Package libusb provides go wrappers for libusb-1.0
-package libusb
+package usbhid
 
 /*
-#cgo pkg-config: libusb-1.0
-#include <libusb-1.0/libusb.h>
+// +build linux,cgo darwin,!ios,cgo windows,cgo
+
+#include "./c/libusb/libusb.h"
 
 // When a C struct ends with a zero-sized field, but the struct itself is not zero-sized,
 // Go code can no longer refer to the zero-sized field. Any such references will have to be rewritten.
@@ -894,6 +897,9 @@ func Get_Device_List(ctx Context) ([]Device, error) {
 
 func Free_Device_List(list []Device, unref_devices int) {
 	if list == nil {
+		return
+	}
+	if len(list) == 0 {
 		return
 	}
 	C.libusb_free_device_list((**C.struct_libusb_device)(&list[0]), C.int(unref_devices))
