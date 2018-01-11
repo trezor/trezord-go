@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/deadsy/libusb"
-  packages = ["."]
-  revision = "6c367063e8436e55df1500c4ffa84302743fd996"
-
-[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -27,13 +21,13 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/karalabe/hid"
+  name = "github.com/trezor/usbhid"
   packages = ["."]
-  revision = "93a94ab6671087f0768f1d4e701c0ec14f449df9"
+  revision = "b89ed57c7b882a5c3d24f395fc24dba581f56e64"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9ea0dd8530ec3b3106e790c84afaa03e91c2ebc69387ccaed345877abf85039e"
+  inputs-digest = "69c174152102e0e50d50ee5a01c7315602179e0af296b700ae14f30558a40e28"
   solver-name = "gps-cdcl"
   solver-version = 1
