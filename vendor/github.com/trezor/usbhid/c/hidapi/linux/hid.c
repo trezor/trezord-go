@@ -47,7 +47,7 @@
 #include <iconv.h>
 #endif
 
-#include "hidapi.h"
+#include "hidapi/hidapi.h"
 
 #ifdef __ANDROID__
 

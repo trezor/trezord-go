@@ -83,13 +83,9 @@ func (s *server) Close() error {
 func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
 		Version    string `json:"version"`
-		Configured bool   `json:"configured"`
-		ValidUntil int    `json:"validUntil"`
 	}
 	json.NewEncoder(w).Encode(info{
 		Version:    "2.0.0",
-		Configured: true,
-		ValidUntil: 4294967295,
 	})
 }
 

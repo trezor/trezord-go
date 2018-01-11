@@ -23,6 +23,15 @@
 #include <objbase.h>
 #include <errno.h>
 
+#ifdef OS_WINDOWS
+	#include <oledlg.h>
+
+	#include <windows.h>
+	#if defined(interface)
+	#undef interface
+	#endif
+#endif
+
 #include "libusbi.h"
 
 struct usbi_cond_perthread {
