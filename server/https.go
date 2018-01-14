@@ -162,7 +162,7 @@ func (s *server) enumerate() ([]entry, error) {
 }
 
 var (
-	ErrSessionNotFound = errors.New("session not found")
+	ErrSessionNotFound = errors.New("wrong previous session")
 	ErrMalformedData   = errors.New("malformed data")
 )
 
