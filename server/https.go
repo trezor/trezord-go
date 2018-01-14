@@ -18,6 +18,8 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	"strconv"
 )
 
 type session struct {
@@ -257,8 +259,11 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var latestSessionId = 0
+
 func (s *server) newSession() string {
-	return "random"
+	latestSessionId++
+	return strconv.Itoa(latestSessionId)
 }
 
 func decodeRaw(r io.Reader) (*wire.Message, error) {
