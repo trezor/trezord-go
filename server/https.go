@@ -82,10 +82,10 @@ func (s *server) Close() error {
 
 func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
-		Version    string `json:"version"`
+		Version string `json:"version"`
 	}
 	json.NewEncoder(w).Encode(info{
-		Version:    "2.0.0",
+		Version: "2.0.0",
 	})
 }
 
