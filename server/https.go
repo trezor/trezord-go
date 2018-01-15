@@ -190,6 +190,14 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if prev != "" {
+		err := s.release(prev)
+		if err != nil {
+			respondError(w, err)
+			return
+		}
+	}
+
 	dev, err := s.bus.Connect(path)
 	if err != nil {
 		respondError(w, err)
@@ -209,18 +217,27 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) Release(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	session := vars["session"]
-
+func (s *server) release(session string) error {
 	acquired, _ := s.sessions[session]
 	if acquired == nil {
-		respondError(w, ErrSessionNotFound)
-		return
+		return ErrSessionNotFound
 	}
 	delete(s.sessions, session)
 
 	acquired.dev.Close()
+	return nil
+}
+
+func (s *server) Release(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	session := vars["session"]
+
+	err := s.release(session)
+
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 
 	json.NewEncoder(w).Encode(vars)
 }
