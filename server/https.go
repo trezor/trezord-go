@@ -63,7 +63,11 @@ func New(bus *usb.USB) (*server, error) {
 	r.HandleFunc("/call/{session}", s.Call)
 
 	headers := handlers.AllowedHeaders([]string{"Content-Type"})
-	origins := handlers.AllowedOrigins([]string{"https://wallet.trezor.io", "https://dev.trezor.io"})
+
+	// `localhost:8000` is added for easing the wallet development
+	// `null` is for electron apps or chrome extensions
+	origins := handlers.AllowedOrigins([]string{"https://*.trezor.io", "https://localhost:8000", "null"})
+
 	methods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
