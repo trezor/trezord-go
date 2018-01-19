@@ -35,12 +35,12 @@ type server struct {
 	bus      *usb.USB
 	sessions map[string]*session
 
-	sessionsMutex sync.Mutex
+	sessionsMutex sync.Mutex // we want atomic access to sessions
 
-	callMutex      sync.Mutex
-	callInProgress bool
+	callInProgress bool       // we cannot make calls and enumeration at the same time
+	callMutex      sync.Mutex // we want atomic access to callInProgress, plus prevent enumeration
 
-	lastInfos []usb.Info
+	lastInfos []usb.Info // when call is in progress, use saved info for enumerating
 }
 
 func New(bus *usb.USB) (*server, error) {
@@ -204,11 +204,16 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) enumerate() ([]entry, error) {
+	// lock for atomic access to s.sessions
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
+
+	// lock for atomic access to callInProgress
+	// it needs to be over whole function, so that call does not actually start while enumerating
 	s.callMutex.Lock()
 	defer s.callMutex.Unlock()
 
+	// use saved info if call in progress, elsewhere enumerate
 	infos := s.lastInfos
 
 	if !s.callInProgress {
