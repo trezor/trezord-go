@@ -2,7 +2,10 @@ package usb
 
 import (
 	"encoding/hex"
+	"errors"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/trezor/usbhid"
 )
@@ -91,7 +94,8 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		return nil, err
 	}
 	return &WUD{
-		dev: d,
+		dev:    d,
+		closed: 0,
 	}, nil
 }
 
@@ -127,19 +131,46 @@ func (b *WebUSB) identify(dev usbhid.Device) string {
 
 type WUD struct {
 	dev usbhid.Device_Handle
+
+	closed int32 // atomic
+
+	transferMutex sync.Mutex
+	// closing cannot happen while interrupt_transfer is hapenning,
+	// otherwise interrupt_transfer hangs forever
 }
 
 func (d *WUD) Close() error {
+	atomic.StoreInt32(&d.closed, 1)
+
+	d.transferMutex.Lock()
 	usbhid.Close(d.dev)
+	d.transferMutex.Unlock()
+
 	return nil
 }
 
+func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
+	for {
+		d.transferMutex.Lock()
+		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, 100)
+		d.transferMutex.Unlock()
+
+		if err != nil && err.Error() == usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
+			closed := (atomic.LoadInt32(&d.closed)) == 1
+
+			if closed {
+				return 0, errors.New("Closed device")
+			}
+		} else {
+			return len(p), err
+		}
+	}
+}
+
 func (d *WUD) Write(buf []byte) (int, error) {
-	p, err := usbhid.Interrupt_Transfer(d.dev, webEpOut, buf, 0) // infinite timeout
-	return len(p), err
+	return d.readWrite(buf, webEpOut)
 }
 
 func (d *WUD) Read(buf []byte) (int, error) {
-	p, err := usbhid.Interrupt_Transfer(d.dev, webEpIn, buf, 0) // infinite timeout
-	return len(p), err
+	return d.readWrite(buf, webEpIn)
 }
