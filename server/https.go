@@ -107,15 +107,6 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 
 	json.NewDecoder(r.Body).Decode(entries)
 
-	if entries == nil {
-		e, err := s.enumerate()
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		entries = e
-	}
-
 	for i := 0; i < iterMax; i++ {
 		e, err := s.enumerate()
 		if err != nil {
