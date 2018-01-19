@@ -99,6 +99,12 @@ type entry struct {
 }
 
 func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
+	cn, ok := w.(http.CloseNotifier)
+	if !ok {
+		http.Error(w, "cannot stream", http.StatusInternalServerError)
+		return
+	}
+
 	const (
 		iterMax   = 600
 		iterDelay = 500 // ms
@@ -123,7 +129,12 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if reflect.DeepEqual(entries, e) {
-			time.Sleep(iterDelay * time.Millisecond)
+			select {
+			case <-cn.CloseNotify():
+				return
+			default:
+				time.Sleep(iterDelay * time.Millisecond)
+			}
 		} else {
 			entries = e
 			break
