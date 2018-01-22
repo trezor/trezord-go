@@ -105,7 +105,13 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 	)
 	var entries []entry
 
-	json.NewDecoder(r.Body).Decode(entries)
+	err := json.NewDecoder(r.Body).Decode(&entries)
+	defer r.Body.Close()
+
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 
 	for i := 0; i < iterMax; i++ {
 		e, err := s.enumerate()
