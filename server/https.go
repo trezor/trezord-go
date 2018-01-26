@@ -195,7 +195,10 @@ func (s *server) enumerate() ([]entry, error) {
 		}
 		for _, ss := range s.sessions {
 			if ss.path == info.Path {
-				e.Session = &ss.id
+				// copying to prevent overwriting on acquire
+				// and wrong comparison in Listen
+				ssIdCopy := ss.id
+				e.Session = &ssIdCopy
 			}
 		}
 		entries = append(entries, e)
