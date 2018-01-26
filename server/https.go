@@ -240,12 +240,27 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	dev, err := s.bus.Connect(path)
-	if err != nil {
-		respondError(w, err)
-		return
+	// Chrome tries to read from Trezor immediately after connecting
+	// So do we
+	// Bad timing can produce error on s.bus.Connect
+	// => try 3 times with a 100ms delay
+	tries := 0
+	for {
+		dev, err := s.bus.Connect(path)
+		if err != nil {
+			if tries < 3 {
+				tries++
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				respondError(w, err)
+				return
+			}
+		} else {
+			acquired.dev = dev
+			break
+		}
 	}
-	acquired.dev = dev
+
 	acquired.id = s.newSession()
 
 	s.sessions[acquired.id] = acquired
