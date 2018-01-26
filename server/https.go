@@ -303,6 +303,12 @@ func (s *server) Release(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) Call(w http.ResponseWriter, r *http.Request) {
+	cn, ok := w.(http.CloseNotifier)
+	if !ok {
+		http.Error(w, "cannot stream", http.StatusInternalServerError)
+		return
+	}
+
 	vars := mux.Vars(r)
 	session := vars["session"]
 
@@ -311,6 +317,20 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 		respondError(w, ErrSessionNotFound)
 		return
 	}
+
+	finished := make(chan bool)
+	defer func() {
+		finished <- true
+	}()
+
+	go func() {
+		select {
+		case <-finished:
+			return
+		case <-cn.CloseNotify():
+			s.release(session)
+		}
+	}()
 
 	msg, err := decodeRaw(r.Body)
 	if err != nil {
