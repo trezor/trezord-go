@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"time"
 
 	"github.com/jpochyla/trezord-go/usb"
@@ -64,18 +65,45 @@ func New(bus *usb.USB) (*server, error) {
 
 	headers := handlers.AllowedHeaders([]string{"Content-Type"})
 
-	// `localhost:8000` is added for easing the wallet development
-	// `null` is for electron apps or chrome extensions
-	origins := handlers.AllowedOrigins([]string{"https://*.trezor.io", "https://localhost:8000", "null"})
+	v, err := validator()
+	if err != nil {
+		return nil, err
+	}
 
 	methods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
 	h = handlers.LoggingHandler(os.Stdout, h)
-	h = handlers.CORS(headers, origins, methods)(h)
+	h = handlers.CORS(headers, v, methods)(h)
 	https.Handler = h
 
 	return s, nil
+}
+
+func validator() (handlers.CORSOption, error) {
+	tregex, err := regexp.Compile(`^https://([[:alnum:]]+\.)*trezor\.io$`)
+	if err != nil {
+		return nil, err
+	}
+	v := handlers.AllowedOriginValidator(func(origin string) bool {
+		// `localhost:8000` is added for easing local development
+		if origin == "https://localhost:8000" {
+			return true
+		}
+
+		// `null` is for electron apps or chrome extensions
+		if origin == "null" {
+			return true
+		}
+
+		if tregex.MatchString(origin) {
+			return true
+		}
+
+		return false
+	})
+
+	return v, nil
 }
 
 func (s *server) Run() error {
