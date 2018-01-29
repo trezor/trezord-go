@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -65,21 +65,19 @@ func New(bus *usb.USB) (*server, error) {
 	sr.HandleFunc("/release/{session}", s.Release)
 	sr.HandleFunc("/call/{session}", s.Call)
 
-	headers := handlers.AllowedHeaders([]string{"Content-Type"})
-
-	v, err := validator()
+	v, err := corsValidator()
 	if err != nil {
 		return nil, err
 	}
-
+	headers := handlers.AllowedHeaders([]string{"Content-Type"})
 	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
+	// restrict cross-origin access
 	h = handlers.CORS(headers, v, methods)(h)
-
-	// this logs after the request is done, in the Apache format
+	// log after the request is done, in the Apache format
 	h = handlers.LoggingHandler(os.Stdout, h)
-	// this logs when the request is received
+	// log when the request is received
 	h = logRequest(h)
 
 	https.Handler = h
@@ -89,12 +87,12 @@ func New(bus *usb.USB) (*server, error) {
 
 func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Received: %s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		log.Printf("%s %s", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
 
-func validator() (handlers.CORSOption, error) {
+func corsValidator() (handlers.CORSOption, error) {
 	tregex, err := regexp.Compile(`^https://([[:alnum:]]+\.)*trezor\.io$`)
 	if err != nil {
 		return nil, err
