@@ -22,13 +22,13 @@ type WebUSB struct {
 	usb usbhid.Context
 }
 
-func InitWebUSB(debug int) (*WebUSB, error) {
+func InitWebUSB() (*WebUSB, error) {
 	var usb usbhid.Context
 	err := usbhid.Init(&usb)
 	if err != nil {
 		return nil, err
 	}
-	usbhid.Set_Debug(usb, debug)
+	usbhid.Set_Debug(usb, usbhid.LOG_LEVEL_NONE)
 
 	return &WebUSB{
 		usb: usb,

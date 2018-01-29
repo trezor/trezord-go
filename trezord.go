@@ -6,15 +6,24 @@ import (
 
 	"github.com/trezor/trezord-go/server"
 	"github.com/trezor/trezord-go/usb"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
 	var (
-		debug = flag.Int("d", 3, "Debug level for libusb.")
+		path = flag.String("l", "", "Log into a file, rotating after 5MB")
 	)
 	flag.Parse()
 
-	w, err := usb.InitWebUSB(*debug)
+	if *path != "" {
+		log.SetOutput(&lumberjack.Logger{
+			Filename:   *path,
+			MaxSize:    5, // megabytes
+			MaxBackups: 3,
+		})
+	}
+
+	w, err := usb.InitWebUSB()
 	if err != nil {
 		log.Fatalf("webusb: %s", err)
 	}
