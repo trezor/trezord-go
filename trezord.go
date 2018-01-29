@@ -12,15 +12,14 @@ import (
 )
 
 func main() {
-	var (
-		path = flag.String("l", "", "Log into a file, rotating after 5MB")
-	)
+	var logfile string
+	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 5MB")
 	flag.Parse()
 
 	var logger io.WriteCloser
-	if *path != "" {
+	if logfile != "" {
 		logger = &lumberjack.Logger{
-			Filename:   *path,
+			Filename:   logfile,
 			MaxSize:    5, // megabytes
 			MaxBackups: 3,
 		}
