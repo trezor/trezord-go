@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/jpochyla/trezord-go/usb"
@@ -32,6 +33,13 @@ type server struct {
 	https    *http.Server
 	bus      *usb.USB
 	sessions map[string]*session
+
+	sessionsMutex sync.Mutex // we want atomic access to sessions
+
+	callInProgress bool       // we cannot make calls and enumeration at the same time
+	callMutex      sync.Mutex // we want atomic access to callInProgress, plus prevent enumeration
+
+	lastInfos []usb.Info // when call is in progress, use saved info for enumerating
 }
 
 func New(bus *usb.USB) (*server, error) {
@@ -39,9 +47,11 @@ func New(bus *usb.USB) (*server, error) {
 		Addr: "127.0.0.1:21325",
 	}
 	s := &server{
-		bus:      bus,
-		https:    https,
-		sessions: make(map[string]*session),
+		bus:            bus,
+		https:          https,
+		sessions:       make(map[string]*session),
+		callInProgress: false,
+		lastInfos:      make([]usb.Info, 0),
 	}
 	r := mux.NewRouter()
 
@@ -185,10 +195,27 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) enumerate() ([]entry, error) {
-	infos, err := s.bus.Enumerate()
-	if err != nil {
-		return nil, err
+	// lock for atomic access to s.sessions
+	s.sessionsMutex.Lock()
+	defer s.sessionsMutex.Unlock()
+
+	// lock for atomic access to callInProgress
+	// it needs to be over whole function, so that call does not actually start while enumerating
+	s.callMutex.Lock()
+	defer s.callMutex.Unlock()
+
+	// use saved info if call in progress, elsewhere enumerate
+	infos := s.lastInfos
+
+	if !s.callInProgress {
+		busInfos, err := s.bus.Enumerate()
+		if err != nil {
+			return nil, err
+		}
+		infos = busInfos
+		s.lastInfos = infos
 	}
+
 	entries := make([]entry, 0, len(infos))
 	for _, info := range infos {
 		e := entry{
@@ -215,6 +242,9 @@ var (
 )
 
 func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
+	s.sessionsMutex.Lock()
+	defer s.sessionsMutex.Unlock()
+
 	vars := mux.Vars(r)
 	path := vars["path"]
 	prev := vars["session"]
@@ -292,6 +322,9 @@ func (s *server) release(session string) error {
 }
 
 func (s *server) Release(w http.ResponseWriter, r *http.Request) {
+	s.sessionsMutex.Lock()
+	defer s.sessionsMutex.Unlock()
+
 	vars := mux.Vars(r)
 	session := vars["session"]
 
@@ -312,10 +345,23 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.callMutex.Lock()
+	s.callInProgress = true
+	s.callMutex.Unlock()
+
+	defer func() {
+		s.callMutex.Lock()
+		s.callInProgress = false
+		s.callMutex.Unlock()
+	}()
+
 	vars := mux.Vars(r)
 	session := vars["session"]
 
+	s.sessionsMutex.Lock()
 	acquired, _ := s.sessions[session]
+	s.sessionsMutex.Unlock()
+
 	if acquired == nil {
 		respondError(w, ErrSessionNotFound)
 		return
