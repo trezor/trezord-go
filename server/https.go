@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/tls"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -36,16 +35,8 @@ type server struct {
 }
 
 func New(bus *usb.USB) (*server, error) {
-	certs, err := downloadCerts()
-	if err != nil {
-		return nil, err
-	}
-	config := &tls.Config{
-		Certificates: certs,
-	}
 	https := &http.Server{
-		Addr:      "127.0.0.1:21324",
-		TLSConfig: config,
+		Addr: "127.0.0.1:21325",
 	}
 	s := &server{
 		bus:      bus,
@@ -119,7 +110,7 @@ func corsValidator() (handlers.CORSOption, error) {
 }
 
 func (s *server) Run() error {
-	return s.https.ListenAndServeTLS("", "")
+	return s.https.ListenAndServe()
 }
 
 func (s *server) Close() error {
@@ -435,34 +426,4 @@ func respondError(w http.ResponseWriter, err error) {
 	json.NewEncoder(w).Encode(jsonError{
 		Error: err.Error(),
 	})
-}
-
-const (
-	certURI    = "https://wallet.trezor.io/data/bridge/cert/localback.crt"
-	privkeyURI = "https://wallet.trezor.io/data/bridge/cert/localback.key"
-)
-
-func downloadCerts() ([]tls.Certificate, error) {
-	cert, err := getURI(certURI)
-	if err != nil {
-		return nil, err
-	}
-	privkey, err := getURI(privkeyURI)
-	if err != nil {
-		return nil, err
-	}
-	crt, err := tls.X509KeyPair(cert, privkey)
-	if err != nil {
-		return nil, err
-	}
-	return []tls.Certificate{crt}, nil
-}
-
-func getURI(uri string) ([]byte, error) {
-	resp, err := http.Get(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
 }
