@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/jpochyla/trezord-go/server"
-	"github.com/jpochyla/trezord-go/usb"
+	"github.com/trezor/trezord-go/server"
+	"github.com/trezor/trezord-go/usb"
 )
 
 func main() {

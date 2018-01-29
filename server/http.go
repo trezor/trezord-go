@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jpochyla/trezord-go/usb"
-	"github.com/jpochyla/trezord-go/wire"
+	"github.com/trezor/trezord-go/usb"
+	"github.com/trezor/trezord-go/wire"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
