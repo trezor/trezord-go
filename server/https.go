@@ -6,12 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/jpochyla/trezord-go/usb"
@@ -19,8 +21,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-
-	"strconv"
 )
 
 type session struct {
@@ -75,11 +75,23 @@ func New(bus *usb.USB) (*server, error) {
 	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
-	h = handlers.LoggingHandler(os.Stdout, h)
 	h = handlers.CORS(headers, v, methods)(h)
+
+	// this logs after the request is done, in the Apache format
+	h = handlers.LoggingHandler(os.Stdout, h)
+	// this logs when the request is received
+	h = logRequest(h)
+
 	https.Handler = h
 
 	return s, nil
+}
+
+func logRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("Received: %s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func validator() (handlers.CORSOption, error) {
