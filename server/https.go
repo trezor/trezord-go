@@ -54,14 +54,16 @@ func New(bus *usb.USB) (*server, error) {
 	}
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", s.Info)
-	r.HandleFunc("/configure", s.Info)
-	r.HandleFunc("/listen", s.Listen)
-	r.HandleFunc("/enumerate", s.Enumerate)
-	r.HandleFunc("/acquire/{path}", s.Acquire)
-	r.HandleFunc("/acquire/{path}/{session}", s.Acquire)
-	r.HandleFunc("/release/{session}", s.Release)
-	r.HandleFunc("/call/{session}", s.Call)
+	sr := r.Methods("POST").Subrouter()
+
+	sr.HandleFunc("/", s.Info)
+	sr.HandleFunc("/configure", s.Info)
+	sr.HandleFunc("/listen", s.Listen)
+	sr.HandleFunc("/enumerate", s.Enumerate)
+	sr.HandleFunc("/acquire/{path}", s.Acquire)
+	sr.HandleFunc("/acquire/{path}/{session}", s.Acquire)
+	sr.HandleFunc("/release/{session}", s.Release)
+	sr.HandleFunc("/call/{session}", s.Call)
 
 	headers := handlers.AllowedHeaders([]string{"Content-Type"})
 
@@ -70,7 +72,7 @@ func New(bus *usb.USB) (*server, error) {
 		return nil, err
 	}
 
-	methods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "OPTIONS"})
+	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
 	h = handlers.LoggingHandler(os.Stdout, h)
