@@ -1,13 +1,15 @@
-trezord-go
-===
+# trezord-go
+
+[![Build Status](https://travis-ci.org/trezor/trezord-go.svg?branch=master)](https://travis-ci.org/trezor/trezord-go) [![gitter](https://badges.gitter.im/trezor/community.svg)](https://gitter.im/trezor/community)
+
+TREZOR Communication Daemon aka TREZOR Bridge (written in Go)
 
 ```
 go build
 ./trezord-go -h
 ```
 
-Quick guide to cross-compiling
-----
+## Quick guide to cross-compiling
 
 Prerequisites:
 
