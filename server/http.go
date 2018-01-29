@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -41,7 +40,7 @@ type server struct {
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 }
 
-func New(bus *usb.USB) (*server, error) {
+func New(bus *usb.USB, logger io.WriteCloser) (*server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
@@ -74,7 +73,7 @@ func New(bus *usb.USB) (*server, error) {
 	// Restrict cross-origin access.
 	h = handlers.CORS(headers, v, methods)(h)
 	// Log after the request is done, in the Apache format.
-	h = handlers.LoggingHandler(os.Stdout, h)
+	h = handlers.LoggingHandler(logger, h)
 	// Log when the request is received.
 	h = logRequest(h)
 
