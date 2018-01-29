@@ -44,7 +44,7 @@ func New(bus *usb.USB) (*server, error) {
 		Certificates: certs,
 	}
 	https := &http.Server{
-		Addr:      ":21324",
+		Addr:      "127.0.0.1:21324",
 		TLSConfig: config,
 	}
 	s := &server{
