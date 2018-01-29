@@ -30,16 +30,15 @@ type session struct {
 }
 
 type server struct {
-	https    *http.Server
-	bus      *usb.USB
-	sessions map[string]*session
+	https *http.Server
+	bus   *usb.USB
 
-	sessionsMutex sync.Mutex // we want atomic access to sessions
+	sessions      map[string]*session
+	sessionsMutex sync.Mutex // for atomic access to sessions
 
 	callInProgress bool       // we cannot make calls and enumeration at the same time
-	callMutex      sync.Mutex // we want atomic access to callInProgress, plus prevent enumeration
-
-	lastInfos []usb.Info // when call is in progress, use saved info for enumerating
+	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
+	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 }
 
 func New(bus *usb.USB) (*server, error) {
@@ -47,11 +46,9 @@ func New(bus *usb.USB) (*server, error) {
 		Addr: "127.0.0.1:21325",
 	}
 	s := &server{
-		bus:            bus,
-		https:          https,
-		sessions:       make(map[string]*session),
-		callInProgress: false,
-		lastInfos:      make([]usb.Info, 0),
+		bus:      bus,
+		https:    https,
+		sessions: make(map[string]*session),
 	}
 	r := mux.NewRouter()
 
@@ -74,11 +71,11 @@ func New(bus *usb.USB) (*server, error) {
 	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
-	// restrict cross-origin access
+	// Restrict cross-origin access.
 	h = handlers.CORS(headers, v, methods)(h)
-	// log after the request is done, in the Apache format
+	// Log after the request is done, in the Apache format.
 	h = handlers.LoggingHandler(os.Stdout, h)
-	// log when the request is received
+	// Log when the request is received.
 	h = logRequest(h)
 
 	https.Handler = h
@@ -99,12 +96,12 @@ func corsValidator() (handlers.CORSOption, error) {
 		return nil, err
 	}
 	v := handlers.AllowedOriginValidator(func(origin string) bool {
-		// `localhost:8000` is added for easing local development
-		if origin == "https://localhost:8000" {
+		// `localhost:8000` is added for easing local development.
+		if origin == "https://localhost:8000" || origin == "http://localhost:8000" {
 			return true
 		}
 
-		// `null` is for electron apps or chrome extensions
+		// `null` is for electron apps or chrome extensions.
 		if origin == "null" {
 			return true
 		}
@@ -195,16 +192,17 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) enumerate() ([]entry, error) {
-	// lock for atomic access to s.sessions
+	// Lock for atomic access to s.sessions.
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
-	// lock for atomic access to callInProgress
-	// it needs to be over whole function, so that call does not actually start while enumerating
+	// Lock for atomic access to s.callInProgress.  It needs to be over
+	// whole function, so that call does not actually start while
+	// enumerating.
 	s.callMutex.Lock()
 	defer s.callMutex.Unlock()
 
-	// use saved info if call in progress, elsewhere enumerate
+	// Use saved info if call is in progress, otherwise enumerate.
 	infos := s.lastInfos
 
 	if !s.callInProgress {
@@ -225,8 +223,8 @@ func (s *server) enumerate() ([]entry, error) {
 		}
 		for _, ss := range s.sessions {
 			if ss.path == info.Path {
-				// copying to prevent overwriting on acquire
-				// and wrong comparison in Listen
+				// Copying to prevent overwriting on Acquire and
+				// wrong comparison in Listen.
 				ssIdCopy := ss.id
 				e.Session = &ssIdCopy
 			}
@@ -276,10 +274,9 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Chrome tries to read from Trezor immediately after connecting
-	// So do we
-	// Bad timing can produce error on s.bus.Connect
-	// => try 3 times with a 100ms delay
+	// Chrome tries to read from trezor immediately after connecting, and so
+	// do we.  Bad timing can produce error on s.bus.Connect.  Try 3 times
+	// with a 100ms delay.
 	tries := 0
 	for {
 		dev, err := s.bus.Connect(path)
