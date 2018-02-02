@@ -1,0 +1,59 @@
+### BEGIN INIT INFO
+# Provides:          trezord
+# Required-Start:    $local_fs $network $named
+# Required-Stop:     $local_fs $network $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: TREZOR Bridge
+# Description:       This is a daemon that allows webpages to communicate
+#                    with TREZOR devices.
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+NAME=trezord
+DAEMON=/usr/bin/trezord
+USER=trezord
+
+test -x $DAEMON || exit 5
+
+case $1 in
+
+  start)
+    if pidof $DAEMON > /dev/null ; then
+      log_warning_msg "$NAME already running"
+      exit
+    fi
+    if su - $USER -s /bin/sh -c $DAEMON > /dev/null ; then
+      log_success_msg "$NAME started"
+    else
+      log_failure_msg "$NAME start failed"
+    fi
+    ;;
+  stop)
+    if pidof $DAEMON > /dev/null ; then
+      if killall $DAEMON > /dev/null ; then
+        log_success_msg "$NAME stopped"
+      else
+        log_failure_msg "$NAME stop failed"
+      fi
+    else
+      log_warning_msg "$NAME not running"
+    fi
+    ;;
+  restart)
+    $0 stop
+    sleep 2
+    $0 start
+    ;;
+  status)
+    if pidof $DAEMON > /dev/null ; then
+      log_success_msg "$NAME is running"
+    else
+      log_success_msg "$NAME is not running"
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    ;;
+esac

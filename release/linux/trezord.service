@@ -1,0 +1,11 @@
+[Unit]
+Description=TREZOR Bridge
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/trezord
+User=trezord
+
+[Install]
+WantedBy=multi-user.target
