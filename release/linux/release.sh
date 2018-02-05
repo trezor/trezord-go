@@ -26,7 +26,7 @@ fi
 NAME=trezor-bridge
 
 rm -f  *.tar.bz2
-tar -cjf $NAME-$VERSION.tar.bz2 ./etc ./usr ./lib
+tar -cjf $NAME-$VERSION.tar.bz2 ./usr ./lib
 
 for TYPE in "deb" "rpm"; do
 	case "$TARGET-$TYPE" in
@@ -75,4 +75,4 @@ for TYPE in "deb" "rpm"; do
 done
 
 
-rm -rf ./etc ./usr ./lib
+rm -rf ./usr ./lib
