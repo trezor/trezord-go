@@ -6,7 +6,6 @@ cd $(dirname $0)
 
 GPGSIGNKEY=86E6792FC27BFD478860C11091F3B339B9A02A3D
 TARGET=$1
-BUILDDIR=build${TARGET:+-$TARGET}
 VERSION=$(cat /release/build/VERSION)
 
 cd /release/build
@@ -27,8 +26,8 @@ fi
 
 NAME=trezor-bridge
 
-rm -f *.deb *.rpm *.tar.bz2
-tar -cjf $NAME-$VERSION.tar.bz2 --exclude=./lib/jsoncpp ./etc ./usr ./lib
+rm -f  *.tar.bz2
+tar -cjf $NAME-$VERSION.tar.bz2 ./etc ./usr ./lib
 
 for TYPE in "deb" "rpm"; do
 	case "$TARGET-$TYPE" in
