@@ -6,7 +6,7 @@
   <title>TREZOR Bridge</title>
   <!--displayed on start, can be localized-->
   <welcome
-    file="welcome.rtf"
+    file="welcome.txt"
     mime-type="text/plain"
   />
   <!--dispayed on top left. note that the image is GIANT.
