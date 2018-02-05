@@ -19,7 +19,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-#    Upstream web site is http://dpkg-sig.turmzimmer.net/
+#    Upstream web site used to be <http://dpkg-sig.turmzimmer.net/>.
 
 =pod
 
@@ -69,6 +69,10 @@ if ($client) {
 	&read_cmds();
 	exit;
 }
+
+#Only load Config::File if we're not in the client mode:
+eval { require Config::File; import Config::File qw(read_config_file); };
+_die($@) if $@;
 
 $tempdir = tempdir("debsigs-ng.XXXXXX", CLEANUP => 1, TMPDIR => 1);
 
@@ -136,6 +140,7 @@ for my $exp (@files) {
 				print @verify_output;
 				exit 2 if grep { /^BADSIG/ } @verify_output;
 				exit 3 if grep { /^UNKNOWNSIG/ } @verify_output;
+				exit 4 if grep { /^NOSIG/ } @verify_output;
 			} elsif ($list) {
 				for (get_deb_parts($file)) {
 					print "$1\n" if ($_->[0] =~ /_gpg(.+)/);
@@ -177,6 +182,7 @@ for my $exp (@files) {
 					print @verify_output;
 					exit 2 if grep { /^BADSIG/ } @verify_output;
 					exit 3 if grep { /^UNKNOWNSIG/ } @verify_output;
+					exit 4 if grep { /^NOSIG/ } @verify_output;
 				} elsif ($list) {
 					for (get_deb_parts($deb)) {
 						print "$1\n" if ($_->[0] =~ /_gpg(.+)/);
@@ -498,6 +504,7 @@ sub verify_deb {
 
 	#Get MD5 sums:
 	my $digests = get_deb_digests($deb);
+	my $found_sigs;
 
 	for (my $n=0;$n<@$digests;$n++) {
 		my ($part_name, $size, $sha1sum, $md5sum) = @{@$digests[$n]};
@@ -513,12 +520,15 @@ sub verify_deb {
 
 		if ($sig =~ /BEGIN PGP SIGNED MESSAGE/) {
 			$status = verify_deb_sig_v4($part_name, $n, $digests, \@info, \@return);
+			$found_sigs = 1;
 		}
 		if ($check_v3_sig && (!$status || $status eq "BAD")) {
 			$status = verify_deb_sig_v3($part_name, $n, $digests, \@info, \@return);
+			$found_sigs = 1;
 		}
 		if ($check_v2_sig && (!$status || $status eq "BAD")) {
 			$status = verify_deb_sig_v2($part_name, $n, $digests, \@info, \@return);
+			$found_sigs = 1;
 		}
 
 		if      ($status && $status eq "GOOD") {
@@ -528,6 +538,9 @@ sub verify_deb {
 		} else {
 			push @return, "BADSIG $part_name\n"
 		}
+	}
+	if (!$found_sigs) {
+		push @return, "NOSIG\n"
 	}
 
 	return @return;
@@ -629,9 +642,9 @@ sub verify_deb_sig_v4 {
 		return "FORCE_BAD";
 	}
 
-	return "FORCE_BAD" unless ($seen_files{"control.tar.gz"} &&
-	                     $seen_files{"data.tar.gz"} &&
-	                     $seen_files{"debian-binary"});
+	return "FORCE_BAD" unless ($seen_files{'debian-binary'} &&
+	    ($seen_files{'control.tar'} || $seen_files{'control.tar.gz'} || $seen_files{'control.tar.xz'}) &&
+	    ($seen_files{'data.tar'} || $seen_files{'data.tar.gz'} || $seen_files{'data.tar.xz'} || $seen_files{'data.tar.bz2'} || $seen_files{'data.tar.lzma'}));
 
 	return "GOOD";
 }
@@ -914,7 +927,7 @@ Parses I<$file> as ar archive and returns all filenames included in the archive.
 
 =cut
 
-sub get_ar_parts { get_deb_part(@_) }
+sub get_ar_parts { get_deb_parts(@_) }
 sub get_deb_parts {
 	my ($deb) = shift;
 
@@ -952,7 +965,7 @@ sub get_deb_parts {
 			if ($line =~ /\S/) { #This should help with additional newlines
 				#debian-binary   1075243548  0     0     100644  4         `
 				my $name   = substr($line, 0, 16);
-				$name =~ s/\s*//g;
+				$name =~ s{/?\s*$}{}g;
 				my $length = substr($line, 48, 10);
 				$length =~ s/\s*//g;
 				next if (!$name && $length && $length =~ /^\d+\s*$/);
@@ -1083,7 +1096,7 @@ sub get_deb_digests {
 				
 				#debian-binary   1075243548  0     0     100644  4         `
 				   $name   = substr($line, 0, 16);
-				   $name =~ s/\s*//g;
+				   $name =~ s{/?\s*$}{}g;
 				my $length = substr($line, 48, 10);
 				   $length =~ s/\s*//g;
 				next if (!$name && $length && $length =~ /^\d+\s*$/);
@@ -1206,6 +1219,7 @@ sub get_archive_part {
 			my $line = <DEB>;
 			#debian-binary   1075243548  0     0     100644  4         `
 			my $name   = substr($line, 0, 16);
+			$name =~ s{/?\s*$}{}g;
 			my $length = substr($line, 48, 10);
 			next if (!$name && $length && $length =~ /^\d+\s*$/);
 			
@@ -1217,7 +1231,7 @@ sub get_archive_part {
 				die _die("Couldn't read $name in $deb: File too short!");			
 			}
 
-			if ($name =~ /^$part_name\s*$/) {
+			if ($name eq $part_name) {
 				$part = $tmp_part;
 				last;
 			}
@@ -1501,6 +1515,8 @@ This works like debsign:
 =item Reads I<$changes_file> and puts in the new size/md5sum of the .dsc.
 
 =item Signs I<$changes_file> and write the signed copy back.
+
+=back
 
 =cut
 
