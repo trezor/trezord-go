@@ -70,10 +70,6 @@ if ($client) {
 	exit;
 }
 
-#Only load Config::File if we're not in the client mode:
-eval { require Config::File; import Config::File qw(read_config_file); };
-_die($@) if $@;
-
 $tempdir = tempdir("debsigs-ng.XXXXXX", CLEANUP => 1, TMPDIR => 1);
 
 
