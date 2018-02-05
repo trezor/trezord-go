@@ -25,55 +25,54 @@ fi
 
 NAME=trezor-bridge
 
-rm -f  *.tar.bz2
+rm -f *.tar.bz2
 tar -cjf $NAME-$VERSION.tar.bz2 ./usr ./lib
 
 for TYPE in "deb" "rpm"; do
-	case "$TARGET-$TYPE" in
-		linux-386-*)
-			ARCH=i386
-			;;
-		linux-amd64-deb)
-			ARCH=amd64
-			;;
-		linux-amd64-rpm)
-			ARCH=x86_64
-			;;
-		linux-arm-7-deb)
-			ARCH=armhf
-			;;
-		linux-arm-7-rpm)
-			ARCH=armv7hl
-			;;
-		linux-arm64-*)
-			ARCH=arm64
-			;;
-	esac
-	fpm \
-		-s tar \
-		-t $TYPE \
-		-a $ARCH \
-		-n $NAME \
-		-v $VERSION \
-		--license "LGPL-3.0" \
-		--vendor "SatoshiLabs" \
-		--description "Communication daemon for TREZOR" \
-		--maintainer "SatoshiLabs <stick@satoshilabs.com>" \
-		--url "https://trezor.io/" \
-		--category "Productivity/Security" \
-		--before-install /release/fpm.before-install.sh \
-		--after-install /release/fpm.after-install.sh \
-		--before-remove /release/fpm.before-remove.sh \
-		$NAME-$VERSION.tar.bz2
-	case "$TYPE-$GPG_SIGN" in
-		deb-gpg)
-			/release/dpkg-sig -k $GPGSIGNKEY --sign builder trezor-bridge_${VERSION}_${ARCH}.deb
-			;;
-		rpm-gpg)
-			rpm --addsign -D "%_gpg_name $GPGSIGNKEY" trezor-bridge-${VERSION}-1.${ARCH}.rpm
-			;;
-	esac
+    case "$TARGET-$TYPE" in
+        linux-386-*)
+            ARCH=i386
+            ;;
+        linux-amd64-deb)
+            ARCH=amd64
+            ;;
+        linux-amd64-rpm)
+            ARCH=x86_64
+            ;;
+        linux-arm-7-deb)
+            ARCH=armhf
+            ;;
+        linux-arm-7-rpm)
+            ARCH=armv7hl
+            ;;
+        linux-arm64-*)
+            ARCH=arm64
+            ;;
+    esac
+    fpm \
+        -s tar \
+        -t $TYPE \
+        -a $ARCH \
+        -n $NAME \
+        -v $VERSION \
+        --license "LGPL-3.0" \
+        --vendor "SatoshiLabs" \
+        --description "Communication daemon for TREZOR" \
+        --maintainer "SatoshiLabs <stick@satoshilabs.com>" \
+        --url "https://trezor.io/" \
+        --category "Productivity/Security" \
+        --before-install /release/fpm.before-install.sh \
+        --after-install /release/fpm.after-install.sh \
+        --before-remove /release/fpm.before-remove.sh \
+        $NAME-$VERSION.tar.bz2
+    case "$TYPE-$GPG_SIGN" in
+        deb-gpg)
+            /release/dpkg-sig -k $GPGSIGNKEY --sign builder trezor-bridge_${VERSION}_${ARCH}.deb
+            ;;
+        rpm-gpg)
+            rpm --addsign -D "%_gpg_name $GPGSIGNKEY" trezor-bridge-${VERSION}-1.${ARCH}.rpm
+            ;;
+    esac
 done
-
 
 rm -rf ./usr ./lib
