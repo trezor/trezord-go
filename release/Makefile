@@ -15,3 +15,7 @@ all: .windows .linux .macos .copy
 	cp macos/build/*.pkg installers
 	cp windows/build/trezor-bridge*.exe installers
 	cp linux/build/*.deb linux/build/*.rpm installers
+
+.gpg:
+	gpg --armor --detach-sig installers/trezor-bridge*.exe
+	gpg --armor --detach-sig installers/*.pkg
