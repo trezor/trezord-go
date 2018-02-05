@@ -9,6 +9,15 @@ go build
 ./trezord-go -h
 ```
 
+## Guide to compiling packages
+
+Prerequisites:
+
+* `go get github.com/karalabe/xgo`
+* `docker pull karalabe/xgo-latest`
+* make sure `xgo` and `docker`
+* `cd release && make all`; the installers are in `installers`
+
 ## Quick guide to cross-compiling
 
 Prerequisites:
