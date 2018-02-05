@@ -1,3 +1,0 @@
-This will install a communication bridge, which facilitates the connection between the applications on your Mac and your TREZOR device.
-
-Click Continue to install.

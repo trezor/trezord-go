@@ -1,0 +1,17 @@
+<pkg-info
+  format-version="2"
+  identifier="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+  version="VERSION"
+  overwrite-permissions="false"
+  useHFSPlusCompression="true"
+  install-location="/"
+  auth="none"
+>
+  <payload
+    installKBytes="0"
+    numberOfFiles="0"
+  />
+  <scripts>
+    <postinstall file="./postinstall"/>
+  </scripts>
+</pkg-info>

@@ -1,10 +1,10 @@
-all: .windows .linux .mac .copy
+all: .windows .linux .macos .copy
 
 .linux:
 	make -C linux all
 
-.mac:
-	make -C mac all
+.macos:
+	make -C macos all
 
 .windows:
 	make -C windows all
@@ -12,6 +12,6 @@ all: .windows .linux .mac .copy
 .copy:
 	rm -rf installers
 	mkdir installers
-	cp mac/build/*.pkg installers
+	cp macos/build/*.pkg installers
 	cp windows/build/trezor-bridge*.exe installers
 	cp linux/build/*.deb linux/build/*.rpm installers

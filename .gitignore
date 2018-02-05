@@ -1,1 +1,7 @@
 trezord-go
+release/installers/
+release/linux/build/
+release/linux/privkey.asc
+release/macos/build/
+release/windows/authenticode.*
+release/windows/build/

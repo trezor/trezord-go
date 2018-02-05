@@ -19,5 +19,3 @@ RUN gem install fpm --no-document
 # install package signing tools
 RUN dnf install -y rpm-sign
 RUN ln -s gpg2 /usr/bin/gpg
-
-ADD release.sh /release.sh

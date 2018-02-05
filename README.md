@@ -15,7 +15,7 @@ Prerequisites:
 
 * `go get github.com/karalabe/xgo`
 * `docker pull karalabe/xgo-latest`
-* make sure `xgo` and `docker`
+* make sure `xgo` and `docker` are in `$PATH`
 * `cd release && make all`; the installers are in `installers`
 
 ## Quick guide to cross-compiling

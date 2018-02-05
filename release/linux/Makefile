@@ -13,7 +13,7 @@ clean:
 .binary64:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=linux/amd64 ../..
+	xgo -targets=linux/amd64 github.com/trezor/trezord-go
 	mv -f $(NAME64) build/trezord
 	cp ../../VERSION build
 
@@ -24,7 +24,7 @@ clean:
 .binary32:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=linux/386 ../..
+	xgo -targets=linux/386 github.com/trezor/trezord-go
 	mv -f $(NAME32) build/trezord
 	cp ../../VERSION build
 
