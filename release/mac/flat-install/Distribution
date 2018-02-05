@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script
+  minSpecVersion="1"
+>
+  <!--displayed in the header-->
+  <title>TREZOR Bridge</title>
+  <!--displayed on start, can be localized-->
+  <welcome
+    file="welcome.txt"
+    mime-type="text/plain"
+  />
+  <!--dispayed on top left. note that the image is GIANT.
+      That might be some instaler issue, or maybe DPI/Retina? -->
+  <background 
+    file="logo.png"
+    mime-type="image/png"
+  />
+
+  <pkg-ref 
+    id="com.bitcointrezor.pkg.TREZORBridge"
+  />
+  
+  <choices-outline>
+    <line 
+      choice="com.bitcointrezor.pkg.TREZORBridge"
+    />
+  </choices-outline>
+  
+  <choice 
+    id="com.bitcointrezor.pkg.TREZORBridge"
+    visible="true"
+    title="Install TREZOR Bridge"
+  >
+    <pkg-ref
+      id="com.bitcointrezor.pkg.TREZORBridge"
+    />
+  </choice>
+  <pkg-ref
+    id="com.bitcointrezor.pkg.TREZORBridge"
+    version="VERSION"
+    onConclusion="none"
+    installKBytes="KBYTES"
+  >#install.pkg</pkg-ref>
+
+</installer-gui-script>

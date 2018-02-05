@@ -1,0 +1,61 @@
+!include MUI2.nsh
+
+RequestExecutionLevel admin
+
+SetCompressor bzip2
+
+Name "TREZOR Bridge"
+InstallDirRegKey HKLM Software\TREZOR\Bridge InstallDir
+
+ShowInstDetails hide
+ShowUninstDetails hide
+
+XPStyle on
+
+Page directory
+Page instfiles
+
+DirText "Please select the installation folder."
+
+Section "TREZOR Bridge"
+  SectionIn RO
+
+  DetailPrint "Stopping previous TREZOR Bridge"
+  nsExec::Exec "taskkill /IM trezord.exe /F"
+
+  SetOutPath "$INSTDIR"
+  File "trezord.exe"
+SectionEnd
+
+Section "Start Menu Shortcuts"
+  CreateDirectory "$SMPROGRAMS\TREZOR Bridge"
+  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.exe" 0
+  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.exe" 0
+SectionEnd
+
+Section "Uninstall"
+  ExecWait "taskkill /f /im trezord.exe"
+
+  Delete /rebootok "$SMSTARTUP\TREZOR Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\TREZOR Bridge"
+
+  Delete /rebootok "$INSTDIR\trezord.exe"
+  Delete /rebootok "$INSTDIR\Uninstall.exe"
+  RMDir "$INSTDIR"
+SectionEnd
+
+Section -post
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_TEXT "Start TREZOR Bridge"
+!define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApplication"
+!insertmacro MUI_PAGE_FINISH
+
+Function LaunchApplication
+  ExecShell "" "$INSTDIR\trezord.exe"
+FunctionEnd
