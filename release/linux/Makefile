@@ -1,36 +1,29 @@
 PLATFORM  = linux
-NAME64 = trezord-go-linux-amd64
-NAME32 = trezord-go-linux-386
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-all: clean .package64 .package32
+all: clean .package
 
 clean:
 	$(info Cleaning...)
 	rm -rf build
 
-.binary64:
+.binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=linux/amd64 github.com/trezor/trezord-go
-	mv -f $(NAME64) build/trezord
+	xgo -targets=linux/386,linux/amd64,linux/arm-7,linux/arm64 github.com/trezor/trezord-go
+	mv -f trezord-go-linux-386 build/trezord-linux-386
+	mv -f trezord-go-linux-amd64 build/trezord-linux-amd64
+	mv -f trezord-go-linux-arm-7 build/trezord-linux-arm-7
+	mv -f trezord-go-linux-arm64 build/trezord-linux-arm64
 	cp ../../VERSION build
 
-.package64: .binary64 .docker-image
+.package: .binary .docker-image
 	$(info Packaging ...)
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh lin64
-
-.binary32:
-	$(info Building with xgo ...)
-	mkdir -p build
-	xgo -targets=linux/386 github.com/trezor/trezord-go
-	mv -f $(NAME32) build/trezord
-	cp ../../VERSION build
-
-.package32: .binary32 .docker-image
-	$(info Packaging ...)
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh lin32
+	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh linux-386
+	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh linux-amd64
+	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh linux-arm-7
+	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh linux-arm64
 
 .docker-image:
 	$(info Preparing docker image ...)

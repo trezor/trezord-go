@@ -4,7 +4,7 @@ NAME64 = trezord-go-darwin-10.6-amd64
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-all: .package
+all: clean .package
 
 clean:
 	$(info Cleaning...)

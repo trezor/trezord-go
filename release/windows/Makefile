@@ -4,7 +4,7 @@ NAME32 = trezord-go-windows-4.0-386.exe
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-all: .package
+all: clean .package
 
 clean:
 	$(info Cleaning...)

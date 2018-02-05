@@ -10,7 +10,7 @@ VERSION=$(cat /release/build/VERSION)
 
 cd /release/build
 
-install -D -m 0755 trezord                  ./usr/bin/trezord
+install -D -m 0755 trezord-$TARGET          ./usr/bin/trezord
 install -D -m 0644 /release/trezor.rules    ./lib/udev/rules.d/51-trezor.rules
 install -D -m 0644 /release/trezord.service ./usr/lib/systemd/system/trezord.service
 
@@ -30,21 +30,23 @@ tar -cjf $NAME-$VERSION.tar.bz2 ./usr ./lib
 
 for TYPE in "deb" "rpm"; do
 	case "$TARGET-$TYPE" in
-		lin32-deb)
+		linux-386-*)
 			ARCH=i386
-			DEPS=""
 			;;
-		lin64-deb)
+		linux-amd64-deb)
 			ARCH=amd64
-			DEPS=""
 			;;
-		lin32-rpm)
-			ARCH=i386
-			DEPS=""
-			;;
-		lin64-rpm)
+		linux-amd64-rpm)
 			ARCH=x86_64
-			DEPS=""
+			;;
+		linux-arm-7-deb)
+			ARCH=armhf
+			;;
+		linux-arm-7-rpm)
+			ARCH=armv7hl
+			;;
+		linux-arm64-*)
+			ARCH=arm64
 			;;
 	esac
 	fpm \
@@ -62,7 +64,6 @@ for TYPE in "deb" "rpm"; do
 		--before-install /release/fpm.before-install.sh \
 		--after-install /release/fpm.after-install.sh \
 		--before-remove /release/fpm.before-remove.sh \
-		$DEPS \
 		$NAME-$VERSION.tar.bz2
 	case "$TYPE-$GPG_SIGN" in
 		deb-gpg)
