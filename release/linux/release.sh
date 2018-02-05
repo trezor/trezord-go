@@ -10,9 +10,8 @@ VERSION=$(cat /release/build/VERSION)
 
 cd /release/build
 
-install -D -m 0755 trezord                          ./usr/bin/trezord
+install -D -m 0755 trezord                  ./usr/bin/trezord
 install -D -m 0644 /release/trezor.rules    ./lib/udev/rules.d/51-trezor.rules
-install -D -m 0755 /release/trezord.init    ./etc/init.d/trezord
 install -D -m 0644 /release/trezord.service ./usr/lib/systemd/system/trezord.service
 
 # prepare GPG signing environment
