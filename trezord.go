@@ -11,15 +11,26 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+// possibly set as "true" by ldflags
+var enableWindowsLogging string
+
 func main() {
 	var logfile string
 	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 5MB")
 	flag.Parse()
 
 	var logger io.WriteCloser
-	if logfile != "" {
+	if logfile != "" || enableWindowsLogging == "true" {
+		var address string
+
+		if logfile != "" {
+			address = logfile
+		} else {
+			address = os.Getenv("APPDATA") + "\\TREZOR Bridge\\trezord.log"
+		}
+
 		logger = &lumberjack.Logger{
-			Filename:   logfile,
+			Filename:   address,
 			MaxSize:    5, // megabytes
 			MaxBackups: 3,
 		}
