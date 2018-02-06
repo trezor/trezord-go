@@ -13,7 +13,7 @@
     numberOfFiles="FILES"
   />
   <scripts>
-    <preinstall file="./postinstall"/>
+    <preinstall file="./preinstall"/>
     <postinstall file="./postinstall"/>
   </scripts>
 </pkg-info>
