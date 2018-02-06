@@ -13,7 +13,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows/386 github.com/trezor/trezord-go
+	xgo -ldflags="-H=windowsgui -X main.enableWindowsLogging=true" -targets=windows/386 github.com/trezor/trezord-go
 	mv -f $(NAME32) build/trezord.exe
 	cp ../../VERSION build
 
