@@ -12,6 +12,7 @@ INSTALLER=trezor-bridge-$VERSION-$TARGET-install.exe
 cd /release/build
 
 cp /release/trezord.nsis trezord.nsis
+cp /release/trezord.ico trezord.ico
 
 SIGNKEY=/release/authenticode
 

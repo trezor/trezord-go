@@ -25,13 +25,14 @@ Section "TREZOR Bridge"
 
   SetOutPath "$INSTDIR"
   File "trezord.exe"
+  File "trezord.ico"
 SectionEnd
 
 Section "Start Menu Shortcuts"
   CreateDirectory "$SMPROGRAMS\TREZOR Bridge"
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.exe" 0
-  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.exe" 0
+  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.ico" 0
+  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "" "$INSTDIR\trezord.ico" 0
 SectionEnd
 
 Section "Uninstall"
@@ -43,6 +44,7 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\TREZOR Bridge"
 
   Delete /rebootok "$INSTDIR\trezord.exe"
+  Delete /rebootok "$INSTDIR\trezord.ico"
   Delete /rebootok "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 SectionEnd
