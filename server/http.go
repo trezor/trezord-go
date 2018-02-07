@@ -230,6 +230,18 @@ func (s *server) enumerate() ([]entry, error) {
 		}
 		entries = append(entries, e)
 	}
+	// Also release all sessions of disconnected devices
+	for ssid, ss := range s.sessions {
+		connected := false
+		for _, info := range infos {
+			if ss.path == info.Path {
+				connected = true
+			}
+		}
+		if !connected {
+			s.release(ssid)
+		}
+	}
 	return entries, nil
 }
 
