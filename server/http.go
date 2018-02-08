@@ -246,8 +246,9 @@ func (s *server) enumerate() ([]entry, error) {
 }
 
 var (
-	ErrSessionNotFound = errors.New("wrong previous session")
-	ErrMalformedData   = errors.New("malformed data")
+	ErrWrongPrevSession = errors.New("wrong previous session")
+	ErrSessionNotFound  = errors.New("session not found")
+	ErrMalformedData    = errors.New("malformed data")
 )
 
 func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
@@ -273,7 +274,7 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		acquired = &session{path: path}
 	}
 	if acquired.id != prev {
-		respondError(w, ErrSessionNotFound)
+		respondError(w, ErrWrongPrevSession)
 		return
 	}
 
