@@ -77,10 +77,28 @@ func (d *HID) Close() error {
 	return d.dev.Close()
 }
 
+var unknownErrorMessage = "hidapi: unknown failure"
+
+func (d *HID) readWrite(buf []byte, read bool) (int, error) {
+	var w int
+	var err error
+
+	if read {
+		w, err = d.dev.Read(buf)
+	} else {
+		w, err = d.dev.Write(buf)
+	}
+
+	if err != nil && err.Error() == unknownErrorMessage {
+		return 0, disconnectError
+	}
+	return w, err
+}
+
 func (d *HID) Write(buf []byte) (int, error) {
-	return d.dev.Write(buf)
+	return d.readWrite(buf, false)
 }
 
 func (d *HID) Read(buf []byte) (int, error) {
-	return d.dev.Read(buf)
+	return d.readWrite(buf, true)
 }
