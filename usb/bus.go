@@ -1,6 +1,7 @@
 package usb
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -65,3 +66,5 @@ func (b *USB) Connect(path string) (Device, error) {
 	}
 	return nil, ErrNotFound
 }
+
+var disconnectError = errors.New("Device disconnected during action")
