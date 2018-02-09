@@ -12,9 +12,16 @@ Copyright (c) 2017 Jason T. Harris
 package usbhid
 
 /*
-// +build linux,cgo darwin,!ios,cgo windows,cgo
+// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
 
+#cgo freebsd CFLAGS: -DWITH_SYSTEM_LIBS
+#cgo freebsd LDFLAGS: -lusb
+
+#ifdef WITH_SYSTEM_LIBS
+#include <libusb.h>
+#else
 #include "./c/libusb/libusb.h"
+#endif
 
 // When a C struct ends with a zero-sized field, but the struct itself is not zero-sized,
 // Go code can no longer refer to the zero-sized field. Any such references will have to be rewritten.
@@ -921,9 +928,11 @@ func Get_Port_Numbers(dev Device, ports []byte) ([]byte, error) {
 	return ports[:rc], nil
 }
 
+/*
 func Get_Parent(dev Device) Device {
 	return C.libusb_get_parent(dev)
 }
+*/
 
 func Get_Device_Address(dev Device) uint8 {
 	return uint8(C.libusb_get_device_address(dev))
@@ -1066,10 +1075,12 @@ func Set_Auto_Detach_Kernel_Driver(hdl Device_Handle, enable bool) error {
 //-----------------------------------------------------------------------------
 // Miscellaneous
 
+/*
 func Has_Capability(capability uint32) bool {
 	rc := int(C.libusb_has_capability((C.uint32_t)(capability)))
 	return rc != 0
 }
+*/
 
 func Error_Name(code int) string {
 	return C.GoString(C.libusb_error_name(C.int(code)))
@@ -1084,6 +1095,7 @@ func CPU_To_LE16(x uint16) uint16 {
 	return uint16(C.libusb_cpu_to_le16((C.uint16_t)(x)))
 }
 
+/*
 func Setlocale(locale string) error {
 	cstr := C.CString(locale)
 	rc := int(C.libusb_setlocale(cstr))
@@ -1092,6 +1104,7 @@ func Setlocale(locale string) error {
 	}
 	return nil
 }
+*/
 
 func Strerror(errcode int) string {
 	return C.GoString(C.libusb_strerror(int32(errcode)))
