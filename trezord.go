@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io"
 	"log"
+	"runtime"
 	"os"
 
 	"github.com/trezor/trezord-go/server"
@@ -36,7 +37,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("hidapi: %s", err)
 	}
-	b := usb.Init(w, h)
+	var b *usb.USB
+	if runtime.GOOS != "freebsd" {
+		b = usb.Init(w, h)
+	} else {
+		b = usb.Init(w)
+	}
 
 	s, err := server.New(b, logger)
 	if err != nil {
