@@ -89,7 +89,7 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 		w, err = d.dev.Write(buf)
 	}
 
-	if err.Error() == unknownErrorMessage {
+	if err != nil && err.Error() == unknownErrorMessage {
 		return 0, disconnectError
 	}
 	return w, err
