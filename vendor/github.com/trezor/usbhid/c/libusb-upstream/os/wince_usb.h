@@ -1,5 +1,5 @@
 /*
- * Windows CE backend for libusbx 1.0
+ * Windows CE backend for libusb 1.0
  * Copyright © 2011-2013 RealVNC Ltd.
  * Portions taken from Windows backend, which is
  * Copyright © 2009-2010 Pete Batard <pbatard@gmail.com>
@@ -36,7 +36,7 @@
 // This backend dynamically loads ceusbkwrapper.dll and doesn't include
 // ceusbkwrapper.h directly to simplify the build process. The kernel
 // side wrapper driver is built using the platform image build tools,
-// which makes it difficult to reference directly from the libusbx build
+// which makes it difficult to reference directly from the libusb build
 // system.
 struct UKW_DEVICE_PRIV;
 typedef struct UKW_DEVICE_PRIV *UKW_DEVICE;
@@ -87,28 +87,29 @@ typedef struct {
  * to specify the currently active configuration for the device. */
 #define UKW_ACTIVE_CONFIGURATION -1
 
-DLL_DECLARE(WINAPI, HANDLE, UkwOpenDriver, ());
-DLL_DECLARE(WINAPI, BOOL, UkwGetDeviceList, (HANDLE, LPUKW_DEVICE, DWORD, LPDWORD));
-DLL_DECLARE(WINAPI, void, UkwReleaseDeviceList, (HANDLE, LPUKW_DEVICE, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwGetDeviceAddress, (UKW_DEVICE, unsigned char*, unsigned char*, unsigned long*));
-DLL_DECLARE(WINAPI, BOOL, UkwGetDeviceDescriptor, (UKW_DEVICE, LPUKW_DEVICE_DESCRIPTOR));
-DLL_DECLARE(WINAPI, BOOL, UkwGetConfigDescriptor, (UKW_DEVICE, DWORD, LPVOID, DWORD, LPDWORD));
-DLL_DECLARE(WINAPI, void, UkwCloseDriver, (HANDLE));
-DLL_DECLARE(WINAPI, BOOL, UkwCancelTransfer, (UKW_DEVICE, LPOVERLAPPED, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwIssueControlTransfer, (UKW_DEVICE, DWORD, LPUKW_CONTROL_HEADER, LPVOID, DWORD, LPDWORD, LPOVERLAPPED));
-DLL_DECLARE(WINAPI, BOOL, UkwClaimInterface, (UKW_DEVICE, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwReleaseInterface, (UKW_DEVICE, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwSetInterfaceAlternateSetting, (UKW_DEVICE, DWORD, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwClearHaltHost, (UKW_DEVICE, UCHAR));
-DLL_DECLARE(WINAPI, BOOL, UkwClearHaltDevice, (UKW_DEVICE, UCHAR));
-DLL_DECLARE(WINAPI, BOOL, UkwGetConfig, (UKW_DEVICE, PUCHAR));
-DLL_DECLARE(WINAPI, BOOL, UkwSetConfig, (UKW_DEVICE, UCHAR));
-DLL_DECLARE(WINAPI, BOOL, UkwResetDevice, (UKW_DEVICE));
-DLL_DECLARE(WINAPI, BOOL, UkwKernelDriverActive, (UKW_DEVICE, DWORD, PBOOL));
-DLL_DECLARE(WINAPI, BOOL, UkwAttachKernelDriver, (UKW_DEVICE, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwDetachKernelDriver, (UKW_DEVICE, DWORD));
-DLL_DECLARE(WINAPI, BOOL, UkwIssueBulkTransfer, (UKW_DEVICE, DWORD, UCHAR, LPVOID, DWORD, LPDWORD, LPOVERLAPPED));
-DLL_DECLARE(WINAPI, BOOL, UkwIsPipeHalted, (UKW_DEVICE, UCHAR, LPBOOL));
+DLL_DECLARE_HANDLE(ceusbkwrapper);
+DLL_DECLARE_FUNC(WINAPI, HANDLE, UkwOpenDriver, ());
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwGetDeviceList, (HANDLE, LPUKW_DEVICE, DWORD, LPDWORD));
+DLL_DECLARE_FUNC(WINAPI, void, UkwReleaseDeviceList, (HANDLE, LPUKW_DEVICE, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwGetDeviceAddress, (UKW_DEVICE, unsigned char*, unsigned char*, unsigned long*));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwGetDeviceDescriptor, (UKW_DEVICE, LPUKW_DEVICE_DESCRIPTOR));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwGetConfigDescriptor, (UKW_DEVICE, DWORD, LPVOID, DWORD, LPDWORD));
+DLL_DECLARE_FUNC(WINAPI, void, UkwCloseDriver, (HANDLE));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwCancelTransfer, (UKW_DEVICE, LPOVERLAPPED, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwIssueControlTransfer, (UKW_DEVICE, DWORD, LPUKW_CONTROL_HEADER, LPVOID, DWORD, LPDWORD, LPOVERLAPPED));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwClaimInterface, (UKW_DEVICE, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwReleaseInterface, (UKW_DEVICE, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwSetInterfaceAlternateSetting, (UKW_DEVICE, DWORD, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwClearHaltHost, (UKW_DEVICE, UCHAR));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwClearHaltDevice, (UKW_DEVICE, UCHAR));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwGetConfig, (UKW_DEVICE, PUCHAR));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwSetConfig, (UKW_DEVICE, UCHAR));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwResetDevice, (UKW_DEVICE));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwKernelDriverActive, (UKW_DEVICE, DWORD, PBOOL));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwAttachKernelDriver, (UKW_DEVICE, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwDetachKernelDriver, (UKW_DEVICE, DWORD));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwIssueBulkTransfer, (UKW_DEVICE, DWORD, UCHAR, LPVOID, DWORD, LPDWORD, LPOVERLAPPED));
+DLL_DECLARE_FUNC(WINAPI, BOOL, UkwIsPipeHalted, (UKW_DEVICE, UCHAR, LPBOOL));
 
 // Used to determine if an endpoint status really is halted on a failed transfer.
 #define STATUS_HALT_FLAG 0x1
@@ -116,12 +117,6 @@ DLL_DECLARE(WINAPI, BOOL, UkwIsPipeHalted, (UKW_DEVICE, UCHAR, LPBOOL));
 struct wince_device_priv {
 	UKW_DEVICE dev;
 	UKW_DEVICE_DESCRIPTOR desc;
-};
-
-struct wince_device_handle_priv {
-	// This member isn't used, but only exists to avoid an empty structure
-	// for private data for the device handle.
-	int reserved;
 };
 
 struct wince_transfer_priv {
