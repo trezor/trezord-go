@@ -70,7 +70,7 @@ func Extra_str(x []byte) string {
 //-----------------------------------------------------------------------------
 
 // libusb API version.
-const API_VERSION = C.LIBUSB_API_VERSION
+const API_VERSION = 0x8badf00d // C.LIBUSB_API_VERSION
 
 // Device and/or Interface Class codes.
 const (
@@ -146,7 +146,7 @@ const (
 	TRANSFER_TYPE_ISOCHRONOUS = C.LIBUSB_TRANSFER_TYPE_ISOCHRONOUS
 	TRANSFER_TYPE_BULK        = C.LIBUSB_TRANSFER_TYPE_BULK
 	TRANSFER_TYPE_INTERRUPT   = C.LIBUSB_TRANSFER_TYPE_INTERRUPT
-	TRANSFER_TYPE_BULK_STREAM = C.LIBUSB_TRANSFER_TYPE_BULK_STREAM
+	TRANSFER_TYPE_BULK_STREAM = 0x8badf00d // C.LIBUSB_TRANSFER_TYPE_BULK_STREAM
 )
 
 // Standard requests, as defined in table 9-5 of the USB 3.0 specifications.
@@ -1238,62 +1238,62 @@ func Get_String_Descriptor(hdl Device_Handle, desc_index uint8, langid uint16, d
 //-----------------------------------------------------------------------------
 //Asynchronous device I/O
 
-func Alloc_Streams(dev Device_Handle, num_streams uint32, endpoints []byte) (int, error) {
-	rc := int(C.libusb_alloc_streams(dev, (C.uint32_t)(num_streams), (*C.uchar)(&endpoints[0]), (C.int)(len(endpoints))))
-	if rc < 0 {
-		return 0, &libusb_error{rc}
-	}
-	return rc, nil
-}
+// func Alloc_Streams(dev Device_Handle, num_streams uint32, endpoints []byte) (int, error) {
+// 	rc := int(C.libusb_alloc_streams(dev, (C.uint32_t)(num_streams), (*C.uchar)(&endpoints[0]), (C.int)(len(endpoints))))
+// 	if rc < 0 {
+// 		return 0, &libusb_error{rc}
+// 	}
+// 	return rc, nil
+// }
 
-func Free_Streams(dev Device_Handle, endpoints []byte) error {
-	rc := int(C.libusb_free_streams(dev, (*C.uchar)(&endpoints[0]), (C.int)(len(endpoints))))
-	if rc != 0 {
-		return &libusb_error{rc}
-	}
-	return nil
-}
+// func Free_Streams(dev Device_Handle, endpoints []byte) error {
+// 	rc := int(C.libusb_free_streams(dev, (*C.uchar)(&endpoints[0]), (C.int)(len(endpoints))))
+// 	if rc != 0 {
+// 		return &libusb_error{rc}
+// 	}
+// 	return nil
+// }
 
-func Alloc_Transfer(iso_packets int) (*Transfer, error) {
-	ptr := C.libusb_alloc_transfer((C.int)(iso_packets))
-	if ptr == nil {
-		return nil, &libusb_error{ERROR_OTHER}
-	}
-	return ptr.c2go(), nil
-}
+// func Alloc_Transfer(iso_packets int) (*Transfer, error) {
+// 	ptr := C.libusb_alloc_transfer((C.int)(iso_packets))
+// 	if ptr == nil {
+// 		return nil, &libusb_error{ERROR_OTHER}
+// 	}
+// 	return ptr.c2go(), nil
+// }
 
-func Free_Transfer(transfer *Transfer) {
-	C.libusb_free_transfer(transfer.ptr)
-}
+// func Free_Transfer(transfer *Transfer) {
+// 	C.libusb_free_transfer(transfer.ptr)
+// }
 
-func Submit_Transfer(transfer *Transfer) error {
-	rc := int(C.libusb_submit_transfer(transfer.go2c()))
-	if rc != 0 {
-		return &libusb_error{rc}
-	}
-	return nil
-}
+// func Submit_Transfer(transfer *Transfer) error {
+// 	rc := int(C.libusb_submit_transfer(transfer.go2c()))
+// 	if rc != 0 {
+// 		return &libusb_error{rc}
+// 	}
+// 	return nil
+// }
 
-func Cancel_Transfer(transfer *Transfer) error {
-	rc := int(C.libusb_cancel_transfer(transfer.go2c()))
-	if rc != 0 {
-		return &libusb_error{rc}
-	}
-	return nil
-}
+// func Cancel_Transfer(transfer *Transfer) error {
+// 	rc := int(C.libusb_cancel_transfer(transfer.go2c()))
+// 	if rc != 0 {
+// 		return &libusb_error{rc}
+// 	}
+// 	return nil
+// }
 
-func Transfer_Set_Stream_ID(transfer *Transfer, stream_id uint32) {
-	C.libusb_transfer_set_stream_id(transfer.go2c(), (C.uint32_t)(stream_id))
-}
+// func Transfer_Set_Stream_ID(transfer *Transfer, stream_id uint32) {
+// 	C.libusb_transfer_set_stream_id(transfer.go2c(), (C.uint32_t)(stream_id))
+// }
 
-func Transfer_Get_Stream_ID(transfer *Transfer) uint32 {
-	return uint32(C.libusb_transfer_get_stream_id(transfer.go2c()))
-}
+// func Transfer_Get_Stream_ID(transfer *Transfer) uint32 {
+// 	return uint32(C.libusb_transfer_get_stream_id(transfer.go2c()))
+// }
 
-func Control_Transfer_Get_Data(transfer *Transfer) *byte {
-	// should this return a slice? - what's the length?
-	return (*byte)(C.libusb_control_transfer_get_data(transfer.go2c()))
-}
+// func Control_Transfer_Get_Data(transfer *Transfer) *byte {
+// 	// should this return a slice? - what's the length?
+// 	return (*byte)(C.libusb_control_transfer_get_data(transfer.go2c()))
+// }
 
 // static struct libusb_control_setup * 	libusb_control_transfer_get_setup (struct libusb_transfer *transfer)
 // static void 	libusb_fill_control_setup (unsigned char *buffer, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength)
