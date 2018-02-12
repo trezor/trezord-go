@@ -32,11 +32,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("webusb: %s", err)
 	}
-	h, err := usb.InitHIDAPI()
-	if err != nil {
-		log.Fatalf("hidapi: %s", err)
-	}
-	b := usb.Init(w, h)
+	//h, err := usb.InitHIDAPI()
+	//if err != nil {
+	//	log.Fatalf("hidapi: %s", err)
+	//}
+	b := usb.Init(w/*, h*/)
 
 	s, err := server.New(b, logger)
 	if err != nil {
