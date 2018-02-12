@@ -12,6 +12,7 @@ import (
 
 const (
 	webusbPrefix  = "web"
+	webConfigNum  = 1
 	webIfaceNum   = 0
 	webAltSetting = 0
 	webEpIn       = 0x81
@@ -86,6 +87,11 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	d, err := usbhid.Open(dev)
 	if err != nil {
+		return nil, err
+	}
+	err = usbhid.Set_Configuration(d, webConfigNum)
+	if err != nil {
+		usbhid.Close(d)
 		return nil, err
 	}
 	err = usbhid.Claim_Interface(d, webIfaceNum)
