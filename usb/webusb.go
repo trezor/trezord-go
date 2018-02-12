@@ -1,13 +1,13 @@
 package usb
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 
-	"github.com/trezor/usbhid"
+	"github.com/google/gousb"
 )
 
 const (
@@ -19,47 +19,36 @@ const (
 )
 
 type WebUSB struct {
-	usb usbhid.Context
+	usb *gousb.Context
 }
 
 func InitWebUSB() (*WebUSB, error) {
-	var usb usbhid.Context
-	err := usbhid.Init(&usb)
-	if err != nil {
-		return nil, err
-	}
-	usbhid.Set_Debug(usb, usbhid.LOG_LEVEL_NONE)
+	ctx := gousb.NewContext()
 
 	return &WebUSB{
-		usb: usb,
+		usb: ctx,
 	}, nil
 }
 
 func (b *WebUSB) Close() {
-	usbhid.Exit(b.usb)
+	b.usb.Close()
 }
 
 func (b *WebUSB) Enumerate() ([]Info, error) {
-	list, err := usbhid.Get_Device_List(b.usb)
-	if err != nil {
-		return nil, err
-	}
-	defer usbhid.Free_Device_List(list, 1) // unlink devices
-
 	var infos []Info
-
-	for _, dev := range list {
-		if b.match(dev) {
-			dd, err := usbhid.Get_Device_Descriptor(dev)
-			if err != nil {
-				continue
-			}
+	_, err := b.usb.OpenDevices(func(desc *gousb.DeviceDesc) bool {
+		if b.match(desc) {
+			path := b.identify(desc)
 			infos = append(infos, Info{
-				Path:      b.identify(dev),
-				VendorID:  int(dd.IdVendor),
-				ProductID: int(dd.IdProduct),
+				Path:      path,
+				VendorID:  int(desc.Vendor),
+				ProductID: int(desc.Product),
 			})
 		}
+		return false
+	})
+	if err != nil {
+		return nil, err
 	}
 	return infos, nil
 }
@@ -69,119 +58,121 @@ func (b *WebUSB) Has(path string) bool {
 }
 
 func (b *WebUSB) Connect(path string) (Device, error) {
-	list, err := usbhid.Get_Device_List(b.usb)
+
+	first := false
+
+	devs, err := b.usb.OpenDevices(func(desc *gousb.DeviceDesc) bool {
+		if b.match(desc) {
+			dpath := b.identify(desc)
+			same := dpath == path
+			if same && !first {
+				first = true
+				return true
+			}
+			return false
+		}
+		return false
+	})
+
 	if err != nil {
+		for _, d := range devs {
+			d.Close()
+		}
 		return nil, err
 	}
-	defer usbhid.Free_Device_List(list, 1) // unlink devices
 
-	for _, dev := range list {
-		if b.match(dev) && b.identify(dev) == path {
-			return b.connect(dev)
-		}
+	if len(devs) == 0 {
+		return nil, ErrNotFound
 	}
-	return nil, ErrNotFound
+	return b.connect(devs[0])
 }
 
-func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
-	d, err := usbhid.Open(dev)
+func (b *WebUSB) connect(dev *gousb.Device) (*WUD, error) {
+	dev.Reset()
+	iface, done, err := dev.DefaultInterface()
 	if err != nil {
+		dev.Close()
 		return nil, err
 	}
-	err = usbhid.Claim_Interface(d, webIfaceNum)
+
+	outEndpoint, err := iface.OutEndpoint(webEpOut)
 	if err != nil {
-		usbhid.Close(d)
+		dev.Close()
 		return nil, err
 	}
+
+	inEndpoint, err := iface.InEndpoint(webEpIn)
+	if err != nil {
+		dev.Close()
+		return nil, err
+	}
+
 	return &WUD{
-		dev:    d,
-		closed: 0,
+		inEndpoint:  inEndpoint,
+		outEndpoint: outEndpoint,
+		device:      dev,
+		done:        done,
 	}, nil
 }
 
-func (b *WebUSB) match(dev usbhid.Device) bool {
-	dd, err := usbhid.Get_Device_Descriptor(dev)
-	if err != nil {
-		return false
-	}
-	vid := dd.IdVendor
-	pid := dd.IdProduct
+func (b *WebUSB) match(desc *gousb.DeviceDesc) bool {
+	vid := desc.Vendor
+	pid := desc.Product
 	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
 	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
 	if !trezor1 && !trezor2 {
 		return false
 	}
-	c, err := usbhid.Get_Active_Config_Descriptor(dev)
-	if err != nil {
+
+	if len(desc.Configs) < 1 {
 		return false
 	}
-	return (c.BNumInterfaces > webIfaceNum &&
-		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC)
+	config := desc.Configs[1]
+
+	if len(config.Interfaces) <= webIfaceNum {
+		return false
+	}
+	iface := config.Interfaces[webIfaceNum]
+
+	if len(iface.AltSettings) <= webAltSetting {
+		return false
+	}
+
+	altsetting := iface.AltSettings[webAltSetting]
+	return altsetting.Class == 0xff
 }
 
-func (b *WebUSB) identify(dev usbhid.Device) string {
-	var ports [8]byte
-	p, err := usbhid.Get_Port_Numbers(dev, ports[:])
-	if err != nil {
-		return ""
-	}
-	return webusbPrefix + hex.EncodeToString(p)
+func (b *WebUSB) identify(desc *gousb.DeviceDesc) string {
+	bus := strconv.Itoa(int(desc.Bus))
+	address := strconv.Itoa(int(desc.Address))
+	path := bus + "-" + address
+	pathb := []byte(path)
+	digest := sha256.Sum256(pathb)
+	hexed := hex.EncodeToString(digest[:])
+
+	return webusbPrefix + hexed
 }
 
 type WUD struct {
-	dev usbhid.Device_Handle
-
-	closed int32 // atomic
-
-	transferMutex sync.Mutex
-	// closing cannot happen while interrupt_transfer is hapenning,
-	// otherwise interrupt_transfer hangs forever
+	inEndpoint  *gousb.InEndpoint
+	outEndpoint *gousb.OutEndpoint
+	done        func()
+	device      *gousb.Device
 }
 
 func (d *WUD) Close() error {
-	atomic.StoreInt32(&d.closed, 1)
+	d.done()
+	err := d.device.Close()
 
-	d.transferMutex.Lock()
-	usbhid.Close(d.dev)
-	d.transferMutex.Unlock()
-
-	return nil
+	return err
 }
 
 var closedDeviceError = errors.New("Closed device")
 
-func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
-	for {
-		d.transferMutex.Lock()
-		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, 100)
-		d.transferMutex.Unlock()
-
-		if err == nil {
-			return len(p), err
-		}
-
-		if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
-			err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
-			return 0, disconnectError
-		}
-
-		if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
-			return 0, err
-		}
-
-		closed := (atomic.LoadInt32(&d.closed)) == 1
-		if closed {
-			return 0, closedDeviceError
-		}
-		// continue the for cycle
-	}
-}
-
 func (d *WUD) Write(buf []byte) (int, error) {
-	return d.readWrite(buf, webEpOut)
+	return d.outEndpoint.Write(buf)
 }
 
 func (d *WUD) Read(buf []byte) (int, error) {
-	return d.readWrite(buf, webEpIn)
+	return d.inEndpoint.Read(buf)
 }
