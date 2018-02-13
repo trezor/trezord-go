@@ -17,6 +17,7 @@ const (
 	webAltSetting = 0
 	webEpIn       = 0x81
 	webEpOut      = 0x01
+	usbTimeout    = 500
 )
 
 type WebUSB struct {
@@ -160,7 +161,7 @@ var closedDeviceError = errors.New("Closed device")
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	for {
 		d.transferMutex.Lock()
-		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, 100)
+		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
 		d.transferMutex.Unlock()
 
 		if err == nil {
