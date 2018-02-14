@@ -90,6 +90,11 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = usbhid.Reset_Device(d)
+	if err != nil {
+		usbhid.Close(d)
+		return nil, err
+	}
 	err = usbhid.Set_Configuration(d, webConfigNum)
 	if err != nil {
 		usbhid.Close(d)
