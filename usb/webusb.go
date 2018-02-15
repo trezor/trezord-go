@@ -17,7 +17,7 @@ const (
 	webAltSetting = 0
 	webEpIn       = 0x81
 	webEpOut      = 0x01
-	usbTimeout    = 500
+	usbTimeout    = 5000
 )
 
 type WebUSB struct {
