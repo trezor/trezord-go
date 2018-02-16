@@ -31,7 +31,7 @@ Compiling for officially supported platforms:
 
 ## API documentation
 
-`trezord` starts server on `localhost`, with port `21324`. You can use `https`, by using `https://localback.net:21324` which redirects to localhost. You can call this web address with standard AJAX calls from websites (see the note about whitelisting).
+`trezord-go` starts a HTTP server on `http://localhost:21325`. AJAX calls are only enabled from trezor.io subdomains.
 
 Server supports following API calls:
 
