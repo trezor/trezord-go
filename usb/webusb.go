@@ -167,6 +167,11 @@ var closedDeviceError = errors.New("Closed device")
 
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	for {
+		closed := (atomic.LoadInt32(&d.closed)) == 1
+		if closed {
+			return 0, closedDeviceError
+		}
+
 		d.transferMutex.Lock()
 		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
 		d.transferMutex.Unlock()
@@ -184,10 +189,6 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 			return 0, err
 		}
 
-		closed := (atomic.LoadInt32(&d.closed)) == 1
-		if closed {
-			return 0, closedDeviceError
-		}
 		// continue the for cycle
 	}
 }
