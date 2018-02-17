@@ -36,7 +36,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("hidapi: %s", err)
 	}
-	b := usb.Init(w, h)
+	e, err := usb.InitEmulator()
+	if err != nil {
+		log.Fatalf("emulator: %s", err)
+	}
+	b := usb.Init(w, h, e)
 
 	s, err := server.New(b, logger)
 	if err != nil {
