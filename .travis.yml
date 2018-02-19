@@ -1,0 +1,16 @@
+sudo: false
+dist: trusty
+language: go
+
+matrix:
+  include:
+    - env: TEST=build-local
+      script: 
+        - go build .
+    - env: TEST=build-xgo-linux
+      sudo: true
+      script: 
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/linux
+        - LOCAL_BUILD=1 make all
