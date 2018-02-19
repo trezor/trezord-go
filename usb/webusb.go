@@ -2,7 +2,6 @@ package usb
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -14,10 +13,12 @@ import (
 
 const (
 	webusbPrefix  = "web"
+	webConfigNum  = 1
 	webIfaceNum   = 0
 	webAltSetting = 0
 	webEpIn       = 0x81
 	webEpOut      = 0x01
+	usbTimeout    = 5000
 )
 
 type WebUSB struct {
@@ -90,6 +91,18 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = usbhid.Reset_Device(d)
+	if err != nil {
+		// don't abort if reset fails
+		// usbhid.Close(d)
+		// return nil, err
+	}
+	err = usbhid.Set_Configuration(d, webConfigNum)
+	if err != nil {
+		// don't abort if set configuration fails
+		// usbhid.Close(d)
+		// return nil, err
+	}
 	err = usbhid.Claim_Interface(d, webIfaceNum)
 	if err != nil {
 		usbhid.Close(d)
@@ -158,16 +171,19 @@ func (d *WUD) Close() error {
 	return nil
 }
 
-var closedDeviceError = errors.New("Closed device")
-
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	var timeout uint
 	if runtime.GOOS != "freebsd" {
-		timeout = 100
+		timeout = usbTimeout
 	} else {
 		timeout = 0
 	}
 	for {
+		closed := (atomic.LoadInt32(&d.closed)) == 1
+		if closed {
+			return 0, closedDeviceError
+		}
+
 		d.transferMutex.Lock()
 		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, timeout)
 		d.transferMutex.Unlock()
@@ -185,10 +201,6 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 			return 0, err
 		}
 
-		closed := (atomic.LoadInt32(&d.closed)) == 1
-		if closed {
-			return 0, closedDeviceError
-		}
 		// continue the for cycle
 	}
 }

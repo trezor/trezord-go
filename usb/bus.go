@@ -68,3 +68,4 @@ func (b *USB) Connect(path string) (Device, error) {
 }
 
 var disconnectError = errors.New("Device disconnected during action")
+var closedDeviceError = errors.New("Closed device")
