@@ -2,7 +2,6 @@ package usb
 
 import (
 	"encoding/hex"
-	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -162,8 +161,6 @@ func (d *WUD) Close() error {
 
 	return nil
 }
-
-var closedDeviceError = errors.New("Closed device")
 
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	for {
