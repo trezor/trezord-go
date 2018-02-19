@@ -94,9 +94,13 @@ func corsValidator() (handlers.CORSOption, error) {
 	if err != nil {
 		return nil, err
 	}
+	// `localhost:8xxx` and `5xxx` are added for easing local development.
+	lregex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
+	if err != nil {
+		return nil, err
+	}
 	v := handlers.AllowedOriginValidator(func(origin string) bool {
-		// `localhost:8000` is added for easing local development.
-		if origin == "https://localhost:8000" || origin == "http://localhost:8000" {
+		if lregex.MatchString(origin) {
 			return true
 		}
 
