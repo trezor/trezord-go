@@ -6,14 +6,10 @@ FROM fedora:25
 
 RUN dnf update -y
 
-# install tools
-
-RUN dnf install -y cmake make wget
-RUN dnf install -y gcc gcc-c++ git make patchutils pkgconfig wget
-
 # install dependencies for Linux packaging
 
 RUN dnf install -y ruby-devel rubygems rpm-build
+RUN dnf install -y autoconf automake libtool
 RUN gem install fpm --no-document
 
 # install package signing tools
