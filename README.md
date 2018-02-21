@@ -6,8 +6,7 @@ TREZOR Communication Daemon aka TREZOR Bridge (written in Go)
 
 ```
 go get github.com/trezor/trezord-go
-cd $GOPATH/src/github.com/trezor/trezord-go 
-go build
+go build github.com/trezor/trezord-go
 ./trezord-go -h
 ```
 
