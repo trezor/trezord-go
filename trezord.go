@@ -28,7 +28,7 @@ func (i *udpPorts) String() string {
 func (i *udpPorts) Set(value string) error {
 	p, err := strconv.Atoi(value)
 	if err != nil {
-		return nil
+		return err
 	}
 	*i = append(*i, p)
 	return nil
