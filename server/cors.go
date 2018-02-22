@@ -52,7 +52,7 @@ func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		requestHeaders := strings.Split(r.Header.Get(corsRequestHeadersHeader), ",")
 		for _, v := range requestHeaders {
 			canonicalHeader := http.CanonicalHeaderKey(strings.TrimSpace(v))
-			if canonicalHeader == "" || ch.isMatch(canonicalHeader, allowedHeaders) {
+			if ch.isMatch(canonicalHeader, allowedHeaders) {
 				continue
 			}
 

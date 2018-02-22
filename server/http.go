@@ -103,9 +103,10 @@ func corsValidator() (OriginValidator, error) {
 		}
 
 		// `null` is for electron apps or chrome extensions.
-		if origin == "null" {
-			return true
-		}
+		// commented out for now
+		// if origin == "null" {
+		//	return true
+		// }
 
 		if tregex.MatchString(origin) {
 			return true
