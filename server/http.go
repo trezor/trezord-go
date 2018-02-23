@@ -66,12 +66,10 @@ func New(bus *usb.USB, logger io.WriteCloser) (*server, error) {
 	if err != nil {
 		return nil, err
 	}
-	headers := handlers.AllowedHeaders([]string{"Content-Type"})
-	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
 	// Restrict cross-origin access.
-	h = handlers.CORS(headers, v, methods)(h)
+	h = CORS(v)(h)
 	// Log after the request is done, in the Apache format.
 	h = handlers.LoggingHandler(logger, h)
 	// Log when the request is received.
@@ -89,7 +87,7 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func corsValidator() (handlers.CORSOption, error) {
+func corsValidator() (OriginValidator, error) {
 	tregex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 	if err != nil {
 		return nil, err
@@ -99,22 +97,23 @@ func corsValidator() (handlers.CORSOption, error) {
 	if err != nil {
 		return nil, err
 	}
-	v := handlers.AllowedOriginValidator(func(origin string) bool {
+	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
 			return true
 		}
 
 		// `null` is for electron apps or chrome extensions.
-		if origin == "null" {
-			return true
-		}
+		// commented out for now
+		// if origin == "null" {
+		//	return true
+		// }
 
 		if tregex.MatchString(origin) {
 			return true
 		}
 
 		return false
-	})
+	}
 
 	return v, nil
 }
