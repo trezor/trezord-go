@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -143,6 +144,12 @@ type entry struct {
 	Session *string `json:"session"`
 }
 
+func sortEntries(entries []entry) {
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+}
+
 func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
@@ -163,6 +170,8 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 		respondError(w, err)
 		return
 	}
+
+	sortEntries(entries)
 
 	for i := 0; i < iterMax; i++ {
 		e, err := s.enumerate()
@@ -246,6 +255,7 @@ func (s *server) enumerate() ([]entry, error) {
 			s.release(ssid)
 		}
 	}
+	sortEntries(entries)
 	return entries, nil
 }
 
