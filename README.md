@@ -4,6 +4,12 @@
 
 TREZOR Communication Daemon aka TREZOR Bridge (written in Go)
 
+**Only compatible with Chrome (version 53 or later) and Firefox (version 55 or later).**
+
+status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy) [Chrome](https://bugs.chromium.org/p/chromium/issues/detail?id=607878) [Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=903966) [Edge](https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/11963735/)
+
+## Install and run from source
+
 ```
 go get github.com/trezor/trezord-go
 go build github.com/trezor/trezord-go
