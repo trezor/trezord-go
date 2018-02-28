@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/trezor/trezord-go/usb"
@@ -27,6 +28,7 @@ type session struct {
 	path string
 	id   string
 	dev  usb.Device
+	call int32 // atomic
 }
 
 type server struct {
@@ -284,7 +286,7 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if acquired == nil {
-		acquired = &session{path: path}
+		acquired = &session{path: path, call: 0}
 	}
 	if acquired.id != prev {
 		respondError(w, ErrWrongPrevSession)
@@ -388,6 +390,15 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 		respondError(w, ErrSessionNotFound)
 		return
 	}
+
+	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
+	if !freeToCall {
+		http.Error(w, "other call in progress", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		atomic.StoreInt32(&acquired.call, 0)
+	}()
 
 	finished := make(chan bool)
 	defer func() {
