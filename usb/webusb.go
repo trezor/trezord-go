@@ -174,16 +174,21 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		d.transferMutex.Unlock()
 
 		if err == nil {
-			return len(p), err
+			// sometimes, empty report is read, skip it
+			if len(p) > 0 {
+				return len(p), err
+			}
 		}
 
-		if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
-			err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
-			return 0, disconnectError
-		}
+		if err != nil {
+			if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
+				err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
+				return 0, disconnectError
+			}
 
-		if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
-			return 0, err
+			if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
+				return 0, err
+			}
 		}
 
 		// continue the for cycle
