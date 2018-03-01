@@ -134,7 +134,7 @@ func (s *server) Info(w http.ResponseWriter, r *http.Request) {
 		Version string `json:"version"`
 	}
 	json.NewEncoder(w).Encode(info{
-		Version: "2.0.7",
+		Version: "2.0.8",
 	})
 }
 
