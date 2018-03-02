@@ -3,6 +3,7 @@ package usb
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"github.com/trezor/usbhid"
@@ -47,8 +48,13 @@ func (b *HIDAPI) Connect(path string) (Device, error) {
 			if err != nil {
 				return nil, err
 			}
+			prepend, err := detectPrepend(d)
+			if err != nil {
+				return nil, err
+			}
 			return &HID{
-				dev: d,
+				dev:     d,
+				prepend: prepend,
 			}, nil
 		}
 	}
@@ -70,7 +76,8 @@ func (b *HIDAPI) identify(dev *usbhid.HidDeviceInfo) string {
 }
 
 type HID struct {
-	dev *usbhid.HidDevice
+	dev     *usbhid.HidDevice
+	prepend bool // on windows, see detectPrepend
 }
 
 func (d *HID) Close() error {
@@ -79,6 +86,35 @@ func (d *HID) Close() error {
 
 var unknownErrorMessage = "hidapi: unknown failure"
 
+// This will write a useless buffer to trezor
+// to test whether it is an older HID version on reportid 63
+// or a newer one that is on id 0.
+// The older one does not need prepending, the newer one does
+// This makes difference only on windows
+func detectPrepend(dev *usbhid.HidDevice) (bool, error) {
+	buf := []byte{63}
+	for i := 0; i < 63; i++ {
+		buf = append(buf, 0xff)
+	}
+
+	// first test newer version
+	w, _ := dev.Write(buf, true)
+	if w == 65 {
+		return true, nil
+	}
+
+	// then test older version
+	w, err := dev.Write(buf, false)
+	if err != nil {
+		return false, err
+	}
+	if w == 64 {
+		return false, nil
+	}
+
+	return false, errors.New("Unknown HID version")
+}
+
 func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 	var w int
 	var err error
@@ -86,7 +122,7 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 	if read {
 		w, err = d.dev.Read(buf)
 	} else {
-		w, err = d.dev.Write(buf)
+		w, err = d.dev.Write(buf, d.prepend)
 	}
 
 	if err != nil && err.Error() == unknownErrorMessage {

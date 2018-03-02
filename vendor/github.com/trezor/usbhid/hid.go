@@ -163,7 +163,7 @@ func (info HidDeviceInfo) Open() (*HidDevice, error) {
 	}
 	return &HidDevice{
 		HidDeviceInfo: info,
-		device:     device,
+		device:        device,
 	}, nil
 }
 
@@ -191,7 +191,7 @@ func (dev *HidDevice) Close() error {
 //
 // Write will send the data on the first OUT endpoint, if one exists. If it does
 // not, it will send the data through the Control Endpoint (Endpoint 0).
-func (dev *HidDevice) Write(b []byte) (int, error) {
+func (dev *HidDevice) Write(b []byte, prepend bool) (int, error) {
 	// Abort if nothing to write
 	if len(b) == 0 {
 		return 0, nil
@@ -206,7 +206,7 @@ func (dev *HidDevice) Write(b []byte) (int, error) {
 	}
 	// Prepend a HID report ID on Windows, other OSes don't need it
 	var report []byte
-	if runtime.GOOS == "windows" {
+	if prepend && runtime.GOOS == "windows" {
 		report = append([]byte{0x00}, b...)
 	} else {
 		report = b
