@@ -55,6 +55,7 @@ for TYPE in "deb" "rpm"; do
         -a $ARCH \
         -n $NAME \
         -v $VERSION \
+        -d systemd \
         --license "LGPL-3.0" \
         --vendor "SatoshiLabs" \
         --description "Communication daemon for TREZOR" \
