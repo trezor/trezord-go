@@ -25,28 +25,52 @@ package usbhid
 	#include <sys/poll.h>
 
 	#include "os/threads_posix.c"
-	#include "os/poll_posix.c"
-	#include "os/linux_usbfs.c"
-	#include "os/linux_netlink.c"
 #elif OS_DARWIN
+	#include <pthread.h>
 	#include <sys/poll.h>
 
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/darwin_usb.c"
 #elif OS_WINDOWS
+	#include <windows.h>
+	#include <setupapi.h>
 	#include <oledlg.h>
-
-  #include "os/poll_windows.c"
-	#include "os/threads_windows.c"
 #endif
 
+#include "libusbi.h"
+#include "libusb.h"
+#include "version.h"
+#include "version_nano.h"
 #include "core.c"
 #include "descriptor.c"
+#include "hotplug.h"
 #include "hotplug.c"
 #include "io.c"
 #include "strerror.c"
 #include "sync.c"
+
+#ifdef OS_LINUX
+	#include "os/poll_posix.h"
+	#include "os/poll_posix.c"
+	#include "os/linux_usbfs.h"
+	#include "os/linux_usbfs.c"
+	#include "os/linux_netlink.c"
+#elif OS_DARWIN
+#elif OS_WINDOWS
+	#include "os/poll_windows.h"
+	#include "os/poll_windows.c"
+	#include "os/threads_windows.h"
+	#include "os/threads_windows.c"
+	#include "os/windows_common.h"
+	#include "os/windows_nt_common.h"
+	#include "os/windows_nt_common.c"
+	#include "os/windows_nt_shared_types.h"
+	#include "os/windows_usbdk.h"
+	#include "os/windows_usbdk.c"
+	#include "os/windows_winusb.h"
+	#include "os/windows_winusb.c"
+#endif
 
 #ifdef OS_LINUX
 	#include "linux/hid.c"
@@ -54,9 +78,6 @@ package usbhid
 	#include "mac/hid.c"
 #elif OS_WINDOWS
 	#include "windows/hid.c"
-
-	#include "os/windows_nt_common.c"
-	#include "os/windows_winusb.c"
 #endif
 
 */
