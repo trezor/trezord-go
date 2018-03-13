@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 
 ## [2.0.10] - 2018-03-13
-- Workaround for libusb bug in Windows 10 (fixes #28)
+- Workaround for libusb bug in Windows 10 (fixes trezor/trezor-core#165)
 - Fixes conflict with manually installed udev rules for T1 (Linux).
 
 ## [2.0.9] - 2018-03-05
