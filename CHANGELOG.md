@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+
+## [2.0.10] - 2018-03-13
+- Workaround for libusb bug in Windows 10 (fixes #28)
+- Fixes conflict with manually installed udev rules for T1 (Linux).
+
+## [2.0.9] - 2018-03-05
+- Fixes communication for very old T1 bootloaders
+
+## [2.0.8] - 2018-03-01
+- Stability fix for Linux
+
+## [2.0.7] - 2018-02-23
+- Use origin checks for all requests (fixes #16)
+
 ## [2.0.6] - 2018-02-17
 - Allowing CORS for more ports on localhost (5xxx, 8xxx)
 
