@@ -50,26 +50,17 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 
 	var infos []Info
 
-	// There is a bug in either Trezor T or libusb that makes
-	// device appear twice with the same path
-	paths := make(map[string]bool)
-
 	for _, dev := range list {
 		if b.match(dev) {
 			dd, err := usbhid.Get_Device_Descriptor(dev)
 			if err != nil {
 				continue
 			}
-			path := b.identify(dev)
-			inset := paths[path]
-			if !inset {
-				infos = append(infos, Info{
-					Path:      path,
-					VendorID:  int(dd.IdVendor),
-					ProductID: int(dd.IdProduct),
-				})
-				paths[path] = true
-			}
+			infos = append(infos, Info{
+				Path:      b.identify(dev),
+				VendorID:  int(dd.IdVendor),
+				ProductID: int(dd.IdProduct),
+			})
 		}
 	}
 	return infos, nil
@@ -86,27 +77,12 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 	}
 	defer usbhid.Free_Device_List(list, 1) // unlink devices
 
-	// There is a bug in either Trezor T or libusb that makes
-	// device appear twice with the same path
-
-	// We try both and return the first that works
-
-	mydevs := make([]usbhid.Device, 0)
 	for _, dev := range list {
 		if b.match(dev) && b.identify(dev) == path {
-			mydevs = append(mydevs, dev)
+			return b.connect(dev)
 		}
 	}
-
-	err = ErrNotFound
-	for _, dev := range mydevs {
-		res, errConn := b.connect(dev)
-		if errConn == nil {
-			return res, nil
-		}
-		err = errConn
-	}
-	return nil, err
+	return nil, ErrNotFound
 }
 
 func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
