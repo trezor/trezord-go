@@ -14,3 +14,17 @@ matrix:
         - go get github.com/karalabe/xgo
         - cd release/linux
         - LOCAL_BUILD=1 make all
+    - env: TEST=build-xgo-windows
+      sudo: true
+      script:
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/windows
+        - LOCAL_BUILD=1 make all
+    - env: TEST=build-xgo-macos
+      sudo: true
+      script:
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/macos
+        - LOCAL_BUILD=1 make all
