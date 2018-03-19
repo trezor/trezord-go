@@ -525,6 +525,6 @@ func respondError(w http.ResponseWriter, err error) {
 		Error: err.Error(),
 	})
 	if err != nil {
-		log.Printf("Error while writing error:", err.Error())
+		log.Printf("Error while writing error: %s", err.Error())
 	}
 }
