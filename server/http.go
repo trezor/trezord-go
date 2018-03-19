@@ -43,7 +43,7 @@ type Server struct {
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 }
 
-func New(bus *usb.USB, logger io.WriteCloser) (*Server, error) {
+func New(bus *usb.USB, logger io.Writer) (*Server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
