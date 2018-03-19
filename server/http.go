@@ -436,11 +436,11 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var latestSessionId = 0
+var latestSessionID = 0
 
 func (s *Server) newSession() string {
-	latestSessionId++
-	return strconv.Itoa(latestSessionId)
+	latestSessionID++
+	return strconv.Itoa(latestSessionID)
 }
 
 func decodeRaw(r io.Reader) (*wire.Message, error) {
