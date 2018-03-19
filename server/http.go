@@ -238,8 +238,8 @@ func (s *Server) enumerate() ([]entry, error) {
 			if ss.path == info.Path {
 				// Copying to prevent overwriting on Acquire and
 				// wrong comparison in Listen.
-				ssIdCopy := ss.id
-				e.Session = &ssIdCopy
+				ssidCopy := ss.id
+				e.Session = &ssidCopy
 			}
 		}
 		entries = append(entries, e)
