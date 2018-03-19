@@ -141,13 +141,13 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 	if err != nil {
 		return false
 	}
+
 	vid := dd.IdVendor
 	pid := dd.IdProduct
-	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
-	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
-	if !trezor1 && !trezor2 {
+	if !b.matchVidPid(vid, pid) {
 		return false
 	}
+
 	c, err := usbhid.Get_Active_Config_Descriptor(dev)
 	if err != nil {
 		return false
@@ -155,6 +155,12 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 	return (c.BNumInterfaces > webIfaceNum &&
 		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
 		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC)
+}
+
+func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
+	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
+	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
+	return trezor1 || trezor2
 }
 
 func (b *WebUSB) identify(dev usbhid.Device) string {
