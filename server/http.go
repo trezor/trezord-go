@@ -24,6 +24,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const version = "2.0.10"
+
 type session struct {
 	path string
 	id   string
@@ -64,6 +66,9 @@ func New(bus *usb.USB, logger io.Writer) (*Server, error) {
 	sr.HandleFunc("/acquire/{path}/{session}", s.Acquire)
 	sr.HandleFunc("/release/{session}", s.Release)
 	sr.HandleFunc("/call/{session}", s.Call)
+
+	getsr := r.Methods("GET").Subrouter()
+	getsr.HandleFunc("/", s.StatusPage)
 
 	v, err := corsValidator()
 	if err != nil {
@@ -129,12 +134,56 @@ func (s *Server) Close() error {
 	return s.https.Close()
 }
 
+func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
+	e, err := s.enumerate()
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	tdevs := make([]statusTemplateDevice, 0)
+
+	for _, dev := range e {
+		var devType statusTemplateDevType
+		if dev.Vendor == usb.VendorT1 {
+			devType = typeT1
+		}
+		if dev.Vendor == usb.VendorT2 {
+			if dev.Product == usb.ProductT2Firmware {
+				devType = typeT2
+			} else {
+				devType = typeT2Boot
+			}
+		}
+		var session string
+		if dev.Session != nil {
+			session = *dev.Session
+		}
+		tdev := statusTemplateDevice{
+			Path:    dev.Path,
+			Type:    devType,
+			Used:    dev.Session != nil,
+			Session: session,
+		}
+		tdevs = append(tdevs, tdev)
+	}
+
+	data := &statusTemplateData{
+		Version:     version,
+		Devices:     tdevs,
+		DeviceCount: len(tdevs),
+	}
+
+	err = statusTemplate.Execute(w, data)
+	checkJSONError(w, err)
+}
+
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
 		Version string `json:"version"`
 	}
 	err := json.NewEncoder(w).Encode(info{
-		Version: "2.0.10",
+		Version: version,
 	})
 	checkJSONError(w, err)
 }
@@ -538,6 +587,7 @@ func respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
+	log.Printf("Returning error: %s", err.Error())
 	w.WriteHeader(http.StatusBadRequest)
 	// if even the encoder of the error errors, just log the error
 	err = json.NewEncoder(w).Encode(jsonError{

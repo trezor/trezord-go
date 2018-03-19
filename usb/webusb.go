@@ -137,8 +137,8 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
-	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
-	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
+	trezor1 := vid == VendorT1 && (pid == ProductT1Firmware)
+	trezor2 := vid == VendorT2 && (pid == ProductT2Firmware || pid == ProductT2Bootloader)
 	return trezor1 || trezor2
 }
 

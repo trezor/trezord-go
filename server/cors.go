@@ -27,10 +27,17 @@ const (
 	corsRequestMethodHeader  string = "Access-Control-Request-Method"
 	corsRequestHeadersHeader string = "Access-Control-Request-Headers"
 	corsOriginHeader         string = "Origin"
+	frameOriginHeader        string = "X-Frame-Options"
 )
 
 func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get(corsOriginHeader)
+
+	if r.URL.Path == "/" && r.Method == "GET" {
+		ch.serveStatus(w, r, origin)
+		return
+	}
+
 	if !ch.allowedOriginValidator(origin) {
 		w.WriteHeader(http.StatusForbidden)
 		return
@@ -65,6 +72,16 @@ func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == corsOptionMethod {
 		return
 	}
+	ch.h.ServeHTTP(w, r)
+}
+
+func (ch *cors) serveStatus(w http.ResponseWriter, r *http.Request, origin string) {
+	if origin != "" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set(frameOriginHeader, "DENY")
 	ch.h.ServeHTTP(w, r)
 }
 
