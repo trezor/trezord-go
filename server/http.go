@@ -176,9 +176,9 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	sortEntries(entries)
 
 	for i := 0; i < iterMax; i++ {
-		e, err := s.enumerate()
-		if err != nil {
-			respondError(w, err)
+		e, enumErr := s.enumerate()
+		if enumErr != nil {
+			respondError(w, enumErr)
 			return
 		}
 		if reflect.DeepEqual(entries, e) {
