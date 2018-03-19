@@ -262,7 +262,12 @@ func (s *Server) enumerate() ([]entry, error) {
 			}
 		}
 		if !connected {
-			s.release(ssid)
+			err := s.release(ssid)
+			// just log if there is an error
+			// they are disconnected anyway
+			if err != nil {
+				log.Printf("Error on releasing disconnected device: %s", err)
+			}
 		}
 	}
 	sortEntries(entries)
