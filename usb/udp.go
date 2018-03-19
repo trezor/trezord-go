@@ -153,14 +153,14 @@ func (d *UDPDevice) readWrite(buf []byte, read bool) (int, error) {
 		}
 		if !read {
 			return d.writer.Write(buf)
-		} else {
-			select {
-			case response := <-d.data:
-				copy(buf, response)
-				return len(response), nil
-			case <-time.After(emulatorPingTimeout):
-				// timeout, continue for cycle
-			}
+		}
+
+		select {
+		case response := <-d.data:
+			copy(buf, response)
+			return len(response), nil
+		case <-time.After(emulatorPingTimeout):
+			// timeout, continue for cycle
 		}
 	}
 }
