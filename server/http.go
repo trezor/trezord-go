@@ -372,10 +372,7 @@ func (s *Server) release(session string) error {
 	delete(s.sessions, session)
 
 	err := acquired.dev.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
@@ -472,10 +469,7 @@ func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter) error {
 		return err
 	}
 	err = encodeRaw(w, msg)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 var latestSessionID = 0
@@ -532,11 +526,7 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	}
 	s = hex.EncodeToString(data)
 	_, err = w.Write([]byte(s))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func checkJSONError(w http.ResponseWriter, err error) {
