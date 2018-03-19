@@ -64,8 +64,8 @@ func (b *HIDAPI) Connect(path string) (Device, error) {
 func (b *HIDAPI) match(d *usbhid.HidDeviceInfo) bool {
 	vid := d.VendorID
 	pid := d.ProductID
-	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
-	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
+	trezor1 := vid == VendorT1 && (pid == ProductT1Firmware)
+	trezor2 := vid == VendorT2 && (pid == ProductT2Firmware || pid == ProductT2Bootloader)
 	return (trezor1 || trezor2) && (d.Interface == hidIfaceNum || d.UsagePage == hidUsagePage)
 }
 
