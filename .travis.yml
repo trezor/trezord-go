@@ -31,4 +31,6 @@ matrix:
     - env: TEST=go-fmt
       script:
         - gofmt -d *.go ./server ./usb ./wire
-
+    - env: TEST=metalinter
+      script:
+        - gometalinter --deadline=300s . ./server ./usb ./wire | grep -v 'should have comment or be unexported'
