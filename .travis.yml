@@ -33,4 +33,6 @@ matrix:
         - gofmt -d *.go ./server ./usb ./wire
     - env: TEST=metalinter
       script:
+        - go get -u github.com/alecthomas/gometalinter
+        - gometalinter --install
         - gometalinter --deadline=300s . ./server ./usb ./wire | grep -v 'should have comment or be unexported'
