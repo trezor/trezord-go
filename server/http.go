@@ -133,9 +133,10 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
 		Version string `json:"version"`
 	}
-	json.NewEncoder(w).Encode(info{
+	err := json.NewEncoder(w).Encode(info{
 		Version: "2.0.10",
 	})
+	checkJsonError(w, err)
 }
 
 type entry struct {
@@ -192,7 +193,8 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	json.NewEncoder(w).Encode(entries)
+	err = json.NewEncoder(w).Encode(entries)
+	checkJsonError(w, err)
 }
 
 func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +203,8 @@ func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
 		respondError(w, err)
 		return
 	}
-	json.NewEncoder(w).Encode(e)
+	err = json.NewEncoder(w).Encode(e)
+	checkJsonError(w, err)
 }
 
 func (s *Server) enumerate() ([]entry, error) {
@@ -316,9 +319,10 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 		Session string `json:"session"`
 	}
 
-	json.NewEncoder(w).Encode(result{
+	err = json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
+	checkJsonError(w, err)
 }
 
 // Chrome tries to read from trezor immediately after connecting,
@@ -366,7 +370,8 @@ func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(vars)
+	err = json.NewEncoder(w).Encode(vars)
+	checkJsonError(w, err)
 }
 
 func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
@@ -504,12 +509,22 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	return nil
 }
 
+func checkJsonError(w http.ResponseWriter, err error) {
+	if err != nil {
+		respondError(w, err)
+	}
+}
+
 func respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
 	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(jsonError{
+	// if even the encoder of the error errors, just log the error
+	err = json.NewEncoder(w).Encode(jsonError{
 		Error: err.Error(),
 	})
+	if err != nil {
+		log.Printf("Error while writing error:", err.Error())
+	}
 }
