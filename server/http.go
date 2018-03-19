@@ -136,7 +136,7 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	err := json.NewEncoder(w).Encode(info{
 		Version: "2.0.10",
 	})
-	checkJsonError(w, err)
+	checkJSONError(w, err)
 }
 
 type entry struct {
@@ -194,7 +194,7 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	err = json.NewEncoder(w).Encode(entries)
-	checkJsonError(w, err)
+	checkJSONError(w, err)
 }
 
 func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +204,7 @@ func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = json.NewEncoder(w).Encode(e)
-	checkJsonError(w, err)
+	checkJSONError(w, err)
 }
 
 func (s *Server) enumerate() ([]entry, error) {
@@ -322,7 +322,7 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
-	checkJsonError(w, err)
+	checkJSONError(w, err)
 }
 
 // Chrome tries to read from trezor immediately after connecting,
@@ -371,7 +371,7 @@ func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = json.NewEncoder(w).Encode(vars)
-	checkJsonError(w, err)
+	checkJSONError(w, err)
 }
 
 func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
@@ -509,7 +509,7 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	return nil
 }
 
-func checkJsonError(w http.ResponseWriter, err error) {
+func checkJSONError(w http.ResponseWriter, err error) {
 	if err != nil {
 		respondError(w, err)
 	}
