@@ -2,6 +2,7 @@ package usb
 
 import (
 	"encoding/hex"
+	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -118,12 +119,14 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		// don't abort if reset fails
 		// usbhid.Close(d)
 		// return nil, err
+		log.Printf("Warning: error at device reset: %s", err)
 	}
 	err = usbhid.Set_Configuration(d, webConfigNum)
 	if err != nil {
 		// don't abort if set configuration fails
 		// usbhid.Close(d)
 		// return nil, err
+		log.Printf("Warning: error at configuration set: %s", err)
 	}
 	err = usbhid.Claim_Interface(d, webIfaceNum)
 	if err != nil {
