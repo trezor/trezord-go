@@ -458,7 +458,7 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readWriteDev(w http.ResponseWriter, r *http.Request, d usb.Device) error {
+func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter) error {
 	msg, err := decodeRaw(r.Body)
 	if err != nil {
 		return err
