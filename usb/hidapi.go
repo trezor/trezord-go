@@ -126,7 +126,7 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 	}
 
 	if err != nil && err.Error() == unknownErrorMessage {
-		return 0, disconnectError
+		return 0, errDisconnect
 	}
 	return w, err
 }

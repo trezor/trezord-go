@@ -142,14 +142,14 @@ func (d *UDPDevice) readWrite(buf []byte, read bool) (int, error) {
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
-			return 0, closedDeviceError
+			return 0, errClosedDevice
 		}
 		check, err := checkPort(d.ping, d.writer)
 		if err != nil {
 			return 0, err
 		}
 		if !check {
-			return 0, disconnectError
+			return 0, errDisconnect
 		}
 		if !read {
 			return d.writer.Write(buf)

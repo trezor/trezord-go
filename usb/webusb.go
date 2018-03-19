@@ -189,7 +189,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
-			return 0, closedDeviceError
+			return 0, errClosedDevice
 		}
 
 		d.transferMutex.Lock()
@@ -206,7 +206,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		if err != nil {
 			if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
 				err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
-				return 0, disconnectError
+				return 0, errDisconnect
 			}
 
 			if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
