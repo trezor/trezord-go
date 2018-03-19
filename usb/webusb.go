@@ -99,10 +99,11 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 
 	err = ErrNotFound
 	for _, dev := range mydevs {
-		res, err := b.connect(dev)
-		if err == nil {
+		res, errConn := b.connect(dev)
+		if errConn == nil {
 			return res, nil
 		}
+		err = errConn
 	}
 	return nil, err
 }
