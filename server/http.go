@@ -31,7 +31,7 @@ type session struct {
 	call int32 // atomic
 }
 
-type server struct {
+type Server struct {
 	https *http.Server
 	bus   *usb.USB
 
@@ -43,11 +43,11 @@ type server struct {
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 }
 
-func New(bus *usb.USB, logger io.WriteCloser) (*server, error) {
+func New(bus *usb.USB, logger io.WriteCloser) (*Server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
-	s := &server{
+	s := &Server{
 		bus:      bus,
 		https:    https,
 		sessions: make(map[string]*session),
@@ -121,15 +121,15 @@ func corsValidator() (OriginValidator, error) {
 	return v, nil
 }
 
-func (s *server) Run() error {
+func (s *Server) Run() error {
 	return s.https.ListenAndServe()
 }
 
-func (s *server) Close() error {
+func (s *Server) Close() error {
 	return s.https.Close()
 }
 
-func (s *server) Info(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
 		Version string `json:"version"`
 	}
@@ -151,7 +151,7 @@ func sortEntries(entries []entry) {
 	})
 }
 
-func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -195,7 +195,7 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(entries)
 }
 
-func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
 	e, err := s.enumerate()
 	if err != nil {
 		respondError(w, err)
@@ -204,7 +204,7 @@ func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(e)
 }
 
-func (s *server) enumerate() ([]entry, error) {
+func (s *Server) enumerate() ([]entry, error) {
 	// Lock for atomic access to s.sessions.
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
@@ -266,7 +266,7 @@ var (
 	ErrMalformedData    = errors.New("malformed data")
 )
 
-func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -334,7 +334,7 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) release(session string) error {
+func (s *Server) release(session string) error {
 	acquired, _ := s.sessions[session]
 	if acquired == nil {
 		return ErrSessionNotFound
@@ -345,7 +345,7 @@ func (s *server) release(session string) error {
 	return nil
 }
 
-func (s *server) Release(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -362,7 +362,7 @@ func (s *server) Release(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(vars)
 }
 
-func (s *server) Call(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -438,7 +438,7 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 
 var latestSessionId = 0
 
-func (s *server) newSession() string {
+func (s *Server) newSession() string {
 	latestSessionId++
 	return strconv.Itoa(latestSessionId)
 }
