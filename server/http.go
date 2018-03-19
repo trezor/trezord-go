@@ -301,24 +301,12 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Chrome tries to read from trezor immediately after connecting, and so
-	// do we.  Bad timing can produce error on s.bus.Connect.  Try 3 times
-	// with a 100ms delay.
-	tries := 0
-	for {
-		dev, err := s.bus.Connect(path)
-		if err != nil {
-			if tries < 3 {
-				tries++
-				time.Sleep(100 * time.Millisecond)
-			} else {
-				respondError(w, err)
-				return
-			}
-		} else {
-			acquired.dev = dev
-			break
-		}
+	dev, err := s.tryConnect(path)
+	if err != nil {
+		respondError(w, err)
+		return
+	} else {
+		acquired.dev = dev
 	}
 
 	acquired.id = s.newSession()
@@ -332,6 +320,26 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
+}
+
+// Chrome tries to read from trezor immediately after connecting,
+// ans so do we.  Bad timing can produce error on s.bus.Connect.
+// Try 3 times with a 100ms delay.
+func (s *Server) tryConnect(path string) (usb.Device, error) {
+	tries := 0
+	for {
+		dev, err := s.bus.Connect(path)
+		if err != nil {
+			if tries < 3 {
+				tries++
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				return nil, err
+			}
+		} else {
+			return dev, nil
+		}
+	}
 }
 
 func (s *Server) release(session string) error {
