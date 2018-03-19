@@ -305,10 +305,9 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondError(w, err)
 		return
-	} else {
-		acquired.dev = dev
 	}
 
+	acquired.dev = dev
 	acquired.id = s.newSession()
 
 	s.sessions[acquired.id] = acquired
