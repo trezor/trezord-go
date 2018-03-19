@@ -66,9 +66,9 @@ func main() {
 	var b *usb.USB
 
 	if len(ports) > 0 {
-		e, errUdp := usb.InitUDP(ports)
-		if errUdp != nil {
-			log.Fatalf("emulator: %s", errUdp)
+		e, errUDP := usb.InitUDP(ports)
+		if errUDP != nil {
+			log.Fatalf("emulator: %s", errUDP)
 		}
 		b = usb.Init(w, h, e)
 	} else {
