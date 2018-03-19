@@ -30,5 +30,5 @@ matrix:
         - LOCAL_BUILD=1 make all
     - env: TEST=go-fmt
       script:
-        - go fmt -d *.go ./server ./usb ./wire
+        - gofmt -d *.go ./server ./usb ./wire
 
