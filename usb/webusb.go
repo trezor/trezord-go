@@ -29,7 +29,7 @@ func InitWebUSB() (*WebUSB, error) {
 	if err != nil {
 		return nil, err
 	}
-	usbhid.Set_Debug(usb, usbhid.LOG_LEVEL_NONE)
+	usbhid.Set_Debug(usb, int(usbhid.LOG_LEVEL_NONE))
 
 	return &WebUSB{
 		usb: usb,
