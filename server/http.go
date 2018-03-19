@@ -365,7 +365,7 @@ func (s *Server) tryConnect(path string) (usb.Device, error) {
 }
 
 func (s *Server) release(session string) error {
-	acquired, _ := s.sessions[session]
+	acquired := s.sessions[session]
 	if acquired == nil {
 		return ErrSessionNotFound
 	}
@@ -417,7 +417,7 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 	session := vars["session"]
 
 	s.sessionsMutex.Lock()
-	acquired, _ := s.sessions[session]
+	acquired := s.sessions[session]
 	s.sessionsMutex.Unlock()
 
 	if acquired == nil {
