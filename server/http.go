@@ -444,7 +444,11 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		case <-finished:
 			return
 		case <-cn.CloseNotify():
-			s.release(session)
+			errRelease := s.release(session)
+			if errRelease != nil {
+				// just log, since request is already closed
+				log.Printf("Error while releasing: %s", errRelease.Error())
+			}
 		}
 	}()
 
