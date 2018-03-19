@@ -27,7 +27,7 @@ type UDP struct {
 	writers map[int](io.Writer)
 }
 
-func listen(conn net.Conn) (chan []byte, chan []byte) {
+func listen(conn io.Reader) (chan []byte, chan []byte) {
 	ping := make(chan []byte, 1)
 	data := make(chan []byte, 100)
 	go func() {
