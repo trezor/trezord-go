@@ -236,6 +236,12 @@ func (s *Server) enumerate() ([]entry, error) {
 		s.lastInfos = infos
 	}
 
+	entries := s.createEnumerateEntries(infos)
+	s.releaseDisconnected(infos)
+	return entries, nil
+}
+
+func (s *Server) createEnumerateEntries(infos []usb.Info) []entry {
 	entries := make([]entry, 0, len(infos))
 	for _, info := range infos {
 		e := entry{
@@ -253,7 +259,11 @@ func (s *Server) enumerate() ([]entry, error) {
 		}
 		entries = append(entries, e)
 	}
-	// Also release all sessions of disconnected devices
+	sortEntries(entries)
+	return entries
+}
+
+func (s *Server) releaseDisconnected(infos []usb.Info) {
 	for ssid, ss := range s.sessions {
 		connected := false
 		for _, info := range infos {
@@ -270,8 +280,6 @@ func (s *Server) enumerate() ([]entry, error) {
 			}
 		}
 	}
-	sortEntries(entries)
-	return entries, nil
 }
 
 var (
