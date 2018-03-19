@@ -211,12 +211,12 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		}
 
 		if err != nil {
-			if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
-				err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
+			if err.Error() == usbhid.Error_Name(int(usbhid.ERROR_IO)) ||
+				err.Error() == usbhid.Error_Name(int(usbhid.ERROR_NO_DEVICE)) {
 				return 0, errDisconnect
 			}
 
-			if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
+			if err.Error() != usbhid.Error_Name(int(usbhid.ERROR_TIMEOUT)) {
 				return 0, err
 			}
 		}
