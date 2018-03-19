@@ -35,4 +35,4 @@ matrix:
       script:
         - go get -u github.com/alecthomas/gometalinter
         - gometalinter --install
-        - gometalinter --deadline=300s . ./server ./usb ./wire | grep -v 'should have comment or be unexported'
+        - bash -c '[[ $( gometalinter --deadline=300s . ./server ./usb ./wire | grep -v "should have comment or be unexported" | tee /dev/stderr | wc -l ) -eq 0 ]]' 
