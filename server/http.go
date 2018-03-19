@@ -452,26 +452,30 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	err := readWriteDev(w, r, acquired.dev)
+	if err != nil {
+		respondError(w, err)
+	}
+}
+
+func readWriteDev(w http.ResponseWriter, r *http.Request, d usb.Device) error {
 	msg, err := decodeRaw(r.Body)
 	if err != nil {
-		respondError(w, err)
-		return
+		return err
 	}
-	_, err = msg.WriteTo(acquired.dev)
+	_, err = msg.WriteTo(d)
 	if err != nil {
-		respondError(w, err)
-		return
+		return err
 	}
-	_, err = msg.ReadFrom(acquired.dev)
+	_, err = msg.ReadFrom(d)
 	if err != nil {
-		respondError(w, err)
-		return
+		return err
 	}
 	err = encodeRaw(w, msg)
 	if err != nil {
-		respondError(w, err)
-		return
+		return err
 	}
+	return nil
 }
 
 var latestSessionID = 0
