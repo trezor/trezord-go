@@ -371,7 +371,10 @@ func (s *Server) release(session string) error {
 	}
 	delete(s.sessions, session)
 
-	acquired.dev.Close()
+	err := acquired.dev.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
