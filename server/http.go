@@ -166,7 +166,13 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	var entries []entry
 
 	err := json.NewDecoder(r.Body).Decode(&entries)
-	defer r.Body.Close()
+	defer func() {
+		errClose := r.Body.Close()
+		if errClose != nil {
+			// just log
+			log.Printf("Error on request close: %s", errClose.Error())
+		}
+	}()
 
 	if err != nil {
 		respondError(w, err)
