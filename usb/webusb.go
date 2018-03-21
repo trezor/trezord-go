@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime"
+	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,7 +32,7 @@ func InitWebUSB() (*WebUSB, error) {
 	if err != nil {
 		return nil, err
 	}
-	usbhid.Set_Debug(usb, usbhid.LOG_LEVEL_NONE)
+	usbhid.Set_Debug(usb, int(usbhid.LOG_LEVEL_NONE))
 
 	return &WebUSB{
 		usb: usb,
@@ -96,12 +97,14 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		// don't abort if reset fails
 		// usbhid.Close(d)
 		// return nil, err
+		log.Printf("Warning: error at device reset: %s", err)
 	}
 	err = usbhid.Set_Configuration(d, webConfigNum)
 	if err != nil {
 		// don't abort if set configuration fails
 		// usbhid.Close(d)
 		// return nil, err
+		log.Printf("Warning: error at configuration set: %s", err)
 	}
 	err = usbhid.Claim_Interface(d, webIfaceNum)
 	if err != nil {
@@ -119,13 +122,13 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 	if err != nil {
 		return false
 	}
+
 	vid := dd.IdVendor
 	pid := dd.IdProduct
-	trezor1 := vid == vendorT1 && (pid == productT1Firmware || pid == productT1Bootloader)
-	trezor2 := vid == vendorT2 && (pid == productT2Firmware || pid == productT2Bootloader)
-	if !trezor1 && !trezor2 {
+	if !b.matchVidPid(vid, pid) {
 		return false
 	}
+
 	c, err := usbhid.Get_Active_Config_Descriptor(dev)
 	if err != nil {
 		return false
@@ -134,6 +137,12 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
 		(c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC ||
 		runtime.GOOS == "freebsd"))
+}
+
+func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
+	trezor1 := vid == VendorT1 && (pid == ProductT1Firmware)
+	trezor2 := vid == VendorT2 && (pid == ProductT2Firmware || pid == ProductT2Bootloader)
+	return trezor1 || trezor2
 }
 
 func (b *WebUSB) identify(dev usbhid.Device) string {
@@ -181,7 +190,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
-			return 0, closedDeviceError
+			return 0, errClosedDevice
 		}
 
 		d.transferMutex.Lock()
@@ -189,16 +198,21 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		d.transferMutex.Unlock()
 
 		if err == nil {
-			return len(p), err
+			// sometimes, empty report is read, skip it
+			if len(p) > 0 {
+				return len(p), err
+			}
 		}
 
-		if err.Error() == usbhid.Error_Name(usbhid.ERROR_IO) ||
-			err.Error() == usbhid.Error_Name(usbhid.ERROR_NO_DEVICE) {
-			return 0, disconnectError
-		}
+		if err != nil {
+			if err.Error() == usbhid.Error_Name(int(usbhid.ERROR_IO)) ||
+				err.Error() == usbhid.Error_Name(int(usbhid.ERROR_NO_DEVICE)) {
+				return 0, errDisconnect
+			}
 
-		if err.Error() != usbhid.Error_Name(usbhid.ERROR_TIMEOUT) {
-			return 0, err
+			if err.Error() != usbhid.Error_Name(int(usbhid.ERROR_TIMEOUT)) {
+				return 0, err
+			}
 		}
 
 		// continue the for cycle

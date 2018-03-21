@@ -73,10 +73,15 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return int64(read), err
 	}
-	read += n
-	if rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
-		return int64(read), ErrMalformedMessage
+
+	// skip all the previous messages in the bus
+	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
+		n, err = r.Read(rep[:])
+		if err != nil {
+			return int64(read), err
+		}
 	}
+	read += n
 
 	// parse header
 	var (

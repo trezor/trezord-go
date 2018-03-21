@@ -4,8 +4,15 @@
 
 TREZOR Communication Daemon aka TREZOR Bridge (written in Go)
 
+**Only compatible with Chrome (version 53 or later) and Firefox (version 55 or later).**
+
+status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy) [Chrome](https://bugs.chromium.org/p/chromium/issues/detail?id=607878) [Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=903966) [Edge](https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/11963735/)
+
+## Install and run from source
+
 ```
-go build
+go get github.com/trezor/trezord-go
+go build github.com/trezor/trezord-go
 ./trezord-go -h
 ```
 
@@ -44,4 +51,8 @@ Server supports following API calls:
 | `/release/SESSION`<br>POST | `SESSION`: session to release | {} | Releases the device with the given session.<br>By "releasing" the device, you claim that you don't want to use the device anymore. |
 | `/call/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | hexadecimal string | Both input and output are hexadecimal, encoded in following way:<br>first 2 bytes (4 characters in the hexadecimal) is the message type<br>next 4 bytes (8 in hex) is length of the data<br>the rest is the actual encoded protobuf data.<br>Protobuf messages are defined in [this protobuf file](https://github.com/trezor/trezor-common/blob/master/protob/messages.proto) and the app, calling trezord, should encode/decode it itself. |
 
+## Copyright
 
+* (C) 2018 Karel Bilek, Jan Pochyla
+* CORS Copyright (c) 2013 The Gorilla Handlers Authors, [BSD license](https://github.com/gorilla/handlers/blob/master/LICENSE)
+* Licensed under LGPLv3

@@ -14,10 +14,9 @@ var emulatorPing = []byte("PINGPING")
 var emulatorPong = []byte("PONGPONG")
 
 const (
-	emulatorPrefix            = "emulator"
-	emulatorAddress           = "127.0.0.1"
-	emulatorPingTimeout       = 50 * time.Millisecond
-	emulatorDisconnectTimeout = 200 * time.Millisecond
+	emulatorPrefix      = "emulator"
+	emulatorAddress     = "127.0.0.1"
+	emulatorPingTimeout = 700 * time.Millisecond
 )
 
 type UDP struct {
@@ -28,7 +27,7 @@ type UDP struct {
 	writers map[int](io.Writer)
 }
 
-func listen(conn net.Conn) (chan []byte, chan []byte) {
+func listen(conn io.Reader) (chan []byte, chan []byte) {
 	ping := make(chan []byte, 1)
 	data := make(chan []byte, 100)
 	go func() {
@@ -143,25 +142,25 @@ func (d *UDPDevice) readWrite(buf []byte, read bool) (int, error) {
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
-			return 0, closedDeviceError
+			return 0, errClosedDevice
 		}
 		check, err := checkPort(d.ping, d.writer)
 		if err != nil {
 			return 0, err
 		}
 		if !check {
-			return 0, disconnectError
+			return 0, errDisconnect
 		}
 		if !read {
 			return d.writer.Write(buf)
-		} else {
-			select {
-			case response := <-d.data:
-				copy(buf, response)
-				return len(response), nil
-			case <-time.After(emulatorPingTimeout):
-				// timeout, continue for cycle
-			}
+		}
+
+		select {
+		case response := <-d.data:
+			copy(buf, response)
+			return len(response), nil
+		case <-time.After(emulatorPingTimeout):
+			// timeout, continue for cycle
 		}
 	}
 }

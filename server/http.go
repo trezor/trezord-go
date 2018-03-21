@@ -11,8 +11,10 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/trezor/trezord-go/usb"
@@ -22,13 +24,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const version = "2.0.10"
+
 type session struct {
 	path string
 	id   string
 	dev  usb.Device
+	call int32 // atomic
 }
 
-type server struct {
+type Server struct {
 	https *http.Server
 	bus   *usb.USB
 
@@ -40,11 +45,11 @@ type server struct {
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 }
 
-func New(bus *usb.USB, logger io.WriteCloser) (*server, error) {
+func New(bus *usb.USB, logger io.Writer) (*Server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
-	s := &server{
+	s := &Server{
 		bus:      bus,
 		https:    https,
 		sessions: make(map[string]*session),
@@ -62,16 +67,17 @@ func New(bus *usb.USB, logger io.WriteCloser) (*server, error) {
 	sr.HandleFunc("/release/{session}", s.Release)
 	sr.HandleFunc("/call/{session}", s.Call)
 
+	getsr := r.Methods("GET").Subrouter()
+	getsr.HandleFunc("/", s.StatusPage)
+
 	v, err := corsValidator()
 	if err != nil {
 		return nil, err
 	}
-	headers := handlers.AllowedHeaders([]string{"Content-Type"})
-	methods := handlers.AllowedMethods([]string{"HEAD", "POST", "OPTIONS"})
 
 	var h http.Handler = r
 	// Restrict cross-origin access.
-	h = handlers.CORS(headers, v, methods)(h)
+	h = CORS(v)(h)
 	// Log after the request is done, in the Apache format.
 	h = handlers.LoggingHandler(logger, h)
 	// Log when the request is received.
@@ -89,7 +95,7 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func corsValidator() (handlers.CORSOption, error) {
+func corsValidator() (OriginValidator, error) {
 	tregex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 	if err != nil {
 		return nil, err
@@ -99,41 +105,87 @@ func corsValidator() (handlers.CORSOption, error) {
 	if err != nil {
 		return nil, err
 	}
-	v := handlers.AllowedOriginValidator(func(origin string) bool {
+	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
 			return true
 		}
 
 		// `null` is for electron apps or chrome extensions.
-		if origin == "null" {
-			return true
-		}
+		// commented out for now
+		// if origin == "null" {
+		//	return true
+		// }
 
 		if tregex.MatchString(origin) {
 			return true
 		}
 
 		return false
-	})
+	}
 
 	return v, nil
 }
 
-func (s *server) Run() error {
+func (s *Server) Run() error {
 	return s.https.ListenAndServe()
 }
 
-func (s *server) Close() error {
+func (s *Server) Close() error {
 	return s.https.Close()
 }
 
-func (s *server) Info(w http.ResponseWriter, r *http.Request) {
+func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
+	e, err := s.enumerate()
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	tdevs := make([]statusTemplateDevice, 0)
+
+	for _, dev := range e {
+		var devType statusTemplateDevType
+		if dev.Vendor == usb.VendorT1 {
+			devType = typeT1
+		}
+		if dev.Vendor == usb.VendorT2 {
+			if dev.Product == usb.ProductT2Firmware {
+				devType = typeT2
+			} else {
+				devType = typeT2Boot
+			}
+		}
+		var session string
+		if dev.Session != nil {
+			session = *dev.Session
+		}
+		tdev := statusTemplateDevice{
+			Path:    dev.Path,
+			Type:    devType,
+			Used:    dev.Session != nil,
+			Session: session,
+		}
+		tdevs = append(tdevs, tdev)
+	}
+
+	data := &statusTemplateData{
+		Version:     version,
+		Devices:     tdevs,
+		DeviceCount: len(tdevs),
+	}
+
+	err = statusTemplate.Execute(w, data)
+	checkJSONError(w, err)
+}
+
+func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	type info struct {
 		Version string `json:"version"`
 	}
-	json.NewEncoder(w).Encode(info{
-		Version: "2.0.6",
+	err := json.NewEncoder(w).Encode(info{
+		Version: version,
 	})
+	checkJSONError(w, err)
 }
 
 type entry struct {
@@ -143,7 +195,13 @@ type entry struct {
 	Session *string `json:"session"`
 }
 
-func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
+func sortEntries(entries []entry) {
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+}
+
+func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -157,17 +215,25 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 	var entries []entry
 
 	err := json.NewDecoder(r.Body).Decode(&entries)
-	defer r.Body.Close()
+	defer func() {
+		errClose := r.Body.Close()
+		if errClose != nil {
+			// just log
+			log.Printf("Error on request close: %s", errClose.Error())
+		}
+	}()
 
 	if err != nil {
 		respondError(w, err)
 		return
 	}
 
+	sortEntries(entries)
+
 	for i := 0; i < iterMax; i++ {
-		e, err := s.enumerate()
-		if err != nil {
-			respondError(w, err)
+		e, enumErr := s.enumerate()
+		if enumErr != nil {
+			respondError(w, enumErr)
 			return
 		}
 		if reflect.DeepEqual(entries, e) {
@@ -182,19 +248,21 @@ func (s *server) Listen(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	json.NewEncoder(w).Encode(entries)
+	err = json.NewEncoder(w).Encode(entries)
+	checkJSONError(w, err)
 }
 
-func (s *server) Enumerate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
 	e, err := s.enumerate()
 	if err != nil {
 		respondError(w, err)
 		return
 	}
-	json.NewEncoder(w).Encode(e)
+	err = json.NewEncoder(w).Encode(e)
+	checkJSONError(w, err)
 }
 
-func (s *server) enumerate() ([]entry, error) {
+func (s *Server) enumerate() ([]entry, error) {
 	// Lock for atomic access to s.sessions.
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
@@ -217,6 +285,12 @@ func (s *server) enumerate() ([]entry, error) {
 		s.lastInfos = infos
 	}
 
+	entries := s.createEnumerateEntries(infos)
+	s.releaseDisconnected(infos)
+	return entries, nil
+}
+
+func (s *Server) createEnumerateEntries(infos []usb.Info) []entry {
 	entries := make([]entry, 0, len(infos))
 	for _, info := range infos {
 		e := entry{
@@ -228,13 +302,17 @@ func (s *server) enumerate() ([]entry, error) {
 			if ss.path == info.Path {
 				// Copying to prevent overwriting on Acquire and
 				// wrong comparison in Listen.
-				ssIdCopy := ss.id
-				e.Session = &ssIdCopy
+				ssidCopy := ss.id
+				e.Session = &ssidCopy
 			}
 		}
 		entries = append(entries, e)
 	}
-	// Also release all sessions of disconnected devices
+	sortEntries(entries)
+	return entries
+}
+
+func (s *Server) releaseDisconnected(infos []usb.Info) {
 	for ssid, ss := range s.sessions {
 		connected := false
 		for _, info := range infos {
@@ -243,10 +321,14 @@ func (s *server) enumerate() ([]entry, error) {
 			}
 		}
 		if !connected {
-			s.release(ssid)
+			err := s.release(ssid)
+			// just log if there is an error
+			// they are disconnected anyway
+			if err != nil {
+				log.Printf("Error on releasing disconnected device: %s", err)
+			}
 		}
 	}
-	return entries, nil
 }
 
 var (
@@ -255,7 +337,7 @@ var (
 	ErrMalformedData    = errors.New("malformed data")
 )
 
-func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -275,7 +357,7 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if acquired == nil {
-		acquired = &session{path: path}
+		acquired = &session{path: path, call: 0}
 	}
 	if acquired.id != prev {
 		respondError(w, ErrWrongPrevSession)
@@ -290,26 +372,13 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Chrome tries to read from trezor immediately after connecting, and so
-	// do we.  Bad timing can produce error on s.bus.Connect.  Try 3 times
-	// with a 100ms delay.
-	tries := 0
-	for {
-		dev, err := s.bus.Connect(path)
-		if err != nil {
-			if tries < 3 {
-				tries++
-				time.Sleep(100 * time.Millisecond)
-			} else {
-				respondError(w, err)
-				return
-			}
-		} else {
-			acquired.dev = dev
-			break
-		}
+	dev, err := s.tryConnect(path)
+	if err != nil {
+		respondError(w, err)
+		return
 	}
 
+	acquired.dev = dev
 	acquired.id = s.newSession()
 
 	s.sessions[acquired.id] = acquired
@@ -318,23 +387,44 @@ func (s *server) Acquire(w http.ResponseWriter, r *http.Request) {
 		Session string `json:"session"`
 	}
 
-	json.NewEncoder(w).Encode(result{
+	err = json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
+	checkJSONError(w, err)
 }
 
-func (s *server) release(session string) error {
-	acquired, _ := s.sessions[session]
+// Chrome tries to read from trezor immediately after connecting,
+// ans so do we.  Bad timing can produce error on s.bus.Connect.
+// Try 3 times with a 100ms delay.
+func (s *Server) tryConnect(path string) (usb.Device, error) {
+	tries := 0
+	for {
+		dev, err := s.bus.Connect(path)
+		if err != nil {
+			if tries < 3 {
+				tries++
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				return nil, err
+			}
+		} else {
+			return dev, nil
+		}
+	}
+}
+
+func (s *Server) release(session string) error {
+	acquired := s.sessions[session]
 	if acquired == nil {
 		return ErrSessionNotFound
 	}
 	delete(s.sessions, session)
 
-	acquired.dev.Close()
-	return nil
+	err := acquired.dev.Close()
+	return err
 }
 
-func (s *server) Release(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -348,10 +438,11 @@ func (s *server) Release(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(vars)
+	err = json.NewEncoder(w).Encode(vars)
+	checkJSONError(w, err)
 }
 
-func (s *server) Call(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -372,13 +463,22 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 	session := vars["session"]
 
 	s.sessionsMutex.Lock()
-	acquired, _ := s.sessions[session]
+	acquired := s.sessions[session]
 	s.sessionsMutex.Unlock()
 
 	if acquired == nil {
 		respondError(w, ErrSessionNotFound)
 		return
 	}
+
+	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
+	if !freeToCall {
+		http.Error(w, "other call in progress", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		atomic.StoreInt32(&acquired.call, 0)
+	}()
 
 	finished := make(chan bool)
 	defer func() {
@@ -390,37 +490,42 @@ func (s *server) Call(w http.ResponseWriter, r *http.Request) {
 		case <-finished:
 			return
 		case <-cn.CloseNotify():
-			s.release(session)
+			errRelease := s.release(session)
+			if errRelease != nil {
+				// just log, since request is already closed
+				log.Printf("Error while releasing: %s", errRelease.Error())
+			}
 		}
 	}()
 
-	msg, err := decodeRaw(r.Body)
+	err := readWriteDev(w, r, acquired.dev)
 	if err != nil {
 		respondError(w, err)
-		return
-	}
-	_, err = msg.WriteTo(acquired.dev)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-	_, err = msg.ReadFrom(acquired.dev)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-	err = encodeRaw(w, msg)
-	if err != nil {
-		respondError(w, err)
-		return
 	}
 }
 
-var latestSessionId = 0
+func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter) error {
+	msg, err := decodeRaw(r.Body)
+	if err != nil {
+		return err
+	}
+	_, err = msg.WriteTo(d)
+	if err != nil {
+		return err
+	}
+	_, err = msg.ReadFrom(d)
+	if err != nil {
+		return err
+	}
+	err = encodeRaw(w, msg)
+	return err
+}
 
-func (s *server) newSession() string {
-	latestSessionId++
-	return strconv.Itoa(latestSessionId)
+var latestSessionID = 0
+
+func (s *Server) newSession() string {
+	latestSessionID++
+	return strconv.Itoa(latestSessionID)
 }
 
 func decodeRaw(r io.Reader) (*wire.Message, error) {
@@ -462,27 +567,33 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	binary.BigEndian.PutUint16(header[0:2], kind)
 	binary.BigEndian.PutUint32(header[2:6], size)
 
-	var s string
-	s = hex.EncodeToString(header[:])
+	s := hex.EncodeToString(header[:])
 	_, err := w.Write([]byte(s))
 	if err != nil {
 		return err
 	}
 	s = hex.EncodeToString(data)
 	_, err = w.Write([]byte(s))
-	if err != nil {
-		return err
-	}
+	return err
+}
 
-	return nil
+func checkJSONError(w http.ResponseWriter, err error) {
+	if err != nil {
+		respondError(w, err)
+	}
 }
 
 func respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
+	log.Printf("Returning error: %s", err.Error())
 	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(jsonError{
+	// if even the encoder of the error errors, just log the error
+	err = json.NewEncoder(w).Encode(jsonError{
 		Error: err.Error(),
 	})
+	if err != nil {
+		log.Printf("Error while writing error: %s", err.Error())
+	}
 }

@@ -2,6 +2,12 @@ PLATFORM  = linux
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
+ifeq ($(LOCAL_BUILD),1)
+IMPORT_PATH = ../..
+else
+IMPORT_PATH = github.com/trezor/trezord-go
+endif
+
 all: clean .package
 
 clean:
@@ -11,7 +17,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=linux/386,linux/amd64,linux/arm-7,linux/arm64 github.com/trezor/trezord-go
+	xgo -targets=linux/386,linux/amd64,linux/arm-7,linux/arm64 $(IMPORT_PATH)
 	mv -f trezord-go-linux-386 build/trezord-linux-386
 	mv -f trezord-go-linux-amd64 build/trezord-linux-amd64
 	mv -f trezord-go-linux-arm-7 build/trezord-linux-arm-7

@@ -29,7 +29,7 @@ func (i *udpPorts) String() string {
 func (i *udpPorts) Set(value string) error {
 	p, err := strconv.Atoi(value)
 	if err != nil {
-		return nil
+		return err
 	}
 	*i = append(*i, p)
 	return nil
@@ -67,9 +67,9 @@ func main() {
 	var b *usb.USB
 
 	if len(ports) > 0 {
-		e, err := usb.InitUDP(ports)
-		if err != nil {
-			log.Fatalf("emulator: %s", err)
+		e, errUDP := usb.InitUDP(ports)
+		if errUDP != nil {
+			log.Fatalf("emulator: %s", errUDP)
 		}
 		if runtime.GOOS != "freebsd" {
 			b = usb.Init(w, h, e)

@@ -4,6 +4,12 @@ NAME32 = trezord-go-windows-4.0-386.exe
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
+ifeq ($(LOCAL_BUILD),1)
+IMPORT_PATH = ../..
+else
+IMPORT_PATH = github.com/trezor/trezord-go
+endif
+
 all: clean .package
 
 clean:
@@ -13,7 +19,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows/386 github.com/trezor/trezord-go
+	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
 	mv -f $(NAME32) build/trezord.exe
 	cp ../../VERSION build
 

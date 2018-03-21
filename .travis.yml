@@ -1,0 +1,49 @@
+sudo: false
+dist: trusty
+language: go
+
+matrix:
+  include:
+    - env: TEST=build-local
+      script:
+        - go build .
+    - env: TEST=build-xgo-linux
+      sudo: true
+      script:
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/linux
+        - LOCAL_BUILD=1 make all
+    - env: TEST=build-xgo-windows
+      sudo: true
+      script:
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/windows
+        - LOCAL_BUILD=1 make all
+    - env: TEST=build-xgo-macos
+      sudo: true
+      script:
+        - docker pull karalabe/xgo-latest
+        - go get github.com/karalabe/xgo
+        - cd release/macos
+        - LOCAL_BUILD=1 make all
+    - env: TEST=go-fmt
+      script:
+        - gofmt -d *.go ./server ./usb ./wire
+    - env: TEST=metalinter
+      script:
+        - go get -u github.com/alecthomas/gometalinter
+        - gometalinter --install
+        - bash -c '[[ $( gometalinter --deadline=300s . ./server ./usb ./wire | grep -v "should have comment" | tee /dev/stderr | wc -l ) -eq 0 ]]' 
+    - env: TEST=version-check
+      script:
+        - bash -c '[[ $( cat server/http.go | grep "const version" | sed '"'"'s/const version = //'"'"' | sed '"'"'s/"//g'"'"' ) == $( cat VERSION ) ]]' 
+
+notifications:
+  webhooks:
+    urls:
+      - http://ci-bot.satoshilabs.com:5000/travis
+    on_success: always
+    on_failure: always
+    on_start: always

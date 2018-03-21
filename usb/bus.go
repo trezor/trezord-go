@@ -7,12 +7,11 @@ import (
 )
 
 const (
-	vendorT1            = 0x534c
-	productT1Bootloader = 0x0000
-	productT1Firmware   = 0x0001
-	vendorT2            = 0x1209
-	productT2Bootloader = 0x53C0
-	productT2Firmware   = 0x53C1
+	VendorT1            = 0x534c
+	ProductT1Firmware   = 0x0001
+	VendorT2            = 0x1209
+	ProductT2Bootloader = 0x53C0
+	ProductT2Firmware   = 0x53C1
 )
 
 var (
@@ -67,5 +66,5 @@ func (b *USB) Connect(path string) (Device, error) {
 	return nil, ErrNotFound
 }
 
-var disconnectError = errors.New("Device disconnected during action")
-var closedDeviceError = errors.New("Closed device")
+var errDisconnect = errors.New("Device disconnected during action")
+var errClosedDevice = errors.New("Closed device")

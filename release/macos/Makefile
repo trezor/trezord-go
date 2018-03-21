@@ -4,6 +4,12 @@ NAME64 = trezord-go-darwin-10.6-amd64
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
+ifeq ($(LOCAL_BUILD),1)
+IMPORT_PATH = ../..
+else
+IMPORT_PATH = github.com/trezor/trezord-go
+endif
+
 all: clean .package
 
 clean:
@@ -13,7 +19,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=darwin/amd64 github.com/trezor/trezord-go
+	xgo -targets=darwin/amd64 $(IMPORT_PATH)
 	mv -f $(NAME64) build/trezord
 	cp ../../VERSION build
 
