@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/trezor/trezord-go/memorywriter"
 	"github.com/trezor/trezord-go/server"
 	"github.com/trezor/trezord-go/usb"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -42,7 +43,7 @@ func main() {
 	flag.Var(&ports, "e", "Use UDP port for emulator. Can be repeated for more ports. Example: trezord-go -e 21324 -e 21326")
 	flag.Parse()
 
-	var logger io.WriteCloser
+	var logger io.Writer
 	if logfile != "" {
 		logger = &lumberjack.Logger{
 			Filename:   logfile,
@@ -52,7 +53,12 @@ func main() {
 	} else {
 		logger = os.Stderr
 	}
+
+	m := memorywriter.New(2000)
+	logger = io.MultiWriter(logger, m)
+
 	log.SetOutput(logger)
+	log.Println("trezord is starting.")
 
 	w, err := usb.InitWebUSB()
 	if err != nil {
@@ -75,7 +81,7 @@ func main() {
 		b = usb.Init(w, h)
 	}
 
-	s, err := server.New(b, logger)
+	s, err := server.New(b, logger, m)
 	if err != nil {
 		log.Fatalf("https: %s", err)
 	}

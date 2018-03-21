@@ -21,6 +21,7 @@ type statusTemplateData struct {
 	Version     string
 	Devices     []statusTemplateDevice
 	DeviceCount int
+	Log         string
 }
 
 const templateString = `
@@ -63,6 +64,9 @@ Devices:
   <br><br>
 
 {{end}}
+<textarea rows="25" cols="80">
+{{.Log}}
+</textarea>
 (You need to reload the page after connecting/disconnecting)
 </body>
 </html>
