@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/trezor/trezord-go/memorywriter"
 	"github.com/trezor/trezord-go/usb"
 	"github.com/trezor/trezord-go/wire"
 
@@ -43,9 +44,11 @@ type Server struct {
 	callInProgress bool       // we cannot make calls and enumeration at the same time
 	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
+
+	mw *memorywriter.MemoryWriter
 }
 
-func New(bus *usb.USB, logger io.Writer) (*Server, error) {
+func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
@@ -53,6 +56,8 @@ func New(bus *usb.USB, logger io.Writer) (*Server, error) {
 		bus:      bus,
 		https:    https,
 		sessions: make(map[string]*session),
+
+		mw: mw,
 	}
 	r := mux.NewRouter()
 
@@ -172,6 +177,7 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 		Version:     version,
 		Devices:     tdevs,
 		DeviceCount: len(tdevs),
+		Log:         s.mw.String(),
 	}
 
 	err = statusTemplate.Execute(w, data)
