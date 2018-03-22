@@ -25,7 +25,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "2.0.10"
+const version = "2.0.11"
 
 type session struct {
 	path string
