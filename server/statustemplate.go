@@ -67,7 +67,7 @@ const templateString = `
       top: 50px;
       left: -5px;
       position: relative;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .item .session {
@@ -148,7 +148,7 @@ const templateString = `
         <span class="session">
         {{if .Used}} Session: {{.Session}} {{end}} {{if not .Used}} Session: no session {{end}}
         </span>
-        <p>{{.Path}}</p>
+        <p>Path: {{.Path}}</p>
        </div>
       {{end}}
 
