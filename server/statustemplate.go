@@ -33,7 +33,7 @@ const templateString = `
   <title>TREZOR Bridge status</title>
   <style>
     body {
-      font-family: 'Open sans';
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
     }
 
     h1 {
