@@ -116,7 +116,7 @@ const templateString = `
     }
 
     textarea{
-      max-width: 500px;
+      max-width: 700px;
     }
   </style>
 </head>
@@ -154,14 +154,14 @@ const templateString = `
 
        <div class="space-top">
        <p>Console Log</p>
-       <textarea rows="25" cols="80">
+       <textarea rows="25" cols="150">
 {{.Log}}
        </textarea>
      </div>
 
       <div class="space-top">
         <p>You may need to reload the page after connecting / disconnecting</p>
-        <a href="#">
+        <a href="#" onClick="location.href=location.href">
           <div class="btn-primary">Refresh page</div>
         </a>
       </div>
