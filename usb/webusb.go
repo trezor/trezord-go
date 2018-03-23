@@ -164,11 +164,24 @@ type WUD struct {
 func (d *WUD) Close() error {
 	atomic.StoreInt32(&d.closed, 1)
 
+	d.finishReadQueue()
+
 	d.transferMutex.Lock()
 	usbhid.Close(d.dev)
 	d.transferMutex.Unlock()
 
 	return nil
+}
+
+func (d *WUD) finishReadQueue() {
+	d.transferMutex.Lock()
+	var err error
+	var buf [64]byte
+
+	for err == nil {
+		_, err = usbhid.Interrupt_Transfer(d.dev, webEpIn, buf[:], 50)
+	}
+	d.transferMutex.Unlock()
 }
 
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
