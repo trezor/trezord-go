@@ -18,7 +18,7 @@ SIGNKEY=/release/authenticode
 
 if [ -r $SIGNKEY.der ]; then
     mv trezord.exe trezord.exe.unsigned
-    osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "TREZOR Bridge" -i "https://trezor.io/" -t http://timestamp.comodoca.com -in trezord.exe.unsigned -out trezord.exe
+    osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "TREZOR Bridge" -i "https://trezor.io/" -t "http://timestamp.comodoca.com?td=sha256" -in trezord.exe.unsigned -out trezord.exe
     osslsigncode verify -in trezord.exe
 fi
 
@@ -30,6 +30,6 @@ fi
 
 if [ -r $SIGNKEY.der ]; then
     mv $INSTALLER $INSTALLER.unsigned
-    osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "TREZOR Bridge" -i "https://trezor.io/" -t http://timestamp.comodoca.com -in $INSTALLER.unsigned -out $INSTALLER
+    osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "TREZOR Bridge" -i "https://trezor.io/" -t "http://timestamp.comodoca.com?td=sha256" -in $INSTALLER.unsigned -out $INSTALLER
     osslsigncode verify -in $INSTALLER
 fi
