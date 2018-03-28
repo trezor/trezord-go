@@ -36,6 +36,24 @@ Compiling for officially supported platforms:
 
 * `$GOPATH/bin/xgo -targets=windows/amd64,windows/386,darwin/amd64,linux/amd64,linux/386 github.com/trezor/trezord-go`
 
+## Emulator support
+
+Trezord supports emulators for both Trezor versions. However, you need to enable it manually; it is disabled by default. After enabling, services that work with emulator can work with all services that support trezord.
+
+To enable emulator, run trezord with a parameter `-e` followed by port, for every emulator with an enabled port
+
+`./trezord -e 21324`
+
+If you want to run this automatically on linux, do
+
+`sudo systemctl edit --full trezord.service`
+
+and edit the service file (and maybe restart the trezord service). On mac, you will need to edit
+
+`/Library/LaunchAgents/com.bitcointrezor.trezorBridge.trezord.plist`
+
+and edit the last `<string>` in the plist. (And also probably restart the pc.)
+
 ## API documentation
 
 `trezord-go` starts a HTTP server on `http://localhost:21325`. AJAX calls are only enabled from trezor.io subdomains.
