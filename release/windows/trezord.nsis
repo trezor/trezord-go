@@ -1,4 +1,6 @@
 !include MUI2.nsh
+!include x64.nsh
+!include LogicLib.nsh
 
 RequestExecutionLevel admin
 
@@ -24,6 +26,8 @@ Section "TREZOR Bridge"
   nsExec::Exec "taskkill /IM trezord.exe /F"
 
   SetOutPath "$INSTDIR"
+  File "wdi-simple-32b.exe"
+  File "wdi-simple-64b.exe"
   File "trezord.exe"
   File "trezord.ico"
 SectionEnd
@@ -33,6 +37,18 @@ Section "Start Menu Shortcuts"
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
   CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
+SectionEnd
+
+Section "Install drivers"
+  ${If} ${RunningX64}
+    DetailPrint "Running $INSTDIR\wdi-simple-64b.exe"
+    nsExec::ExecToLog '"$INSTDIR\wdi-simple-64b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
+    nsExec::ExecToLog '"$INSTDIR\wdi-simple-64b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
+  ${Else}
+    DetailPrint "Running $INSTDIR\wdi-simple-32b.exe"
+    nsExec::ExecToLog '"$INSTDIR\wdi-simple-32b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
+    nsExec::ExecToLog '"$INSTDIR\wdi-simple-32b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
+  ${EndIf}
 SectionEnd
 
 Section "Uninstall"
