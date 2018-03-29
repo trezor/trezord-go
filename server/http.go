@@ -486,7 +486,7 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		atomic.StoreInt32(&acquired.call, 0)
 	}()
 
-	finished := make(chan bool)
+	finished := make(chan bool, 1)
 	defer func() {
 		finished <- true
 	}()
