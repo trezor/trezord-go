@@ -45,8 +45,14 @@ Section "Start Menu Shortcuts"
   CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
 SectionEnd
 
+Section "Uninstall previous drivers"
+  DetailPrint "Uninstalling previous drivers"
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_1209*'
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_534c*'
+SectionEnd
+
 Section "Install drivers"
-  DetailPrint "Running $INSTDIR\wdi-simple.exe"
+  DetailPrint "Installing drivers"
   nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
   nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
 SectionEnd
