@@ -34,7 +34,7 @@ Prerequisites:
 
 Compiling for officially supported platforms:
 
-* `$GOPATH/bin/xgo -targets=windows/amd64,windows/386,darwin/amd64,linux/amd64,linux/386 github.com/trezor/trezord-go`
+* `$GOPATH/bin/xgo -targets=windows/amd64,windows/386,darwin/amd64,linux/amd64,linux/386 .`
 
 ## Emulator support
 
