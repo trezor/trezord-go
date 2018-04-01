@@ -2,11 +2,7 @@ PLATFORM  = linux
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-ifeq ($(LOCAL_BUILD),1)
 IMPORT_PATH = ../..
-else
-IMPORT_PATH = github.com/trezor/trezord-go
-endif
 
 all: clean .package
 

@@ -11,11 +11,7 @@ WDI_IMAGETAG  = trezord-go-wdi-build
 DEVCON_VOL_MOUNT = -v $(shell pwd):/release
 DEVCON_IMAGETAG  = trezord-go-devcon-build
 
-ifeq ($(LOCAL_BUILD),1)
 IMPORT_PATH = ../..
-else
-IMPORT_PATH = github.com/trezor/trezord-go
-endif
 
 all: clean .package
 
