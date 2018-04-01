@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 func devconInfo() (string, error) {
@@ -93,13 +94,24 @@ func devconMultipleDriverFiles(ids []string) (string, error) {
 	return res, nil
 }
 
-func devconDriverFiles(id string) (string, error) {
-	c := exec.Command("devcon.exe", "driverfiles", "@"+id) // nolint: gas
-	out, err := c.Output()
+func runDevcon(cmd, par string) (string, error) {
+	cmdInstance := exec.Command("devcon.exe", cmd, par) // nolint: gas
+	cmdInstance.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	output, err := cmdInstance.Output()
+
 	if err != nil {
 		return "", err
 	}
-	lines := strings.Split(string(out), "\r\n")
+	return string(output), nil
+}
+
+func devconDriverFiles(id string) (string, error) {
+	out, err := runDevcon("driverfiles", "@"+id)
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(out, "\r\n")
 	lines = lines[0 : len(lines)-2]
 	res := strings.Join(lines, "\n")
 	return res, nil
@@ -107,16 +119,16 @@ func devconDriverFiles(id string) (string, error) {
 
 func devconUsbStringsVid(vid int, all bool) ([]string, error) {
 	command := "find"
-	vidHex := fmt.Sprintf("%04x", vid)
 	if all {
 		command = "findall"
 	}
-	c := exec.Command("devcon.exe", command, "*vid_"+vidHex+"*") // nolint: gas
-	out, err := c.Output()
+	v := fmt.Sprintf("*vid_%04x*", vid)
+	out, err := runDevcon(command, v)
+
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(string(out), "\r\n")
+	lines := strings.Split(out, "\r\n")
 	if len(lines) == 2 {
 		return nil, nil
 	}
