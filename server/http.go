@@ -173,11 +173,19 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 		tdevs = append(tdevs, tdev)
 	}
 
+	origLog := s.mw.String()
+	devconLog, err := devconInfo()
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	log := devconLog + origLog
+
 	data := &statusTemplateData{
 		Version:     version,
 		Devices:     tdevs,
 		DeviceCount: len(tdevs),
-		Log:         s.mw.String(),
+		Log:         log,
 	}
 
 	err = statusTemplate.Execute(w, data)
