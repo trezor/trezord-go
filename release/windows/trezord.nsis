@@ -26,9 +26,15 @@ Section "TREZOR Bridge"
   nsExec::Exec "taskkill /IM trezord.exe /F"
 
   SetOutPath "$INSTDIR"
-  File "wdi-simple-32b.exe"
-  File "wdi-simple-64b.exe"
-  File "trezord.exe"
+  ${If} ${RunningX64}
+    File /oname=wdi-simple.exe wdi-simple-64b.exe
+    File /oname=trezord.exe trezord-64b.exe
+    File /oname=devcon.exe devcon-64b.exe
+  ${Else}
+    File /oname=wdi-simple.exe wdi-simple-32b.exe
+    File /oname=trezord.exe trezord-32b.exe
+    File /oname=devcon.exe devcon-32b.exe
+  ${EndIf}
   File "trezord.ico"
 SectionEnd
 
@@ -40,15 +46,9 @@ Section "Start Menu Shortcuts"
 SectionEnd
 
 Section "Install drivers"
-  ${If} ${RunningX64}
-    DetailPrint "Running $INSTDIR\wdi-simple-64b.exe"
-    nsExec::ExecToLog '"$INSTDIR\wdi-simple-64b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
-    nsExec::ExecToLog '"$INSTDIR\wdi-simple-64b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
-  ${Else}
-    DetailPrint "Running $INSTDIR\wdi-simple-32b.exe"
-    nsExec::ExecToLog '"$INSTDIR\wdi-simple-32b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
-    nsExec::ExecToLog '"$INSTDIR\wdi-simple-32b.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
-  ${EndIf}
+  DetailPrint "Running $INSTDIR\wdi-simple.exe"
+  nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
+  nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
 SectionEnd
 
 Section "Uninstall"
@@ -59,6 +59,9 @@ Section "Uninstall"
   Delete /rebootok "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk"
   RMDir "$SMPROGRAMS\TREZOR Bridge"
 
+  RMDir /r /rebootok "$INSTDIR\usb_driver"
+  Delete /rebootok "$INSTDIR\devcon.exe"
+  Delete /rebootok "$INSTDIR\wdi-simple.exe"
   Delete /rebootok "$INSTDIR\trezord.exe"
   Delete /rebootok "$INSTDIR\trezord.ico"
   Delete /rebootok "$INSTDIR\Uninstall.exe"
