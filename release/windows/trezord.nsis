@@ -9,8 +9,8 @@
 ; Otherwise it returns null("").
 ; Written by kenglish_hi
 ; Adapted from StrReplace written by dandaman32
- 
- 
+
+
 Var STR_HAYSTACK
 Var STR_NEEDLE
 Var STR_CONTAINS_VAR_1
@@ -18,7 +18,7 @@ Var STR_CONTAINS_VAR_2
 Var STR_CONTAINS_VAR_3
 Var STR_CONTAINS_VAR_4
 Var STR_RETURN_VAR
- 
+
 Function StrContains
   Exch $STR_NEEDLE
   Exch 1
@@ -42,14 +42,14 @@ Function StrContains
    Pop $STR_NEEDLE ;Prevent "invalid opcode" errors and keep the
    Exch $STR_RETURN_VAR
 FunctionEnd
- 
+
 !macro _StrContainsConstructor OUT NEEDLE HAYSTACK
   Push `${HAYSTACK}`
   Push `${NEEDLE}`
   Call StrContains
   Pop `${OUT}`
 !macroend
- 
+
 !define StrContains '!insertmacro "_StrContainsConstructor"'
 
 
