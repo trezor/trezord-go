@@ -454,6 +454,7 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
 		return
 	}
+	cnn := cn.CloseNotify()
 
 	s.callMutex.Lock()
 	s.callInProgress = true
@@ -495,7 +496,7 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-finished:
 			return
-		case <-cn.CloseNotify():
+		case <-cnn:
 			errRelease := s.release(session)
 			if errRelease != nil {
 				// just log, since request is already closed
