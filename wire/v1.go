@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 )
 
 const (
@@ -15,6 +16,8 @@ const (
 type Message struct {
 	Kind uint16
 	Data []byte
+
+	Dlogger *log.Logger
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {

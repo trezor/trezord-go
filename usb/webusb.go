@@ -21,10 +21,11 @@ const (
 )
 
 type WebUSB struct {
-	usb usbhid.Context
+	usb                    usbhid.Context
+	logger, detailedLogger *log.Logger
 }
 
-func InitWebUSB() (*WebUSB, error) {
+func InitWebUSB(logger, detailedLogger *log.Logger) (*WebUSB, error) {
 	var usb usbhid.Context
 	err := usbhid.Init(&usb)
 	if err != nil {
@@ -33,7 +34,9 @@ func InitWebUSB() (*WebUSB, error) {
 	usbhid.Set_Debug(usb, int(usbhid.LOG_LEVEL_NONE))
 
 	return &WebUSB{
-		usb: usb,
+		usb:            usb,
+		logger:         logger,
+		detailedLogger: detailedLogger,
 	}, nil
 }
 
@@ -95,14 +98,14 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		// don't abort if reset fails
 		// usbhid.Close(d)
 		// return nil, err
-		log.Printf("Warning: error at device reset: %s", err)
+		b.logger.Printf("Warning: error at device reset: %s", err)
 	}
 	err = usbhid.Set_Configuration(d, webConfigNum)
 	if err != nil {
 		// don't abort if set configuration fails
 		// usbhid.Close(d)
 		// return nil, err
-		log.Printf("Warning: error at configuration set: %s", err)
+		b.logger.Printf("Warning: error at configuration set: %s", err)
 	}
 	err = usbhid.Claim_Interface(d, webIfaceNum)
 	if err != nil {

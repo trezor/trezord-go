@@ -45,42 +45,51 @@ func main() {
 	flag.BoolVar(&withusb, "u", true, "Use USB devices. Can be disabled for testing environments. Example: trezord-go -e 21324 -u=false")
 	flag.Parse()
 
-	var logger io.Writer
+	var lw io.Writer
 	if logfile != "" {
-		logger = &lumberjack.Logger{
+		lw = &lumberjack.Logger{
 			Filename:   logfile,
 			MaxSize:    5, // megabytes
 			MaxBackups: 3,
 		}
 	} else {
-		logger = os.Stderr
+		lw = os.Stderr
 	}
 
 	m := memorywriter.New(2000)
-	logger = io.MultiWriter(logger, m)
 
-	log.SetOutput(logger)
-	log.Println("trezord is starting.")
+	detailedLogWriter := memorywriter.New(3000)
+	logWriter := io.MultiWriter(lw, m, detailedLogWriter)
+
+	logger := log.New(logWriter, "", log.LstdFlags)
+	detailedLogger := log.New(detailedLogWriter, "details: ", log.LstdFlags)
+
+	logger.Println("trezord is starting.")
 
 	var bus []usb.Bus
 	if withusb {
-		w, err := usb.InitWebUSB()
+		detailedLogger.Println("Initing webusb")
+
+		w, err := usb.InitWebUSB(logger, detailedLogger)
 		if err != nil {
 			log.Fatalf("webusb: %s", err)
 		}
 		defer w.Close()
 
-		h, err := usb.InitHIDAPI()
+		detailedLogger.Println("Initing hidapi")
+		h, err := usb.InitHIDAPI(logger, detailedLogger)
 		if err != nil {
 			log.Fatalf("hidapi: %s", err)
 		}
 		bus = append(bus, w, h)
 	}
 
+	detailedLogger.Printf("UDP port count - %d\n", len(ports))
+
 	if len(ports) > 0 {
 		e, errUDP := usb.InitUDP(ports)
 		if errUDP != nil {
-			log.Fatalf("emulator: %s", errUDP)
+			logger.Fatalf("emulator: %s", errUDP)
 		}
 		bus = append(bus, e)
 	}
@@ -90,12 +99,17 @@ func main() {
 	}
 
 	b := usb.Init(bus...)
-	s, err := server.New(b, logger, m)
+	detailedLogger.Println("Creating HTTP server")
+	s, err := server.New(b, logWriter, m, detailedLogWriter, logger, detailedLogger)
 	if err != nil {
-		log.Fatalf("https: %s", err)
+		logger.Fatalf("https: %s", err)
 	}
+
+	detailedLogger.Println("Running HTTP server")
 	err = s.Run()
 	if err != nil {
-		log.Fatalf("https: %s", err)
+		logger.Fatalf("https: %s", err)
 	}
+
+	detailedLogger.Println("Main ended successfully")
 }

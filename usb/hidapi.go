@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/trezor/usbhid"
@@ -16,10 +17,14 @@ const (
 )
 
 type HIDAPI struct {
+	logger, detailedLogger *log.Logger
 }
 
-func InitHIDAPI() (*HIDAPI, error) {
-	return &HIDAPI{}, nil
+func InitHIDAPI(logger, detailedLogger *log.Logger) (*HIDAPI, error) {
+	return &HIDAPI{
+		logger:         logger,
+		detailedLogger: detailedLogger,
+	}, nil
 }
 
 func (b *HIDAPI) Enumerate() ([]Info, error) {

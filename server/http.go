@@ -45,10 +45,11 @@ type Server struct {
 	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 
-	mw *memorywriter.MemoryWriter
+	mw, dmw         *memorywriter.MemoryWriter
+	logger, dlogger *log.Logger
 }
 
-func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server, error) {
+func New(bus *usb.USB, logWriter io.Writer, mw, dmw *memorywriter.MemoryWriter, logger, dlogger *log.Logger) (*Server, error) {
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
@@ -57,7 +58,10 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 		https:    https,
 		sessions: make(map[string]*session),
 
-		mw: mw,
+		mw:      mw,
+		dmw:     dmw,
+		logger:  logger,
+		dlogger: dlogger,
 	}
 	r := mux.NewRouter()
 
@@ -85,18 +89,18 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 	// Restrict cross-origin access.
 	h = CORS(v)(h)
 	// Log after the request is done, in the Apache format.
-	h = handlers.LoggingHandler(logger, h)
+	h = handlers.LoggingHandler(logWriter, h)
 	// Log when the request is received.
-	h = logRequest(h)
+	h = s.logRequest(h)
 
 	https.Handler = h
 
 	return s, nil
 }
 
-func logRequest(handler http.Handler) http.Handler {
+func (s *Server) logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s", r.Method, r.URL)
+		s.logger.Printf("%s %s", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -143,7 +147,7 @@ func (s *Server) Close() error {
 func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 	e, err := s.enumerate()
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
@@ -174,23 +178,26 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 		tdevs = append(tdevs, tdev)
 	}
 
+	origDetailedLog := s.dmw.String()
 	origLog := s.mw.String()
 	devconLog, err := devconInfo()
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 	log := devconLog + origLog
+	dlog := devconLog + origDetailedLog
 
 	data := &statusTemplateData{
 		Version:     version,
 		Devices:     tdevs,
 		DeviceCount: len(tdevs),
 		Log:         log,
+		DLog:        dlog,
 	}
 
 	err = statusTemplate.Execute(w, data)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +207,7 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	err := json.NewEncoder(w).Encode(info{
 		Version: version,
 	})
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 type entry struct {
@@ -235,12 +242,12 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 		errClose := r.Body.Close()
 		if errClose != nil {
 			// just log
-			log.Printf("Error on request close: %s", errClose.Error())
+			s.logger.Printf("Error on request close: %s", errClose.Error())
 		}
 	}()
 
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
@@ -249,7 +256,7 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < iterMax; i++ {
 		e, enumErr := s.enumerate()
 		if enumErr != nil {
-			respondError(w, enumErr)
+			s.respondError(w, enumErr)
 			return
 		}
 		if reflect.DeepEqual(entries, e) {
@@ -265,17 +272,17 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	err = json.NewEncoder(w).Encode(entries)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
 	e, err := s.enumerate()
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 	err = json.NewEncoder(w).Encode(e)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) enumerate() ([]entry, error) {
@@ -341,7 +348,7 @@ func (s *Server) releaseDisconnected(infos []usb.Info) {
 			// just log if there is an error
 			// they are disconnected anyway
 			if err != nil {
-				log.Printf("Error on releasing disconnected device: %s", err)
+				s.logger.Printf("Error on releasing disconnected device: %s", err)
 			}
 		}
 	}
@@ -376,21 +383,21 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 		acquired = &session{path: path, call: 0}
 	}
 	if acquired.id != prev {
-		respondError(w, ErrWrongPrevSession)
+		s.respondError(w, ErrWrongPrevSession)
 		return
 	}
 
 	if prev != "" {
 		err := s.release(prev)
 		if err != nil {
-			respondError(w, err)
+			s.respondError(w, err)
 			return
 		}
 	}
 
 	dev, err := s.tryConnect(path)
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
@@ -406,7 +413,7 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 // Chrome tries to read from trezor immediately after connecting,
@@ -450,12 +457,12 @@ func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 	err := s.release(session)
 
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(vars)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
@@ -492,7 +499,7 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 	s.sessionsMutex.Unlock()
 
 	if acquired == nil {
-		respondError(w, ErrSessionNotFound)
+		s.respondError(w, ErrSessionNotFound)
 		return
 	}
 
@@ -518,19 +525,19 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 			errRelease := s.release(session)
 			if errRelease != nil {
 				// just log, since request is already closed
-				log.Printf("Error while releasing: %s", errRelease.Error())
+				s.logger.Printf("Error while releasing: %s", errRelease.Error())
 			}
 		}
 	}()
 
-	err := readWriteDev(w, r, acquired.dev, skipRead)
+	err := s.readWriteDev(w, r, acquired.dev, skipRead)
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 	}
 }
 
-func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter, skipRead bool) error {
-	msg, err := decodeRaw(r.Body)
+func (s *Server) readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter, skipRead bool) error {
+	msg, err := s.decodeRaw(r.Body)
 	if err != nil {
 		return err
 	}
@@ -557,7 +564,7 @@ func (s *Server) newSession() string {
 	return strconv.Itoa(latestSessionID)
 }
 
-func decodeRaw(r io.Reader) (*wire.Message, error) {
+func (s *Server) decodeRaw(r io.Reader) (*wire.Message, error) {
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -583,6 +590,8 @@ func decodeRaw(r io.Reader) (*wire.Message, error) {
 	return &wire.Message{
 		Kind: kind,
 		Data: data,
+
+		Dlogger: s.dlogger,
 	}, nil
 }
 
@@ -606,13 +615,13 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	return err
 }
 
-func checkJSONError(w http.ResponseWriter, err error) {
+func (s *Server) checkJSONError(w http.ResponseWriter, err error) {
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 	}
 }
 
-func respondError(w http.ResponseWriter, err error) {
+func (s *Server) respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
@@ -623,6 +632,6 @@ func respondError(w http.ResponseWriter, err error) {
 		Error: err.Error(),
 	})
 	if err != nil {
-		log.Printf("Error while writing error: %s", err.Error())
+		s.logger.Printf("Error while writing error: %s", err.Error())
 	}
 }

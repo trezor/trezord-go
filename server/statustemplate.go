@@ -22,6 +22,7 @@ type statusTemplateData struct {
 	Devices     []statusTemplateDevice
 	DeviceCount int
 	Log         string
+	DLog        string
 }
 
 const templateString = `
@@ -118,6 +119,10 @@ const templateString = `
     textarea{
       max-width: 700px;
     }
+
+    #dlog {
+      display: none;
+    }
   </style>
 </head>
 
@@ -154,8 +159,15 @@ const templateString = `
 
        <div class="space-top">
        <p>Console Log</p>
-       <textarea rows="25" cols="150">
+       <p>
+         <input type="checkbox" id="detailLogCheckbox">
+         <label for="detailLogCheckbox">Show detailed log</label>
+       </p>
+       <textarea rows="25" cols="150" id="log">
 {{.Log}}
+       </textarea>
+       <textarea rows="25" cols="150" id="dlog">
+{{.DLog}}
        </textarea>
      </div>
 
@@ -167,6 +179,17 @@ const templateString = `
       </div>
     </div>
   </div>
+  <script>
+    document.getElementById("detailLogCheckbox").onchange = function () {
+      if (document.getElementById("detailLogCheckbox").checked) {
+        document.getElementById("dlog").style.display = "inline-block";
+        document.getElementById("log").style.display = "none";
+      } else {
+        document.getElementById("log").style.display = "inline-block";
+        document.getElementById("dlog").style.display = "none";
+      }
+    }
+  </script>
 </body>
 </html>
 `
