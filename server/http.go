@@ -221,6 +221,7 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
 		return
 	}
+	cnn := cn.CloseNotify()
 
 	const (
 		iterMax   = 600
@@ -252,7 +253,7 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 		}
 		if reflect.DeepEqual(entries, e) {
 			select {
-			case <-cn.CloseNotify():
+			case <-cnn:
 				return
 			default:
 				time.Sleep(iterDelay * time.Millisecond)
