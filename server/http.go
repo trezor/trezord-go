@@ -184,24 +184,30 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 
 	s.dlogger.Println("http - asking devcon")
 
-	origDetailedLog := s.dmw.String()
-	origLog := s.mw.String()
 	devconLog, err := devconInfo(s.dlogger)
 	if err != nil {
 		s.respondError(w, err)
 		return
 	}
-	log := devconLog + origLog
-	dlog := devconLog + origDetailedLog
+
+	start := version + "\n" + devconLog
+
+	log := s.mw.String(start)
+	gziplog, err := s.dmw.GzipJsArray(start)
+
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
 
 	s.dlogger.Println("http - actually building status data")
 
 	data := &statusTemplateData{
-		Version:     version,
-		Devices:     tdevs,
-		DeviceCount: len(tdevs),
-		Log:         log,
-		DLog:        dlog,
+		Version:        version,
+		Devices:        tdevs,
+		DeviceCount:    len(tdevs),
+		Log:            log,
+		DLogGzipJSData: gziplog,
 	}
 
 	err = statusTemplate.Execute(w, data)

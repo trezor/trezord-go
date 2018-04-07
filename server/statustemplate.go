@@ -18,11 +18,11 @@ type statusTemplateDevice struct {
 }
 
 type statusTemplateData struct {
-	Version     string
-	Devices     []statusTemplateDevice
-	DeviceCount int
-	Log         string
-	DLog        string
+	Version        string
+	Devices        []statusTemplateDevice
+	DeviceCount    int
+	Log            string
+	DLogGzipJSData []int
 }
 
 const templateString = `
@@ -158,16 +158,11 @@ const templateString = `
       {{end}}
 
        <div class="space-top">
-       <p>Console Log</p>
-       <p>
-         <input type="checkbox" id="detailLogCheckbox">
-         <label for="detailLogCheckbox">Show detailed log</label>
+       <p>Console Log
+        (<a href="" id="detlog">download detailed log</a>)
        </p>
        <textarea rows="25" cols="150" id="log">
 {{.Log}}
-       </textarea>
-       <textarea rows="25" cols="150" id="dlog">
-{{.DLog}}
        </textarea>
      </div>
 
@@ -180,15 +175,13 @@ const templateString = `
     </div>
   </div>
   <script>
-    document.getElementById("detailLogCheckbox").onchange = function () {
-      if (document.getElementById("detailLogCheckbox").checked) {
-        document.getElementById("dlog").style.display = "inline-block";
-        document.getElementById("log").style.display = "none";
-      } else {
-        document.getElementById("log").style.display = "inline-block";
-        document.getElementById("dlog").style.display = "none";
-      }
-    }
+   var gzipByteArray = new Uint8Array({{.DLogGzipJSData}});
+   var blob = new Blob([gzipByteArray], {type: "application/gzip"});
+   var a = document.getElementById("detlog")
+   var url = window.URL.createObjectURL(blob);
+
+   a.href = url;
+   a.download = "log.gz";
   </script>
 </body>
 </html>

@@ -125,13 +125,11 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		b.logger.Printf("Warning: error at device reset: %s", err)
 	}
 
-	{
-		currConf, err := usbhid.Get_Configuration(d)
-		if err != nil {
-			b.dlogger.Printf("webusb - connect - current configuration err %s", err.Error())
-		} else {
-			b.dlogger.Printf("webusb - connect - current configuration %d", currConf)
-		}
+	currConf, err := usbhid.Get_Configuration(d)
+	if err != nil {
+		b.dlogger.Printf("webusb - connect - current configuration err %s", err.Error())
+	} else {
+		b.dlogger.Printf("webusb - connect - current configuration %d", currConf)
 	}
 
 	b.dlogger.Println("webusb - connect - set_configuration")
@@ -143,13 +141,11 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 		b.logger.Printf("Warning: error at configuration set: %s", err)
 	}
 
-	{
-		currConf, err := usbhid.Get_Configuration(d)
-		if err != nil {
-			b.dlogger.Printf("webusb - connect - current configuration err %s", err.Error())
-		} else {
-			b.dlogger.Printf("webusb - connect - current configuration %d", currConf)
-		}
+	currConf, err = usbhid.Get_Configuration(d)
+	if err != nil {
+		b.dlogger.Printf("webusb - connect - current configuration err %s", err.Error())
+	} else {
+		b.dlogger.Printf("webusb - connect - current configuration %d", currConf)
 	}
 
 	b.dlogger.Println("webusb - connect - claiming interface")
@@ -275,9 +271,8 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 			if len(p) > 0 {
 				d.dlogger.Println("webusb - rw - single transfer succesful")
 				return len(p), err
-			} else {
-				d.dlogger.Println("webusb - rw - skipping empty transfer - go again")
 			}
+			d.dlogger.Println("webusb - rw - skipping empty transfer - go again")
 		}
 
 		if err != nil {

@@ -58,7 +58,7 @@ func main() {
 
 	m := memorywriter.New(2000)
 
-	detailedLogWriter := memorywriter.New(3000)
+	detailedLogWriter := memorywriter.New(90000)
 	logWriter := io.MultiWriter(lw, m, detailedLogWriter)
 
 	logger := log.New(logWriter, "", log.LstdFlags)
