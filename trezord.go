@@ -64,6 +64,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("webusb: %s", err)
 	}
+	defer w.Close()
+
 	h, err := usb.InitHIDAPI()
 	if err != nil {
 		log.Fatalf("hidapi: %s", err)
