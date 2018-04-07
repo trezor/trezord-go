@@ -17,20 +17,25 @@ const (
 )
 
 type HIDAPI struct {
-	logger, detailedLogger *log.Logger
+	logger, dlogger *log.Logger
 }
 
-func InitHIDAPI(logger, detailedLogger *log.Logger) (*HIDAPI, error) {
+func InitHIDAPI(logger, dlogger *log.Logger) (*HIDAPI, error) {
 	return &HIDAPI{
-		logger:         logger,
-		detailedLogger: detailedLogger,
+		logger:  logger,
+		dlogger: dlogger,
 	}, nil
 }
 
 func (b *HIDAPI) Enumerate() ([]Info, error) {
 	var infos []Info
 
-	for _, dev := range usbhid.HidEnumerate(0, 0) { // enumerate all devices
+	b.dlogger.Println("hidapi - enumerate - low level")
+	devs := usbhid.HidEnumerate(0, 0)
+
+	b.dlogger.Println("hidapi - enumerate - low level done")
+
+	for _, dev := range devs { // enumerate all devices
 		if b.match(&dev) {
 			infos = append(infos, Info{
 				Path:      b.identify(&dev),
@@ -47,19 +52,27 @@ func (b *HIDAPI) Has(path string) bool {
 }
 
 func (b *HIDAPI) Connect(path string) (Device, error) {
-	for _, dev := range usbhid.HidEnumerate(0, 0) { // enumerate all devices
+	b.dlogger.Println("hidapi - connect - enumerate to find")
+	devs := usbhid.HidEnumerate(0, 0)
+	b.dlogger.Println("hidapi - connect - enumerate done")
+
+	for _, dev := range devs { // enumerate all devices
 		if b.match(&dev) && b.identify(&dev) == path {
+			b.dlogger.Println("hidapi - connect - low level open")
 			d, err := dev.Open()
 			if err != nil {
 				return nil, err
 			}
+			b.dlogger.Println("hidapi - connect - detecting prepend")
 			prepend, err := detectPrepend(d)
 			if err != nil {
 				return nil, err
 			}
+			b.dlogger.Printf("hidapi - connect - done (prepend %t)", prepend)
 			return &HID{
 				dev:     d,
 				prepend: prepend,
+				dlogger: b.dlogger,
 			}, nil
 		}
 	}
@@ -83,10 +96,15 @@ func (b *HIDAPI) identify(dev *usbhid.HidDeviceInfo) string {
 type HID struct {
 	dev     *usbhid.HidDevice
 	prepend bool // on windows, see detectPrepend
+
+	dlogger *log.Logger
 }
 
 func (d *HID) Close() error {
-	return d.dev.Close()
+	d.dlogger.Println("hidapi - close - low level close")
+	err := d.dev.Close()
+	d.dlogger.Println("hidapi - close - low level close done")
+	return err
 }
 
 var unknownErrorMessage = "hidapi: unknown failure"
@@ -125,9 +143,18 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 	var err error
 
 	if read {
+		d.dlogger.Println("hidapi - read - start")
 		w, err = d.dev.Read(buf)
+		d.dlogger.Println("hidapi - read - end")
 	} else {
+		d.dlogger.Println("hidapi - write - start")
 		w, err = d.dev.Write(buf, d.prepend)
+		d.dlogger.Println("hidapi - write - end")
+	}
+	if err == nil {
+		d.dlogger.Println("hidapi - readwrite - err nil")
+	} else {
+		d.dlogger.Printf("hidapi - readwrite - err %s", err.Error())
 	}
 
 	if err != nil && err.Error() == unknownErrorMessage {
