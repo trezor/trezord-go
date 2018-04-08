@@ -54,6 +54,10 @@ and edit the service file (and maybe restart the trezord service). On mac, you w
 
 and edit the last `<string>` in the plist. (And also probably restart the pc.)
 
+You can disable all USB in order to run on some virtuaized environments, for example Travis
+
+`./trezord -e 21324 -u=false`
+
 ## API documentation
 
 `trezord-go` starts a HTTP server on `http://localhost:21325`. AJAX calls are only enabled from trezor.io subdomains.
