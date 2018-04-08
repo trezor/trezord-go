@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io"
 	"log"
+	"runtime"
 	"os"
 	"strconv"
 
@@ -78,9 +79,17 @@ func main() {
 		if errUDP != nil {
 			log.Fatalf("emulator: %s", errUDP)
 		}
-		b = usb.Init(w, h, e)
+		if runtime.GOOS != "freebsd" {
+			b = usb.Init(w, h, e)
+    } else {
+			b = usb.Init(w, h)
+		}
 	} else {
-		b = usb.Init(w, h)
+		if runtime.GOOS != "freebsd" {
+			b = usb.Init(w, h)
+    } else {
+			b = usb.Init(w)
+		}
 	}
 
 	s, err := server.New(b, logger, m)

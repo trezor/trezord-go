@@ -2,6 +2,8 @@ package usb
 
 import (
 	"encoding/hex"
+	"fmt"
+	"runtime"
 	"log"
 	"strings"
 	"sync"
@@ -133,7 +135,8 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 	}
 	return (c.BNumInterfaces > webIfaceNum &&
 		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC)
+		(c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC ||
+		runtime.GOOS == "freebsd"))
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
@@ -143,12 +146,18 @@ func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
 }
 
 func (b *WebUSB) identify(dev usbhid.Device) string {
-	var ports [8]byte
-	p, err := usbhid.Get_Port_Numbers(dev, ports[:])
-	if err != nil {
-		return ""
+	if runtime.GOOS != "freebsd" {
+		var ports [8]byte
+		p, err := usbhid.Get_Port_Numbers(dev, ports[:])
+		if err != nil {
+			return ""
+		}
+		return webusbPrefix + hex.EncodeToString(p)
+	} else {
+		b := usbhid.Get_Bus_Number(dev)
+		a := usbhid.Get_Device_Address(dev)
+		return fmt.Sprintf("%s%02x%02x", webusbPrefix, b, a)
 	}
-	return webusbPrefix + hex.EncodeToString(p)
 }
 
 type WUD struct {
@@ -185,6 +194,12 @@ func (d *WUD) finishReadQueue() {
 }
 
 func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
+	var timeout uint
+	if runtime.GOOS != "freebsd" {
+		timeout = usbTimeout
+	} else {
+		timeout = 0
+	}
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
@@ -192,7 +207,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		}
 
 		d.transferMutex.Lock()
-		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
+		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, timeout)
 		d.transferMutex.Unlock()
 
 		if err == nil {

@@ -6,7 +6,7 @@
 
 // Package hid provides an interface for USB HID devices.
 
-// +build linux,cgo darwin,!ios,cgo windows,cgo
+// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
 
 package usbhid
 
@@ -15,11 +15,18 @@ package usbhid
 
 #cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
 #cgo linux,!android LDFLAGS: -lrt
+#cgo freebsd CFLAGS: -DWITH_SYSTEM_LIBS
+#cgo freebsd LDFLAGS: -lhidapi
 #cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
 #cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo windows LDFLAGS: -lsetupapi
 
+
+#ifdef WITH_SYSTEM_LIBS
+	#include <stdlib.h>
+	#include <hidapi/hidapi.h>
+#else
 
 #ifdef OS_LINUX
 	#include <sys/poll.h>
@@ -80,6 +87,7 @@ package usbhid
 	#include "windows/hid.c"
 #endif
 
+#endif
 */
 import "C"
 
