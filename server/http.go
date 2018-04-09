@@ -192,7 +192,12 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 
 	start := version + "\n" + devconLog
 
-	log := s.mw.String(start)
+	log, err := s.mw.String(start)
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
+
 	gziplog, err := s.dmw.GzipJsArray(start)
 
 	if err != nil {
