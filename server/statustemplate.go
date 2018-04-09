@@ -159,11 +159,13 @@ const templateString = `
 
        <div class="space-top">
        <p>Console Log
-        (<a href="" id="detlog">download detailed log</a>)
        </p>
        <textarea rows="25" cols="150" id="log">
 {{.Log}}
        </textarea>
+       <p>
+        <a href="" id="detlog">download detailed log</a>
+       </p>
      </div>
 
       <div class="space-top">
