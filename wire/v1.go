@@ -21,6 +21,8 @@ type Message struct {
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
+	m.Dlogger.Println("v1 - writeTo - start")
+
 	var (
 		rep  [packetLen]byte
 		kind = m.Kind
@@ -32,6 +34,8 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	rep[2] = repMagic
 	binary.BigEndian.PutUint16(rep[3:], kind)
 	binary.BigEndian.PutUint32(rep[5:], size)
+
+	m.Dlogger.Println("v1 - writeTo - actually writing")
 
 	var (
 		written = 0 // number of written bytes
@@ -68,6 +72,7 @@ var (
 )
 
 func (m *Message) ReadFrom(r io.Reader) (int64, error) {
+	m.Dlogger.Println("v1 - readFrom - start")
 	var (
 		rep  [packetLen]byte
 		read = 0 // number of read bytes
@@ -79,12 +84,15 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 
 	// skip all the previous messages in the bus
 	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
+		m.Dlogger.Println("v1 - readFrom - detected previous message, skipping")
 		n, err = r.Read(rep[:])
 		if err != nil {
 			return int64(read), err
 		}
 	}
 	read += n
+
+	m.Dlogger.Println("v1 - readFrom - actual reading started")
 
 	// parse header
 	var (
@@ -109,6 +117,8 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 
 	m.Kind = kind
 	m.Data = data
+
+	m.Dlogger.Println("v1 - readFrom - actual reading finished")
 
 	return int64(read), nil
 }
