@@ -71,6 +71,7 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 	sr.HandleFunc("/acquire/{path}/{session}", s.Acquire)
 	sr.HandleFunc("/release/{session}", s.Release)
 	sr.HandleFunc("/call/{session}", s.Call)
+	sr.HandleFunc("/post/{session}", s.Post)
 
 	getsr := r.Methods("GET").Subrouter()
 	getsr.HandleFunc("/", s.StatusPage)
@@ -458,6 +459,14 @@ func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
+	s.call(w, r, false)
+}
+
+func (s *Server) Post(w http.ResponseWriter, r *http.Request) {
+	s.call(w, r, true)
+}
+
+func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -514,19 +523,23 @@ func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	err := readWriteDev(w, r, acquired.dev)
+	err := readWriteDev(w, r, acquired.dev, skipRead)
 	if err != nil {
 		respondError(w, err)
 	}
 }
 
-func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter) error {
+func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter, skipRead bool) error {
 	msg, err := decodeRaw(r.Body)
 	if err != nil {
 		return err
 	}
 	_, err = msg.WriteTo(d)
 	if err != nil {
+		return err
+	}
+	if skipRead {
+		_, err = w.Write([]byte{0})
 		return err
 	}
 	_, err = msg.ReadFrom(d)
