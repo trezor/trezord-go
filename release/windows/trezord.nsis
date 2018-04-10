@@ -1,6 +1,7 @@
 !include MUI2.nsh
 !include x64.nsh
 !include LogicLib.nsh
+!include WinVer.nsh
 
 
 ; StrContains
@@ -102,6 +103,7 @@ Var CMDRESULT
 Var CONTAINS
 
 Section "Check for connected devices"
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 
   DetailPrint "Checking for connected devices"
   nsExec::ExecToStack '"$INSTDIR\devcon.exe" find *vid_1209*'
@@ -137,12 +139,16 @@ Section "Uninstall previous drivers"
   DetailPrint "Uninstalling previous drivers"
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_1209*'
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_534c*'
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 SectionEnd
 
 Section "Install drivers"
+  ${If} ${IsWin7}
   DetailPrint "Installing drivers"
   nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT'
   nsExec::ExecToLog '"$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT'
+  ${EndIf}
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 SectionEnd
 
 Section "Uninstall"
