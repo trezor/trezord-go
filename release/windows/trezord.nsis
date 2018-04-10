@@ -81,11 +81,15 @@ Section "TREZOR Bridge"
 
   SetOutPath "$INSTDIR"
   ${If} ${RunningX64}
-    File /oname=wdi-simple.exe wdi-simple-64b.exe
+    ${If} ${IsWin7}
+      File /oname=wdi-simple.exe wdi-simple-64b.exe
+    ${EndIf}
     File /oname=trezord.exe trezord-64b.exe
     File /oname=devcon.exe devcon-64b.exe
   ${Else}
-    File /oname=wdi-simple.exe wdi-simple-32b.exe
+    ${If} ${IsWin7}
+      File /oname=wdi-simple.exe wdi-simple-32b.exe
+    ${EndIf}
     File /oname=trezord.exe trezord-32b.exe
     File /oname=devcon.exe devcon-32b.exe
   ${EndIf}
