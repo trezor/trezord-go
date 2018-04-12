@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.13] - 2018-04-12
+
+- Allowing nousb mode (with only emulator turned on)
+- Adding /post for writes without reads (debug link, only emulator so far)
+- Installing WDI only on Windows 7
+- Remove existing WDI drivers on install, preventing double driver install
+
 ## [2.0.12] - 2018-04-03
 
 - Add devcon and wdi-simple tools for Windows device drivers manipulation
