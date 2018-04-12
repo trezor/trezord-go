@@ -2302,6 +2302,60 @@ final:
     return failcode;
 }
 
+int actualInfDelete(PTSTR fname, int force) {
+	int failcode = EXIT_FAIL;
+	DWORD res;
+	TCHAR InfFileName[MAX_PATH];
+	PTSTR FilePart = NULL;
+	HMODULE setupapiMod = NULL;
+	SetupUninstallOEMInfProto SUOIFn;
+
+	res = GetFullPathName(fname,
+		ARRAYSIZE(InfFileName),
+		InfFileName,
+		&FilePart);
+	if ((!res) || (!FilePart)) {
+		FormatToStream(stdout, MSG_DPADD_INVALID_INF);
+		goto final;
+	}
+
+	setupapiMod = LoadLibrary(TEXT("setupapi.dll"));
+	if (!setupapiMod) {
+		goto final;
+	}
+	SUOIFn = (SetupUninstallOEMInfProto)GetProcAddress(setupapiMod, SETUPUNINSTALLOEMINF);
+	if (!SUOIFn)
+	{
+		goto final;
+	}
+
+	if (!SUOIFn(FilePart, force, NULL)) {
+		if (GetLastError() == ERROR_INF_IN_USE_BY_DEVICES) {
+			FormatToStream(stdout, MSG_DPDELETE_FAILED_IN_USE);
+		}
+		else if (GetLastError() == ERROR_NOT_AN_INSTALLED_OEM_INF) {
+			FormatToStream(stdout, MSG_DPDELETE_FAILED_NOT_OEM_INF);
+		}
+		else {
+			FormatToStream(stdout, MSG_DPDELETE_FAILED);
+		}
+		goto final;
+	}
+
+	//
+	// Successfully added the driver package to the machine.
+	//
+	FormatToStream(stdout, MSG_DPDELETE_SUCCESS, FilePart);
+	failcode = EXIT_OK;
+
+	final:
+	if (setupapiMod) {
+		FreeLibrary(setupapiMod);
+	}
+
+	return failcode;
+}
+
 int cmdDPDelete(_In_ LPCTSTR BaseName, _In_opt_ LPCTSTR Machine, _In_ DWORD Flags, _In_ int argc, _In_reads_(argc) PTSTR argv[])
 /*++
 
@@ -2321,13 +2375,6 @@ Return Value:
 
 --*/
 {
-    int failcode = EXIT_FAIL;
-    DWORD res;
-    TCHAR InfFileName[MAX_PATH];
-    PTSTR FilePart = NULL;
-    HMODULE setupapiMod = NULL;
-    SetupUninstallOEMInfProto SUOIFn;
-
     UNREFERENCED_PARAMETER(BaseName);
     UNREFERENCED_PARAMETER(Machine);
 
@@ -2335,50 +2382,98 @@ Return Value:
         return EXIT_USAGE;
     }
 
-    res = GetFullPathName(argv[0],
-                          ARRAYSIZE(InfFileName),
-                          InfFileName,
-                          &FilePart);
-    if ((!res) || (!FilePart)) {
-        FormatToStream(stdout,MSG_DPADD_INVALID_INF);
-        goto final;
-    }
+	return actualInfDelete(argv[0], (Flags & DEVCON_FLAG_FORCE) ? 1 : 0);
 
-    setupapiMod = LoadLibrary(TEXT("setupapi.dll"));
-    if(!setupapiMod) {
-        goto final;
-    }
-    SUOIFn = (SetupUninstallOEMInfProto)GetProcAddress(setupapiMod,SETUPUNINSTALLOEMINF);
-    if(!SUOIFn)
-    {
-        goto final;
-    }
+}
 
-    if (!SUOIFn(FilePart,
-                ((Flags & DEVCON_FLAG_FORCE) ? 1 : 0),
-                NULL)) {
-        if (GetLastError() == ERROR_INF_IN_USE_BY_DEVICES) {
-            FormatToStream(stdout,MSG_DPDELETE_FAILED_IN_USE);
-        } else if (GetLastError() == ERROR_NOT_AN_INSTALLED_OEM_INF) {
-            FormatToStream(stdout,MSG_DPDELETE_FAILED_NOT_OEM_INF);
-        } else {
-            FormatToStream(stdout,MSG_DPDELETE_FAILED);
-        }
-        goto final;
-    }
+// new routine, by trezor
+// adds posibility to find + delete INF by provider and vendor name
+int cmdDPFindDelete(_In_ LPCTSTR BaseName, _In_opt_ LPCTSTR Machine, _In_ DWORD Flags, _In_ int argc, _In_reads_(argc) PTSTR argv[])
+{
+	int failcode = EXIT_FAIL;
+	TCHAR FindName[MAX_PATH];
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	WIN32_FIND_DATA wfd;
 
-    //
-    // Successfully added the driver package to the machine.
-    //
-    FormatToStream(stdout,MSG_DPDELETE_SUCCESS,FilePart);
-    failcode = EXIT_OK;
+	UNREFERENCED_PARAMETER(BaseName);
+	UNREFERENCED_PARAMETER(Machine);
+	UNREFERENCED_PARAMETER(Flags);
 
-final:
-    if (setupapiMod) {
-        FreeLibrary(setupapiMod);
-    }
+	if (argc != 2) {
+		return EXIT_USAGE;
+	}
 
-    return failcode;
+	PTSTR vendor = argv[0];
+	PTSTR provider = argv[1];
+
+	if (!GetWindowsDirectory(FindName, ARRAYSIZE(FindName)) ||
+		FAILED(StringCchCat(FindName, ARRAYSIZE(FindName), TEXT("\\INF\\OEM*.INF")))) {
+		goto final;
+	}
+
+	hFind = FindFirstFile(FindName, &wfd);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		//
+		// No OEM driver packages on this machine.
+		//
+		FormatToStream(stdout, MSG_DPENUM_NO_OEM_INF);
+		failcode = EXIT_OK;
+		goto final;
+	}
+
+	do {
+		PTSTR filename = wfd.cFileName;
+
+		HINF hInf = INVALID_HANDLE_VALUE;
+		UINT ErrorLine;
+		INFCONTEXT Context;
+		TCHAR ThisProvider[MAX_INF_STRING_LENGTH];
+		TCHAR ThisVendor[MAX_INF_STRING_LENGTH];
+
+		hInf = SetupOpenInfFile(filename,
+			NULL,
+			INF_STYLE_WIN4,
+			&ErrorLine);
+		if (hInf == INVALID_HANDLE_VALUE) {
+			continue;
+		}
+
+		if (SetupFindFirstLine(hInf,
+			INFSTR_SECT_VERSION,
+			INFSTR_KEY_PROVIDER,
+			&Context) &&
+			(SetupGetStringField(&Context,
+				1,
+				ThisProvider,
+				ARRAYSIZE(ThisProvider),
+				NULL))) {
+
+			if (SetupFindFirstLine(hInf,
+				TEXT("Strings"),
+				TEXT("VendorName"),
+				&Context) &&
+				(SetupGetStringField(&Context,
+					1,
+					ThisVendor,
+					ARRAYSIZE(ThisVendor),
+					NULL))) {
+				int cmp1 = wcscmp(vendor, ThisVendor);
+				int cmp2 = wcscmp(provider, ThisProvider);
+				if (cmp1 == 0 && cmp2 == 0) {
+					actualInfDelete(filename, 0); // ignore error value
+				}
+			}
+		}
+
+	} while (FindNextFile(hFind, &wfd));
+
+	FindClose(hFind);
+
+	failcode = EXIT_OK;
+
+	final:
+
+	return failcode;
 }
 
 int cmdDPEnumLegacy(_In_ LPCTSTR BaseName, _In_opt_ LPCTSTR Machine, _In_ DWORD Flags, _In_ int argc, _In_reads_(argc) PTSTR argv[])
@@ -2473,6 +2568,7 @@ DispatchEntry DispatchTable[] = {
     { TEXT("dp_add"),       cmdDPAdd,       MSG_DPADD_SHORT,       MSG_DPADD_LONG },
     { TEXT("dp_delete"),    cmdDPDelete,    MSG_DPDELETE_SHORT,    MSG_DPDELETE_LONG },
     { TEXT("dp_enum"),      cmdDPEnumLegacy,MSG_DPENUM_SHORT,      MSG_DPENUM_LONG },
+    { TEXT("dp_find_delete"),cmdDPFindDelete,MSG_DPENUM_SHORT,      MSG_DPENUM_LONG },
     { TEXT("?"),            cmdHelp,        0,                     0 },
     { NULL,NULL }
 };
