@@ -2,6 +2,10 @@
 
 package server
 
-func devconInfo() (string, error) {
+import (
+	"log"
+)
+
+func devconInfo(dlogger *log.Logger) (string, error) {
 	return "", nil
 }

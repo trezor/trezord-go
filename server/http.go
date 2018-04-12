@@ -45,10 +45,12 @@ type Server struct {
 	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
 	lastInfos      []usb.Info // when call is in progress, use saved info for enumerating
 
-	mw *memorywriter.MemoryWriter
+	mw, dmw         *memorywriter.MemoryWriter
+	logger, dlogger *log.Logger
 }
 
-func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server, error) {
+func New(bus *usb.USB, logWriter io.Writer, mw, dmw *memorywriter.MemoryWriter, logger, dlogger *log.Logger) (*Server, error) {
+	dlogger.Println("http - starting")
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
 	}
@@ -57,7 +59,10 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 		https:    https,
 		sessions: make(map[string]*session),
 
-		mw: mw,
+		mw:      mw,
+		dmw:     dmw,
+		logger:  logger,
+		dlogger: dlogger,
 	}
 	r := mux.NewRouter()
 
@@ -76,6 +81,7 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 	getsr := r.Methods("GET").Subrouter()
 	getsr.HandleFunc("/", s.StatusPage)
 
+	dlogger.Println("http - creating cors validator")
 	v, err := corsValidator()
 	if err != nil {
 		return nil, err
@@ -85,18 +91,19 @@ func New(bus *usb.USB, logger io.Writer, mw *memorywriter.MemoryWriter) (*Server
 	// Restrict cross-origin access.
 	h = CORS(v)(h)
 	// Log after the request is done, in the Apache format.
-	h = handlers.LoggingHandler(logger, h)
+	h = handlers.LoggingHandler(logWriter, h)
 	// Log when the request is received.
-	h = logRequest(h)
+	h = s.logRequest(h)
 
 	https.Handler = h
 
+	dlogger.Println("http - server created")
 	return s, nil
 }
 
-func logRequest(handler http.Handler) http.Handler {
+func (s *Server) logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s", r.Method, r.URL)
+		s.logger.Printf("%s %s", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -141,9 +148,10 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - building status page")
 	e, err := s.enumerate()
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
@@ -174,33 +182,52 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 		tdevs = append(tdevs, tdev)
 	}
 
-	origLog := s.mw.String()
-	devconLog, err := devconInfo()
+	s.dlogger.Println("http - asking devcon")
+
+	devconLog, err := devconInfo(s.dlogger)
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
-	log := devconLog + origLog
+
+	start := version + "\n" + devconLog
+
+	log, err := s.mw.String(start)
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
+
+	gziplog, err := s.dmw.GzipJsArray(start)
+
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
+
+	s.dlogger.Println("http - actually building status data")
 
 	data := &statusTemplateData{
-		Version:     version,
-		Devices:     tdevs,
-		DeviceCount: len(tdevs),
-		Log:         log,
+		Version:        version,
+		Devices:        tdevs,
+		DeviceCount:    len(tdevs),
+		Log:            log,
+		DLogGzipJSData: gziplog,
 	}
 
 	err = statusTemplate.Execute(w, data)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Printf("http - version %s", version)
 	type info struct {
 		Version string `json:"version"`
 	}
 	err := json.NewEncoder(w).Encode(info{
 		Version: version,
 	})
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 type entry struct {
@@ -217,6 +244,7 @@ func sortEntries(entries []entry) {
 }
 
 func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - listen starting")
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -230,59 +258,70 @@ func (s *Server) Listen(w http.ResponseWriter, r *http.Request) {
 	)
 	var entries []entry
 
+	s.dlogger.Println("http - listen decoding entries")
+
 	err := json.NewDecoder(r.Body).Decode(&entries)
 	defer func() {
 		errClose := r.Body.Close()
 		if errClose != nil {
 			// just log
-			log.Printf("Error on request close: %s", errClose.Error())
+			s.logger.Printf("Error on request close: %s", errClose.Error())
 		}
 	}()
 
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
 	sortEntries(entries)
 
 	for i := 0; i < iterMax; i++ {
+		s.dlogger.Println("http - listen before enumerating")
 		e, enumErr := s.enumerate()
 		if enumErr != nil {
-			respondError(w, enumErr)
+			s.respondError(w, enumErr)
 			return
 		}
 		if reflect.DeepEqual(entries, e) {
+			s.dlogger.Println("http - listen equal, waiting")
 			select {
 			case <-cnn:
+				s.dlogger.Println("http - listen request closed")
 				return
 			default:
 				time.Sleep(iterDelay * time.Millisecond)
 			}
 		} else {
+			s.dlogger.Println("http - listen different")
 			entries = e
 			break
 		}
 	}
+	s.dlogger.Println("http - listen encoding and exiting")
 	err = json.NewEncoder(w).Encode(entries)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Enumerate(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - Enumerate start")
 	e, err := s.enumerate()
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
+	s.dlogger.Println("http - Enumerate encoding and exiting")
 	err = json.NewEncoder(w).Encode(e)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) enumerate() ([]entry, error) {
 	// Lock for atomic access to s.sessions.
+	s.dlogger.Println("http - enumerate locking sessionsMutex")
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
+	s.dlogger.Println("http - enumerate locking callMutex")
 	// Lock for atomic access to s.callInProgress.  It needs to be over
 	// whole function, so that call does not actually start while
 	// enumerating.
@@ -292,7 +331,9 @@ func (s *Server) enumerate() ([]entry, error) {
 	// Use saved info if call is in progress, otherwise enumerate.
 	infos := s.lastInfos
 
+	s.dlogger.Printf("http - enumerate callInProgress %t", s.callInProgress)
 	if !s.callInProgress {
+		s.dlogger.Println("http - enumerate bus")
 		busInfos, err := s.bus.Enumerate()
 		if err != nil {
 			return nil, err
@@ -302,6 +343,7 @@ func (s *Server) enumerate() ([]entry, error) {
 	}
 
 	entries := s.createEnumerateEntries(infos)
+	s.dlogger.Println("http - enumerate release disconnected")
 	s.releaseDisconnected(infos)
 	return entries, nil
 }
@@ -337,11 +379,12 @@ func (s *Server) releaseDisconnected(infos []usb.Info) {
 			}
 		}
 		if !connected {
+			s.dlogger.Printf("http - releasing disconnected device %s", ssid)
 			err := s.release(ssid)
 			// just log if there is an error
 			// they are disconnected anyway
 			if err != nil {
-				log.Printf("Error on releasing disconnected device: %s", err)
+				s.logger.Printf("Error on releasing disconnected device: %s", err)
 			}
 		}
 	}
@@ -354,6 +397,7 @@ var (
 )
 
 func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - acquire - locking sessionsMutex")
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -363,6 +407,8 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	if prev == "null" {
 		prev = ""
 	}
+
+	s.dlogger.Printf("http - acquire - input path %s prev %s", path, prev)
 
 	var acquired *session
 	for _, ss := range s.sessions {
@@ -375,27 +421,34 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	if acquired == nil {
 		acquired = &session{path: path, call: 0}
 	}
+
+	s.dlogger.Printf("http - acquire - actually previous %s", acquired.id)
+
 	if acquired.id != prev {
-		respondError(w, ErrWrongPrevSession)
+		s.respondError(w, ErrWrongPrevSession)
 		return
 	}
 
 	if prev != "" {
+		s.dlogger.Printf("http - acquire - releasing previous")
 		err := s.release(prev)
 		if err != nil {
-			respondError(w, err)
+			s.respondError(w, err)
 			return
 		}
 	}
 
+	s.dlogger.Println("http - acquire - trying to connect")
 	dev, err := s.tryConnect(path)
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
 	acquired.dev = dev
 	acquired.id = s.newSession()
+
+	s.dlogger.Printf("http - acquire - new session is %s", acquired.id)
 
 	s.sessions[acquired.id] = acquired
 
@@ -406,7 +459,7 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(result{
 		Session: acquired.id,
 	})
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 // Chrome tries to read from trezor immediately after connecting,
@@ -415,12 +468,15 @@ func (s *Server) Acquire(w http.ResponseWriter, r *http.Request) {
 func (s *Server) tryConnect(path string) (usb.Device, error) {
 	tries := 0
 	for {
+		s.dlogger.Printf("http - tryConnect - try number %d", tries)
 		dev, err := s.bus.Connect(path)
 		if err != nil {
 			if tries < 3 {
+				s.dlogger.Println("http - tryConnect - sleeping")
 				tries++
 				time.Sleep(100 * time.Millisecond)
 			} else {
+				s.dlogger.Println("http - tryConnect - too many times, exiting")
 				return nil, err
 			}
 		} else {
@@ -430,17 +486,21 @@ func (s *Server) tryConnect(path string) (usb.Device, error) {
 }
 
 func (s *Server) release(session string) error {
+	s.dlogger.Printf("http - inner release - session %s", session)
 	acquired := s.sessions[session]
 	if acquired == nil {
+		s.dlogger.Println("http - inner release - session not found")
 		return ErrSessionNotFound
 	}
 	delete(s.sessions, session)
 
+	s.dlogger.Println("http - inner release - bus close")
 	err := acquired.dev.Close()
 	return err
 }
 
 func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - release - locking sessionsMutex")
 	s.sessionsMutex.Lock()
 	defer s.sessionsMutex.Unlock()
 
@@ -450,12 +510,13 @@ func (s *Server) Release(w http.ResponseWriter, r *http.Request) {
 	err := s.release(session)
 
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 		return
 	}
 
+	s.dlogger.Println("http - release - done, encoding")
 	err = json.NewEncoder(w).Encode(vars)
-	checkJSONError(w, err)
+	s.checkJSONError(w, err)
 }
 
 func (s *Server) Call(w http.ResponseWriter, r *http.Request) {
@@ -467,6 +528,7 @@ func (s *Server) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
+	s.dlogger.Println("http - call - start")
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		http.Error(w, "cannot stream", http.StatusInternalServerError)
@@ -474,33 +536,50 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 	}
 	cnn := cn.CloseNotify()
 
+	s.dlogger.Println("http - call - callMutex lock")
 	s.callMutex.Lock()
+
+	s.dlogger.Println("http - call - callMutex set callInProgress true, unlock")
 	s.callInProgress = true
+
 	s.callMutex.Unlock()
+	s.dlogger.Println("http - call - callMutex unlock done")
 
 	defer func() {
+		s.dlogger.Println("http - call - callMutex closing lock")
 		s.callMutex.Lock()
+
+		s.dlogger.Println("http - call - callMutex set callInProgress false, unlock")
 		s.callInProgress = false
+
 		s.callMutex.Unlock()
+		s.dlogger.Println("http - call - callMutex closing unlock")
 	}()
 
 	vars := mux.Vars(r)
 	session := vars["session"]
+	s.dlogger.Printf("http - call - session is %s", session)
 
+	s.dlogger.Println("http - call - sessionsMutex lock")
 	s.sessionsMutex.Lock()
 	acquired := s.sessions[session]
+
 	s.sessionsMutex.Unlock()
+	s.dlogger.Println("http - call - sessionsMutex unlock done")
 
 	if acquired == nil {
-		respondError(w, ErrSessionNotFound)
+		s.respondError(w, ErrSessionNotFound)
 		return
 	}
 
+	s.dlogger.Println("http - call - checking other call on same session")
 	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
 	if !freeToCall {
 		http.Error(w, "other call in progress", http.StatusInternalServerError)
 		return
 	}
+
+	s.dlogger.Println("http - call - checking other call on same session done")
 	defer func() {
 		atomic.StoreInt32(&acquired.call, 0)
 	}()
@@ -515,38 +594,50 @@ func (s *Server) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 		case <-finished:
 			return
 		case <-cnn:
+			s.dlogger.Println("http - call - detected request close, auto-release")
 			errRelease := s.release(session)
 			if errRelease != nil {
 				// just log, since request is already closed
-				log.Printf("Error while releasing: %s", errRelease.Error())
+				s.logger.Printf("Error while releasing: %s", errRelease.Error())
 			}
 		}
 	}()
 
-	err := readWriteDev(w, r, acquired.dev, skipRead)
+	s.dlogger.Println("http - call - before actual logic")
+	err := s.readWriteDev(w, r, acquired.dev, skipRead)
+	s.dlogger.Println("http - call - after actual logic")
+
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 	}
 }
 
-func readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter, skipRead bool) error {
-	msg, err := decodeRaw(r.Body)
+func (s *Server) readWriteDev(w io.Writer, r *http.Request, d io.ReadWriter, skipRead bool) error {
+	s.dlogger.Println("http - readWrite - decodeRaw")
+	msg, err := s.decodeRaw(r.Body)
 	if err != nil {
 		return err
 	}
+
+	s.dlogger.Println("http - readWrite - writeTo")
 	_, err = msg.WriteTo(d)
 	if err != nil {
 		return err
 	}
 	if skipRead {
+		s.dlogger.Println("http - readWrite - skipping read")
 		_, err = w.Write([]byte{0})
 		return err
 	}
+
+	s.dlogger.Println("http - readWrite - readFrom")
 	_, err = msg.ReadFrom(d)
 	if err != nil {
 		return err
 	}
-	err = encodeRaw(w, msg)
+
+	s.dlogger.Println("http - readWrite - encoding back")
+	err = s.encodeRaw(w, msg)
 	return err
 }
 
@@ -557,36 +648,48 @@ func (s *Server) newSession() string {
 	return strconv.Itoa(latestSessionID)
 }
 
-func decodeRaw(r io.Reader) (*wire.Message, error) {
+func (s *Server) decodeRaw(r io.Reader) (*wire.Message, error) {
+	s.dlogger.Println("http - decode - readAll")
+
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
+
+	s.dlogger.Println("http - decode - decodeString")
 	body, err = hex.DecodeString(string(body))
 	if err != nil {
 		return nil, err
 	}
 	if len(body) < 6 {
+		s.dlogger.Println("http - decode - body too short")
 		return nil, ErrMalformedData
 	}
+
 	kind := binary.BigEndian.Uint16(body[0:2])
 	size := binary.BigEndian.Uint32(body[2:6])
 	data := body[6:]
 	if uint32(len(data)) != size {
+		s.dlogger.Println("http - decode - wrong data length")
 		return nil, ErrMalformedData
 	}
 
 	if wire.Validate(data) != nil {
+		s.dlogger.Println("http - decode - invalid data")
 		return nil, ErrMalformedData
 	}
 
+	s.dlogger.Println("http - decode - returning")
 	return &wire.Message{
 		Kind: kind,
 		Data: data,
+
+		Dlogger: s.dlogger,
 	}, nil
 }
 
-func encodeRaw(w io.Writer, msg *wire.Message) error {
+func (s *Server) encodeRaw(w io.Writer, msg *wire.Message) error {
+	s.dlogger.Println("http - encode - start")
 	var (
 		header [6]byte
 		data   = msg.Data
@@ -596,23 +699,27 @@ func encodeRaw(w io.Writer, msg *wire.Message) error {
 	binary.BigEndian.PutUint16(header[0:2], kind)
 	binary.BigEndian.PutUint32(header[2:6], size)
 
-	s := hex.EncodeToString(header[:])
-	_, err := w.Write([]byte(s))
+	st := hex.EncodeToString(header[:])
+
+	s.dlogger.Println("http - encode - writing header")
+	_, err := w.Write([]byte(st))
 	if err != nil {
 		return err
 	}
-	s = hex.EncodeToString(data)
-	_, err = w.Write([]byte(s))
+
+	s.dlogger.Println("http - encode - writing data")
+	st = hex.EncodeToString(data)
+	_, err = w.Write([]byte(st))
 	return err
 }
 
-func checkJSONError(w http.ResponseWriter, err error) {
+func (s *Server) checkJSONError(w http.ResponseWriter, err error) {
 	if err != nil {
-		respondError(w, err)
+		s.respondError(w, err)
 	}
 }
 
-func respondError(w http.ResponseWriter, err error) {
+func (s *Server) respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
@@ -623,6 +730,6 @@ func respondError(w http.ResponseWriter, err error) {
 		Error: err.Error(),
 	})
 	if err != nil {
-		log.Printf("Error while writing error: %s", err.Error())
+		s.logger.Printf("Error while writing error: %s", err.Error())
 	}
 }

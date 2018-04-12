@@ -18,10 +18,11 @@ type statusTemplateDevice struct {
 }
 
 type statusTemplateData struct {
-	Version     string
-	Devices     []statusTemplateDevice
-	DeviceCount int
-	Log         string
+	Version        string
+	Devices        []statusTemplateDevice
+	DeviceCount    int
+	Log            string
+	DLogGzipJSData []int
 }
 
 const templateString = `
@@ -118,6 +119,10 @@ const templateString = `
     textarea{
       max-width: 700px;
     }
+
+    #dlog {
+      display: none;
+    }
   </style>
 </head>
 
@@ -153,10 +158,14 @@ const templateString = `
       {{end}}
 
        <div class="space-top">
-       <p>Console Log</p>
-       <textarea rows="25" cols="150">
+       <p>Console Log
+       </p>
+       <textarea rows="25" cols="150" id="log">
 {{.Log}}
        </textarea>
+       <p>
+        <a href="" id="detlog">download detailed log</a>
+       </p>
      </div>
 
       <div class="space-top">
@@ -167,6 +176,15 @@ const templateString = `
       </div>
     </div>
   </div>
+  <script>
+   var gzipByteArray = new Uint8Array({{.DLogGzipJSData}});
+   var blob = new Blob([gzipByteArray], {type: "application/gzip"});
+   var a = document.getElementById("detlog")
+   var url = window.URL.createObjectURL(blob);
+
+   a.href = url;
+   a.download = "log.gz";
+  </script>
 </body>
 </html>
 `
