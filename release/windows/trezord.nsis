@@ -144,6 +144,9 @@ Section "Uninstall previous drivers"
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_1209*'
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" removeall *vid_534c*'
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" dp_find_delete "(Undefined Vendor)" libwdi'
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" dp_find_delete "SatoshiLabs" libwdi'
+  nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 SectionEnd
 
 Section "Install drivers"
