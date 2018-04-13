@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/trezor/usbhid"
 )
@@ -14,6 +16,7 @@ const (
 	hidapiPrefix = "hid"
 	hidIfaceNum  = 0
 	hidUsagePage = 0xFF00
+	hidTimeout   = 50
 )
 
 type HIDAPI struct {
@@ -97,13 +100,27 @@ type HID struct {
 	dev     *usbhid.HidDevice
 	prepend bool // on windows, see detectPrepend
 
+	closed        int32 // atomic
+	transferMutex sync.Mutex
+	// closing cannot happen while read/write is hapenning,
+	// otherwise it segfaults on windows
+
 	dlogger *log.Logger
 }
 
 func (d *HID) Close() error {
+
+	d.dlogger.Println("hidapi - close - storing d.closed")
+	atomic.StoreInt32(&d.closed, 1)
+
+	d.dlogger.Println("hidapi - close - wait for transferMutex lock")
+	d.transferMutex.Lock()
 	d.dlogger.Println("hidapi - close - low level close")
 	err := d.dev.Close()
-	d.dlogger.Println("hidapi - close - low level close done")
+	d.transferMutex.Unlock()
+
+	d.dlogger.Println("hidapi - close - done")
+
 	return err
 }
 
@@ -139,28 +156,56 @@ func detectPrepend(dev *usbhid.HidDevice) (bool, error) {
 }
 
 func (d *HID) readWrite(buf []byte, read bool) (int, error) {
-	var w int
-	var err error
 
-	if read {
-		d.dlogger.Println("hidapi - read - start")
-		w, err = d.dev.Read(buf)
-		d.dlogger.Println("hidapi - read - end")
-	} else {
-		d.dlogger.Println("hidapi - write - start")
-		w, err = d.dev.Write(buf, d.prepend)
-		d.dlogger.Println("hidapi - write - end")
-	}
-	if err == nil {
-		d.dlogger.Println("hidapi - readwrite - err nil")
-	} else {
-		d.dlogger.Printf("hidapi - readwrite - err %s", err.Error())
-	}
+	d.dlogger.Println("hidapi - rw - start")
+	for {
+		d.dlogger.Println("hidapi - rw - checking closed")
+		closed := (atomic.LoadInt32(&d.closed)) == 1
+		if closed {
+			d.dlogger.Println("hidapi - rw - closed, skip")
+			return 0, errClosedDevice
+		}
 
-	if err != nil && err.Error() == unknownErrorMessage {
-		return 0, errDisconnect
+		d.dlogger.Println("hidapi - rw - lock transfer mutex")
+		d.transferMutex.Lock()
+		d.dlogger.Println("hidapi - rw - actual interrupt transport")
+
+		var w int
+		var err error
+
+		if read {
+			d.dlogger.Println("hidapi - read - start")
+			w, err = d.dev.Read(buf, hidTimeout)
+			d.dlogger.Println("hidapi - read - end")
+		} else {
+			d.dlogger.Println("hidapi - write - start")
+			w, err = d.dev.Write(buf, d.prepend)
+			d.dlogger.Println("hidapi - write - end")
+		}
+
+		d.transferMutex.Unlock()
+		d.dlogger.Println("hidapi - rw - single transfer done")
+
+		if err == nil {
+			// sometimes, empty report is read, skip it
+			if w > 0 {
+				d.dlogger.Println("hidapi - rw - single transfer succesful")
+				return w, err
+			}
+			if !read {
+				return 0, errors.New("HID - empty write")
+			}
+
+			d.dlogger.Println("hidapi - rw - skipping empty transfer - go again")
+		} else {
+			if err.Error() == unknownErrorMessage {
+				return 0, errDisconnect
+			}
+			return 0, err
+		}
+
+		// continue the for cycle
 	}
-	return w, err
 }
 
 func (d *HID) Write(buf []byte) (int, error) {
