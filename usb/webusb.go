@@ -208,8 +208,7 @@ func (b *WebUSB) identify(dev usbhid.Device) string {
 type WUD struct {
 	dev usbhid.Device_Handle
 
-	closed int32 // atomic
-
+	closed        int32 // atomic
 	transferMutex sync.Mutex
 	// closing cannot happen while interrupt_transfer is hapenning,
 	// otherwise interrupt_transfer hangs forever
