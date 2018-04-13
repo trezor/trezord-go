@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Adding /post for writes without reads (debug link, only emulator so far)
 - Installing WDI only on Windows 7
 - Remove existing WDI drivers on install, preventing double driver install
+- Rework HID to use timeout reads to prevent windows crashes
 
 ## [2.0.12] - 2018-04-03
 
