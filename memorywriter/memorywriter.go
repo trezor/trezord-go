@@ -42,8 +42,8 @@ func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
 		return err
 	}
 
-	for i := len(t.startLines) - 1; i >= 0; i-- {
-		line := t.startLines[i]
+	for i := len(t.lines) - 1; i >= 0; i-- {
+		line := t.lines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
@@ -55,8 +55,8 @@ func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
 		return err
 	}
 
-	for i := len(t.lines) - 1; i >= 0; i-- {
-		line := t.lines[i]
+	for i := len(t.startLines) - 1; i >= 0; i-- {
+		line := t.startLines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
