@@ -149,10 +149,13 @@ func (s *Server) Close() error {
 
 func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 	s.dlogger.Println("http - building status page")
+
+	var templateErr error
+
 	e, err := s.enumerate()
 	if err != nil {
-		s.respondError(w, err)
-		return
+		s.dlogger.Printf("http - status - enumerate err %s", err.Error())
+		templateErr = err
 	}
 
 	tdevs := make([]statusTemplateDevice, 0)
@@ -186,8 +189,8 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 
 	devconLog, err := devconInfo(s.dlogger)
 	if err != nil {
-		s.respondError(w, err)
-		return
+		s.dlogger.Printf("http - status - devcon err %s", err.Error())
+		templateErr = err
 	}
 
 	start := version + "\n" + devconLog
@@ -207,12 +210,20 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 
 	s.dlogger.Println("http - actually building status data")
 
+	isErr := templateErr != nil
+	strErr := ""
+	if templateErr != nil {
+		strErr = templateErr.Error()
+	}
+
 	data := &statusTemplateData{
 		Version:        version,
 		Devices:        tdevs,
 		DeviceCount:    len(tdevs),
 		Log:            log,
 		DLogGzipJSData: gziplog,
+		IsError:        isErr,
+		Error:          strErr,
 	}
 
 	err = statusTemplate.Execute(w, data)
