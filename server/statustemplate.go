@@ -23,6 +23,9 @@ type statusTemplateData struct {
 	DeviceCount    int
 	Log            string
 	DLogGzipJSData []int
+
+	IsError bool
+	Error   string
 }
 
 const templateString = `
@@ -47,6 +50,18 @@ const templateString = `
 
     #container {
       width: 100%;
+    }
+
+    .error {
+      border: 1px solid orangered;
+      border-radius: 4px;
+      min-width: 320px;
+      max-width: 500px;
+      min-height: 33px;
+      margin: 20px auto;
+      position: relative;
+      color: darkred;
+      padding-top: 13px;
     }
 
     .item {
@@ -135,6 +150,12 @@ const templateString = `
       </div>
 
       <p>Connected devices: {{.DeviceCount}}</p>
+
+      {{if .IsError}}
+        <div class="error">
+          <b>Error:</b> {{.Error}}
+        </div>
+      {{end}}
 
       {{range .Devices}}
       <div class="item">

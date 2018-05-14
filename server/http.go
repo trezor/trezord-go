@@ -147,47 +147,54 @@ func (s *Server) Close() error {
 	return s.https.Close()
 }
 
+func makeStatusTemplateDevice(dev entry) statusTemplateDevice {
+	var devType statusTemplateDevType
+	if dev.Vendor == usb.VendorT1 {
+		devType = typeT1
+	}
+	if dev.Vendor == usb.VendorT2 {
+		if dev.Product == usb.ProductT2Firmware {
+			devType = typeT2
+		} else {
+			devType = typeT2Boot
+		}
+	}
+	var session string
+	if dev.Session != nil {
+		session = *dev.Session
+	}
+	tdev := statusTemplateDevice{
+		Path:    dev.Path,
+		Type:    devType,
+		Used:    dev.Session != nil,
+		Session: session,
+	}
+	return tdev
+}
+
 func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 	s.dlogger.Println("http - building status page")
+
+	var templateErr error
+
 	e, err := s.enumerate()
 	if err != nil {
-		s.respondError(w, err)
-		return
+		s.dlogger.Printf("http - status - enumerate err %s", err.Error())
+		templateErr = err
 	}
 
 	tdevs := make([]statusTemplateDevice, 0)
 
 	for _, dev := range e {
-		var devType statusTemplateDevType
-		if dev.Vendor == usb.VendorT1 {
-			devType = typeT1
-		}
-		if dev.Vendor == usb.VendorT2 {
-			if dev.Product == usb.ProductT2Firmware {
-				devType = typeT2
-			} else {
-				devType = typeT2Boot
-			}
-		}
-		var session string
-		if dev.Session != nil {
-			session = *dev.Session
-		}
-		tdev := statusTemplateDevice{
-			Path:    dev.Path,
-			Type:    devType,
-			Used:    dev.Session != nil,
-			Session: session,
-		}
-		tdevs = append(tdevs, tdev)
+		tdevs = append(tdevs, makeStatusTemplateDevice(dev))
 	}
 
 	s.dlogger.Println("http - asking devcon")
 
 	devconLog, err := devconInfo(s.dlogger)
 	if err != nil {
-		s.respondError(w, err)
-		return
+		s.dlogger.Printf("http - status - devcon err %s", err.Error())
+		templateErr = err
 	}
 
 	start := version + "\n" + devconLog
@@ -207,12 +214,20 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 
 	s.dlogger.Println("http - actually building status data")
 
+	isErr := templateErr != nil
+	strErr := ""
+	if templateErr != nil {
+		strErr = templateErr.Error()
+	}
+
 	data := &statusTemplateData{
 		Version:        version,
 		Devices:        tdevs,
 		DeviceCount:    len(tdevs),
 		Log:            log,
 		DLogGzipJSData: gziplog,
+		IsError:        isErr,
+		Error:          strErr,
 	}
 
 	err = statusTemplate.Execute(w, data)
