@@ -67,8 +67,11 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 
 	var infos []Info
 
-	// There is a bug in either Trezor T or libusb that makes
-	// device appear twice with the same path
+	// There is a bug in libusb that makes
+	// device appear twice with the same path.
+	// This is already fixed in libusb 2.0.12;
+	// however, 2.0.12 has other problems with windows, so we
+	// patchfix it here
 	paths := make(map[string]bool)
 
 	for _, dev := range list {
@@ -113,11 +116,11 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 		b.mw.Println("webusb - connect - freeing device list done")
 	}()
 
-	// There is a bug in either Trezor T or libusb that makes
-	// device appear twice with the same path
-
-	// We try both and return the first that works
-
+	// There is a bug in libusb that makes
+	// device appear twice with the same path.
+	// This is already fixed in libusb 2.0.12;
+	// however, 2.0.12 has other problems with windows, so we
+	// patchfix it here
 	mydevs := make([]usbhid.Device, 0)
 	for _, dev := range list {
 		if b.match(dev) && b.identify(dev) == path {
