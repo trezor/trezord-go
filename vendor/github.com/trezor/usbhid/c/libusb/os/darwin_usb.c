@@ -1,7 +1,7 @@
 /* -*- Mode: C; indent-tabs-mode:nil -*- */
 /*
  * darwin backend for libusb 1.0
- * Copyright © 2008-2017 Nathan Hjelm <hjelmn@users.sourceforge.net>
+ * Copyright © 2008-2016 Nathan Hjelm <hjelmn@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,10 +36,6 @@
 #include <mach/mach_host.h>
 #include <mach/mach_port.h>
 
-/* Suppress warnings about the use of the deprecated objc_registerThreadWithCollector
- * function. Its use is also conditionalized to only older deployment targets. */
-#define OBJC_SILENCE_GC_DEPRECATIONS 1
-
 #include <AvailabilityMacros.h>
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060 && MAC_OS_X_VERSION_MIN_REQUIRED < 101200
   #include <objc/objc-auto.h>
@@ -59,14 +55,6 @@ _Atomic int32_t initCount = ATOMIC_VAR_INIT(0);
 #define libusb_darwin_atomic_fetch_add(x, y) (OSAtomicAdd32Barrier(y, x) - y)
 
 static volatile int32_t initCount = 0;
-
-#endif
-
-/* On 10.12 and later, use newly available clock_*() functions */
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
-#define OSX_USE_CLOCK_GETTIME 1
-#else
-#define OSX_USE_CLOCK_GETTIME 0
 #endif
 
 #include "darwin_usb.h"
@@ -77,17 +65,15 @@ static pthread_cond_t  libusb_darwin_at_cond = PTHREAD_COND_INITIALIZER;
 
 static pthread_once_t darwin_init_once = PTHREAD_ONCE_INIT;
 
-#if !OSX_USE_CLOCK_GETTIME
 static clock_serv_t clock_realtime;
 static clock_serv_t clock_monotonic;
-#endif
 
 static CFRunLoopRef libusb_darwin_acfl = NULL; /* event cf loop */
 static CFRunLoopSourceRef libusb_darwin_acfls = NULL; /* shutdown signal for event cf loop */
 
 static usbi_mutex_t darwin_cached_devices_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct list_head darwin_cached_devices = {&darwin_cached_devices, &darwin_cached_devices};
-static const char *darwin_device_class = kIOUSBDeviceClassName;
+static char *darwin_device_class = kIOUSBDeviceClassName;
 
 #define DARWIN_CACHED_DEVICE(a) ((struct darwin_cached_device *) (((struct darwin_device_priv *)((a)->os_priv))->dev))
 
@@ -233,21 +219,20 @@ static int usb_setup_device_iterator (io_iterator_t *deviceIterator, UInt32 loca
                                                                          &kCFTypeDictionaryKeyCallBacks,
                                                                          &kCFTypeDictionaryValueCallBacks);
 
-    /* there are no unsigned CFNumber types so treat the value as signed. the OS seems to do this
-         internally (CFNumberType of locationID is kCFNumberSInt32Type) */
-    CFTypeRef locationCF = CFNumberCreate (NULL, kCFNumberSInt32Type, &location);
+    if (propertyMatchDict) {
+      /* there are no unsigned CFNumber types so treat the value as signed. the os seems to do this
+         internally (CFNumberType of locationID is 3) */
+      CFTypeRef locationCF = CFNumberCreate (NULL, kCFNumberSInt32Type, &location);
 
-    if (propertyMatchDict && locationCF) {
       CFDictionarySetValue (propertyMatchDict, CFSTR(kUSBDevicePropertyLocationID), locationCF);
+      /* release our reference to the CFNumber (CFDictionarySetValue retains it) */
+      CFRelease (locationCF);
+
       CFDictionarySetValue (matchingDict, CFSTR(kIOPropertyMatchKey), propertyMatchDict);
+      /* release out reference to the CFMutableDictionaryRef (CFDictionarySetValue retains it) */
+      CFRelease (propertyMatchDict);
     }
     /* else we can still proceed as long as the caller accounts for the possibility of other devices in the iterator */
-
-    /* release our references as per the Create Rule */
-    if (propertyMatchDict)
-      CFRelease (propertyMatchDict);
-    if (locationCF)
-      CFRelease (locationCF);
   }
 
   return IOServiceGetMatchingServices(kIOMasterPortDefault, matchingDict, deviceIterator);
@@ -315,7 +300,6 @@ static usb_device_t **darwin_device_from_service (io_service_t service)
 }
 
 static void darwin_devices_attached (void *ptr, io_iterator_t add_devices) {
-  UNUSED(ptr);
   struct libusb_context *ctx;
   io_service_t service;
 
@@ -324,7 +308,7 @@ static void darwin_devices_attached (void *ptr, io_iterator_t add_devices) {
   while ((service = IOIteratorNext(add_devices))) {
     /* add this device to each active context's device list */
     list_for_each_entry(ctx, &active_contexts_list, list, struct libusb_context) {
-      process_new_device (ctx, service);
+      process_new_device (ctx, service);;
     }
 
     IOObjectRelease(service);
@@ -334,7 +318,6 @@ static void darwin_devices_attached (void *ptr, io_iterator_t add_devices) {
 }
 
 static void darwin_devices_detached (void *ptr, io_iterator_t rem_devices) {
-  UNUSED(ptr);
   struct libusb_device *dev = NULL;
   struct libusb_context *ctx;
   struct darwin_cached_device *old_device;
@@ -533,6 +516,7 @@ static void darwin_check_version (void) {
 }
 
 static int darwin_init(struct libusb_context *ctx) {
+  host_name_port_t host_self;
   int rc;
 
   rc = pthread_once (&darwin_init_once, darwin_check_version);
@@ -546,15 +530,12 @@ static int darwin_init(struct libusb_context *ctx) {
   }
 
   if (libusb_darwin_atomic_fetch_add (&initCount, 1) == 0) {
-#if !OSX_USE_CLOCK_GETTIME
-    /* create the clocks that will be used if clock_gettime() is not available */
-    host_name_port_t host_self;
+    /* create the clocks that will be used */
 
     host_self = mach_host_self();
     host_get_clock_service(host_self, CALENDAR_CLOCK, &clock_realtime);
     host_get_clock_service(host_self, SYSTEM_CLOCK, &clock_monotonic);
     mach_port_deallocate(mach_task_self(), host_self);
-#endif
 
     pthread_create (&libusb_darwin_at, NULL, darwin_event_thread_main, ctx);
 
@@ -567,13 +548,10 @@ static int darwin_init(struct libusb_context *ctx) {
   return rc;
 }
 
-static void darwin_exit (struct libusb_context *ctx) {
-  UNUSED(ctx);
+static void darwin_exit (void) {
   if (libusb_darwin_atomic_fetch_add (&initCount, -1) == 1) {
-#if !OSX_USE_CLOCK_GETTIME
     mach_port_deallocate(mach_task_self(), clock_realtime);
     mach_port_deallocate(mach_task_self(), clock_monotonic);
-#endif
 
     /* stop the event runloop and wait for the thread to terminate. */
     CFRunLoopSourceSignal(libusb_darwin_acfls);
@@ -888,29 +866,14 @@ static int get_device_port (io_service_t service, UInt8 *port) {
   return ret;
 }
 
-static int get_device_parent_sessionID(io_service_t service, UInt64 *parent_sessionID) {
-  kern_return_t result;
-  io_service_t parent;
-
-  /* Walk up the tree in the IOService plane until we find a parent that has a sessionID */
-  parent = service;
-  while((result = IORegistryEntryGetParentEntry (parent, kIOServicePlane, &parent)) == kIOReturnSuccess) {
-    if (get_ioregistry_value_number (parent, CFSTR("sessionID"), kCFNumberSInt64Type, parent_sessionID)) {
-        /* Success */
-        return 1;
-    }
-  }
-
-  /* We ran out of parents */
-  return 0;
-}
-
 static int darwin_get_cached_device(struct libusb_context *ctx, io_service_t service,
                                     struct darwin_cached_device **cached_out) {
   struct darwin_cached_device *new_device;
   UInt64 sessionID = 0, parent_sessionID = 0;
   int ret = LIBUSB_SUCCESS;
   usb_device_t **device;
+  io_service_t parent;
+  kern_return_t result;
   UInt8 port = 0;
 
   /* get some info from the io registry */
@@ -921,8 +884,11 @@ static int darwin_get_cached_device(struct libusb_context *ctx, io_service_t ser
 
   usbi_dbg("finding cached device for sessionID 0x%" PRIx64, sessionID);
 
-  if (get_device_parent_sessionID(service, &parent_sessionID)) {
-    usbi_dbg("parent sessionID: 0x%" PRIx64, parent_sessionID);
+  result = IORegistryEntryGetParentEntry (service, kIOUSBPlane, &parent);
+
+  if (kIOReturnSuccess == result) {
+    (void) get_ioregistry_value_number (parent, CFSTR("sessionID"), kCFNumberSInt64Type, &parent_sessionID);
+    IOObjectRelease(parent);
   }
 
   usbi_mutex_lock(&darwin_cached_devices_lock);
@@ -1039,11 +1005,8 @@ static int process_new_device (struct libusb_context *ctx, io_service_t service)
     case kUSBDeviceSpeedLow: dev->speed = LIBUSB_SPEED_LOW; break;
     case kUSBDeviceSpeedFull: dev->speed = LIBUSB_SPEED_FULL; break;
     case kUSBDeviceSpeedHigh: dev->speed = LIBUSB_SPEED_HIGH; break;
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1070
+#if DeviceVersion >= 500
     case kUSBDeviceSpeedSuper: dev->speed = LIBUSB_SPEED_SUPER; break;
-#endif
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101200
-    case kUSBDeviceSpeedSuperPlus: dev->speed = LIBUSB_SPEED_SUPER_PLUS; break;
 #endif
     default:
       usbi_warn (ctx, "Got unknown device speed %d", devSpeed);
@@ -1253,9 +1216,9 @@ static int get_endpoints (struct libusb_device_handle *dev_handle, int iface) {
 
   kern_return_t kresult;
 
-  UInt8 numep, direction, number;
-  UInt8 dont_care1, dont_care3;
-  UInt16 dont_care2;
+  u_int8_t numep, direction, number;
+  u_int8_t dont_care1, dont_care3;
+  u_int16_t dont_care2;
   int rc;
 
   usbi_dbg ("building table of endpoints.");
@@ -2002,7 +1965,6 @@ static int darwin_handle_transfer_completion (struct usbi_transfer *itransfer) {
 }
 
 static int darwin_clock_gettime(int clk_id, struct timespec *tp) {
-#if !OSX_USE_CLOCK_GETTIME
   mach_timespec_t sys_time;
   clock_serv_t clock_ref;
 
@@ -2025,16 +1987,6 @@ static int darwin_clock_gettime(int clk_id, struct timespec *tp) {
   tp->tv_nsec = sys_time.tv_nsec;
 
   return 0;
-#else
-  switch (clk_id) {
-  case USBI_CLOCK_MONOTONIC:
-    return clock_gettime(CLOCK_MONOTONIC, tp);
-  case USBI_CLOCK_REALTIME:
-    return clock_gettime(CLOCK_REALTIME, tp);
-  default:
-    return LIBUSB_ERROR_INVALID_PARAM;
-  }
-#endif
 }
 
 #if InterfaceVersion >= 550
@@ -2095,7 +2047,7 @@ static int darwin_free_streams (struct libusb_device_handle *dev_handle, unsigne
 }
 #endif
 
-const struct usbi_os_backend usbi_backend = {
+const struct usbi_os_backend darwin_backend = {
         .name = "Darwin",
         .caps = 0,
         .init = darwin_init,

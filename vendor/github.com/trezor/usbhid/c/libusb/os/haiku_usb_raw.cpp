@@ -38,9 +38,8 @@ haiku_init(struct libusb_context *ctx)
 }
 
 static void
-haiku_exit(struct libusb_context *ctx)
+haiku_exit(void)
 {
-	UNUSED(ctx);
 	if (atomic_add(&gInitCount, -1) == 1)
 		gUsbRoster.Stop();
 }
@@ -196,12 +195,11 @@ haiku_clock_gettime(int clkid, struct timespec *tp)
 	return LIBUSB_ERROR_INVALID_PARAM;
 }
 
-const struct usbi_os_backend usbi_backend = {
+const struct usbi_os_backend haiku_usb_raw_backend = {
 	/*.name =*/ "Haiku usbfs",
 	/*.caps =*/ 0,
 	/*.init =*/ haiku_init,
 	/*.exit =*/ haiku_exit,
-	/*.set_option =*/ NULL,
 	/*.get_device_list =*/ NULL,
 	/*.hotplug_poll =*/ NULL,
 	/*.open =*/ haiku_open,
@@ -246,7 +244,6 @@ const struct usbi_os_backend usbi_backend = {
 	/*.get_timerfd_clockid =*/ NULL,
 #endif
 
-	/*.context_priv_size=*/ 0,
 	/*.device_priv_size =*/ sizeof(USBDevice *),
 	/*.device_handle_priv_size =*/ sizeof(USBDeviceHandle *),
 	/*.transfer_priv_size =*/ sizeof(USBTransfer *),

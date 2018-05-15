@@ -86,12 +86,11 @@ static int _sync_control_transfer(struct usbi_transfer *);
 static int _sync_gen_transfer(struct usbi_transfer *);
 static int _access_endpoint(struct libusb_transfer *);
 
-const struct usbi_os_backend usbi_backend = {
+const struct usbi_os_backend netbsd_backend = {
 	"Synchronous NetBSD backend",
 	0,
 	NULL,				/* init() */
 	NULL,				/* exit() */
-	NULL,				/* set_option() */
 	netbsd_get_device_list,
 	NULL,				/* hotplug_poll */
 	netbsd_open,
@@ -132,7 +131,6 @@ const struct usbi_os_backend usbi_backend = {
 	netbsd_handle_transfer_completion,
 
 	netbsd_clock_gettime,
-	0,				/* context_priv_size */
 	sizeof(struct device_priv),
 	sizeof(struct handle_priv),
 	0,				/* transfer_priv_size */
@@ -214,6 +212,7 @@ error:
 int
 netbsd_open(struct libusb_device_handle *handle)
 {
+	struct handle_priv *hpriv = (struct handle_priv *)handle->os_priv;
 	struct device_priv *dpriv = (struct device_priv *)handle->dev->os_priv;
 
 	dpriv->fd = open(dpriv->devnode, O_RDWR);
@@ -231,6 +230,7 @@ netbsd_open(struct libusb_device_handle *handle)
 void
 netbsd_close(struct libusb_device_handle *handle)
 {
+	struct handle_priv *hpriv = (struct handle_priv *)handle->os_priv;
 	struct device_priv *dpriv = (struct device_priv *)handle->dev->os_priv;
 
 	usbi_dbg("close: fd %d", dpriv->fd);
