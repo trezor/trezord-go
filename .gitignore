@@ -1,7 +1,9 @@
 trezord-go
 release/installers/
-release/linux/build/
 release/linux/privkey.asc
+release/linux/build/
+release/macos/cert0*
+release/macos/key.pem
 release/macos/build/
 release/windows/authenticode.*
 release/windows/build/

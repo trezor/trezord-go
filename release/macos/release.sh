@@ -95,13 +95,11 @@ PRIVKEY=/release/key.pem
 if [ -r $PRIVKEY ]; then
     SIGNLEN=$(: | openssl dgst -sign $PRIVKEY -binary | wc -c)
     xar --sign -f $INSTALLER --digestinfo-to-sign digestinfo.dat \
-      --sig-size $SIGNLEN \
-      --cert-loc /release/cert00 \
-      --cert-loc /release/cert01 \
-      --cert-loc /release/cert02
-    openssl rsautl -sign -inkey $PRIVKEY -in digestinfo.dat \
-      -out signature.dat
+        --sig-size $SIGNLEN \
+        --cert-loc /release/cert00 \
+        --cert-loc /release/cert01 \
+        --cert-loc /release/cert02
+    openssl rsautl -sign -inkey $PRIVKEY -in digestinfo.dat -out signature.dat
     xar --inject-sig signature.dat -f $INSTALLER
     rm -f signature.dat digestinfo.dat
 fi
-
