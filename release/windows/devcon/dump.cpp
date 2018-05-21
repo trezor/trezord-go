@@ -108,7 +108,28 @@ Return Value:
         return FALSE;
     }
     Padding(1);
-    FormatToStream(stdout,MSG_DUMP_DESCRIPTION,desc);
+    // FormatToStream(stdout,MSG_DUMP_DESCRIPTION,desc);
+
+    for (int a = 0; a < 4000 && desc[a] != 0; a = a + 1 ) {
+        wchar_t c = desc[a];
+        if (!(c>=0 && c <128)) {
+            desc[a] = '_';
+        }
+    }
+
+    char pMBBuffer[4000];
+    wcstombs(pMBBuffer,
+         desc, 2000);
+
+    for (int a = 0; a < 4000; a = a + 1 ) {
+        char c = pMBBuffer[a];
+        if (!(c>=0 && c <128)) {
+            pMBBuffer[a] = '_';
+        }
+    }
+
+    printf("Name: %s\n", pMBBuffer);
+
     delete [] desc;
     return TRUE;
 }
