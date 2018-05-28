@@ -34,7 +34,17 @@ func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get(corsOriginHeader)
 
 	if r.URL.Path == "/" && r.Method == "GET" {
+		ch.serveStatusRedirect(w, r, origin)
+		return
+	}
+
+	if r.URL.Path == "/status/" && r.Method == "GET" {
 		ch.serveStatus(w, r, origin)
+		return
+	}
+
+	if r.URL.Path == "/status/log.gz" && r.Method == "POST" {
+		ch.serveStatusLog(w, r, origin)
 		return
 	}
 
@@ -75,6 +85,16 @@ func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ch.h.ServeHTTP(w, r)
 }
 
+func (ch *cors) serveStatusLog(w http.ResponseWriter, r *http.Request, origin string) {
+	if origin != "http://127.0.0.1:21325" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set(frameOriginHeader, "DENY")
+	ch.h.ServeHTTP(w, r)
+}
+
 func (ch *cors) serveStatus(w http.ResponseWriter, r *http.Request, origin string) {
 	if origin != "" {
 		w.WriteHeader(http.StatusForbidden)
@@ -83,6 +103,16 @@ func (ch *cors) serveStatus(w http.ResponseWriter, r *http.Request, origin strin
 
 	w.Header().Set(frameOriginHeader, "DENY")
 	ch.h.ServeHTTP(w, r)
+}
+
+func (ch *cors) serveStatusRedirect(w http.ResponseWriter, r *http.Request, origin string) {
+	if origin != "" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set(frameOriginHeader, "DENY")
+	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
 func CORS(validator OriginValidator) func(http.Handler) http.Handler {

@@ -75,7 +75,7 @@ func (t *MemoryWriter) String(start string) (string, error) {
 	return b.String(), nil
 }
 
-func (t *MemoryWriter) gzip(start string) ([]byte, error) {
+func (t *MemoryWriter) Gzip(start string) ([]byte, error) {
 	var buf bytes.Buffer
 	gw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if err != nil {
@@ -94,19 +94,6 @@ func (t *MemoryWriter) gzip(start string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-func (t *MemoryWriter) GzipJsArray(start string) ([]int, error) {
-	zip, err := t.gzip(start)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]int, 0, len(zip))
-
-	for _, b := range zip {
-		res = append(res, int(b))
-	}
-	return res, nil
 }
 
 func New(size int, startSize int) *MemoryWriter {

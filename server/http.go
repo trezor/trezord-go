@@ -21,11 +21,14 @@ import (
 	"github.com/trezor/trezord-go/usb"
 	"github.com/trezor/trezord-go/wire"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 const version = "2.0.13"
+
+const csrfkey = "slk0118h51w2qiw4fhrfyd84f59j81ln"
 
 type session struct {
 	path string
@@ -64,7 +67,14 @@ func New(bus *usb.USB, logWriter io.Writer, mw, dmw *memorywriter.MemoryWriter, 
 		logger:  logger,
 		dlogger: dlogger,
 	}
+
 	r := mux.NewRouter()
+
+	ssr := r.PathPrefix("/status").Subrouter()
+	ssr.Methods("GET").PathPrefix("/").HandlerFunc(s.StatusPage)
+	ssr.Methods("POST").PathPrefix("/log.gz").HandlerFunc(s.StatusGzip)
+
+	ssr.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
 
 	sr := r.Methods("POST").Subrouter()
 
@@ -78,8 +88,10 @@ func New(bus *usb.USB, logWriter io.Writer, mw, dmw *memorywriter.MemoryWriter, 
 	sr.HandleFunc("/call/{session}", s.Call)
 	sr.HandleFunc("/post/{session}", s.Post)
 
-	getsr := r.Methods("GET").Subrouter()
-	getsr.HandleFunc("/", s.StatusPage)
+	/**
+	  getsr := r.Methods("GET").Subrouter()
+		getsr.HandleFunc("/", s.StatusPage)
+	*/
 
 	dlogger.Println("http - creating cors validator")
 	v, err := corsValidator()
@@ -172,6 +184,47 @@ func makeStatusTemplateDevice(dev entry) statusTemplateDevice {
 	return tdev
 }
 
+func (s *Server) StatusGzip(w http.ResponseWriter, r *http.Request) {
+	s.dlogger.Println("http - building gzip")
+
+	devconLog, err := devconInfo(s.dlogger)
+	if err != nil {
+		s.dlogger.Printf("http - status - devcon err %s", err.Error())
+		s.respondError(w, err)
+		return
+	}
+
+	devconLogD, err := devconAllStatusInfo()
+	if err != nil {
+		s.dlogger.Printf("http - status - devcon err %s", err.Error())
+		s.respondError(w, err)
+		return
+	}
+
+	msinfo, err := runMsinfo()
+	if err != nil {
+		s.dlogger.Printf("http - status - devcon err %s", err.Error())
+		s.respondError(w, err)
+		return
+	}
+
+	start := version + "\n" + msinfo + "\n" + devconLog + devconLogD
+
+	gzip, err := s.dmw.Gzip(start)
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/gzip")
+
+	_, err = w.Write(gzip)
+	if err != nil {
+		s.respondError(w, err)
+		return
+	}
+}
+
 func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 	s.dlogger.Println("http - building status page")
 
@@ -189,24 +242,9 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 		tdevs = append(tdevs, makeStatusTemplateDevice(dev))
 	}
 
-	s.dlogger.Println("http - asking devcon")
-
-	devconLog, err := devconInfo(s.dlogger)
-	if err != nil {
-		s.dlogger.Printf("http - status - devcon err %s", err.Error())
-		templateErr = err
-	}
-
-	start := version + "\n" + devconLog
+	start := version + "\n"
 
 	log, err := s.mw.String(start)
-	if err != nil {
-		s.respondError(w, err)
-		return
-	}
-
-	gziplog, err := s.dmw.GzipJsArray(start)
-
 	if err != nil {
 		s.respondError(w, err)
 		return
@@ -221,13 +259,13 @@ func (s *Server) StatusPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &statusTemplateData{
-		Version:        version,
-		Devices:        tdevs,
-		DeviceCount:    len(tdevs),
-		Log:            log,
-		DLogGzipJSData: gziplog,
-		IsError:        isErr,
-		Error:          strErr,
+		Version:     version,
+		Devices:     tdevs,
+		DeviceCount: len(tdevs),
+		Log:         log,
+		IsError:     isErr,
+		Error:       strErr,
+		CSRFField:   csrf.TemplateField(r),
 	}
 
 	err = statusTemplate.Execute(w, data)
