@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.14] - unreleased
+
+- Add more devcon and msinfo output on windows
+- Separate detailed log download as a different URL request
+- Big refactor of http.go to smaller packages
+
 ## [2.0.13] - 2018-04-12
 
 - Allowing nousb mode (with only emulator turned on)
