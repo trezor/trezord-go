@@ -25,8 +25,6 @@ func (o *originCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(frameOriginHeader, "DENY")
 	o.handler.ServeHTTP(w, r)
-
-	return
 }
 
 func OriginCheck(allowed map[string]string) func(http.Handler) http.Handler {

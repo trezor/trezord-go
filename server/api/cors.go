@@ -27,7 +27,6 @@ const (
 	corsRequestMethodHeader  string = "Access-Control-Request-Method"
 	corsRequestHeadersHeader string = "Access-Control-Request-Headers"
 	corsOriginHeader         string = "Origin"
-	frameOriginHeader        string = "X-Frame-Options"
 )
 
 func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {

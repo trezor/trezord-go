@@ -26,7 +26,8 @@ import (
 // takes less seconds when we dont import USB
 // package and use abstract interfaces instead
 
-// these interfaces are implemented in usb package
+// USB* interfaces are implemented in usb package
+
 type USBBus interface {
 	Enumerate() ([]USBInfo, error)
 	Connect(path string) (USBDevice, error)
@@ -378,7 +379,7 @@ func (c *Core) Call(body []byte, session string, skipRead bool, closeNotify <-ch
 	return bytes, err
 }
 
-func (c *Core) readWriteDev(body []byte, device USBDevice, skipRead bool) ([]byte, error) {
+func (c *Core) readWriteDev(body []byte, device io.ReadWriter, skipRead bool) ([]byte, error) {
 	c.Log("readWrite - decodeRaw")
 	msg, err := c.decodeRaw(body)
 	if err != nil {

@@ -24,7 +24,7 @@ type api struct {
 	logger  *memorywriter.MemoryWriter
 }
 
-func ServeApi(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) error {
+func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) error {
 	api := &api{
 		core:    c,
 		version: v,

@@ -49,7 +49,11 @@ func New(
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
 	status.ServeStatus(statusRouter, c, version, shortWriter, longWriter)
-	api.ServeApi(postRouter, c, version, longWriter)
+	err := api.ServeAPI(postRouter, c, version, longWriter)
+	if err != nil {
+		panic(err) // only error is an error from originValidator regexp constructor
+	}
+
 	status.ServeStatusRedirect(redirectRouter)
 
 	var h http.Handler = r
@@ -68,7 +72,7 @@ func New(
 func (s *Server) logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		text := fmt.Sprintf("%s %s\n", r.Method, r.URL)
-		s.writer.Write([]byte(text))
+		s.writer.Write([]byte(text)) // nolint: errcheck, gas
 		handler.ServeHTTP(w, r)
 	})
 }

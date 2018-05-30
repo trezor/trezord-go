@@ -23,7 +23,7 @@ type MemoryWriter struct {
 
 func (m *MemoryWriter) Println(s string) {
 	long := []byte(s + "\n")
-	m.Write(long)
+	m.Write(long) // nolint: gas, errcheck
 }
 
 // Writer remembers lines in memory
@@ -50,15 +50,15 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 
 // Exports lines to a writer, plus adds additional text on top
 // In our case, additional text is devcon exports and trezord version
-func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
+func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
 	_, err := w.Write([]byte(start))
 	if err != nil {
 		return err
 	}
 
 	// Write end lines (latest on up)
-	for i := len(t.lines) - 1; i >= 0; i-- {
-		line := t.lines[i]
+	for i := len(m.lines) - 1; i >= 0; i-- {
+		line := m.lines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
@@ -72,8 +72,8 @@ func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
 	}
 
 	// Write start lines
-	for i := len(t.startLines) - 1; i >= 0; i-- {
-		line := t.startLines[i]
+	for i := len(m.startLines) - 1; i >= 0; i-- {
+		line := m.startLines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
@@ -83,18 +83,18 @@ func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
 	return nil
 }
 
-// Export as string
-func (t *MemoryWriter) String(start string) (string, error) {
+// String exports as string
+func (m *MemoryWriter) String(start string) (string, error) {
 	var b bytes.Buffer
-	err := t.writeTo(start, &b)
+	err := m.writeTo(start, &b)
 	if err != nil {
 		return "", err
 	}
 	return b.String(), nil
 }
 
-// Export as GZip bytes
-func (t *MemoryWriter) Gzip(start string) ([]byte, error) {
+// Gzip exports as GZip bytes
+func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	var buf bytes.Buffer
 	gw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if err != nil {
@@ -102,7 +102,7 @@ func (t *MemoryWriter) Gzip(start string) ([]byte, error) {
 	}
 
 	gw.Name = "log.txt"
-	err = t.writeTo(start, gw)
+	err = m.writeTo(start, gw)
 	if err != nil {
 		return nil, err
 	}
