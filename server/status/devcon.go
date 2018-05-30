@@ -296,3 +296,7 @@ func devconUsbStringsVid(vid int, with_disconnected bool, mw *memorywriter.Memor
 	v := fmt.Sprintf("*vid_%04x*", vid)
 	return devconUsbStrings(v, with_disconnected, mw)
 }
+
+func isWindows() bool {
+	return true
+}

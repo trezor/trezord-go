@@ -20,3 +20,7 @@ func devconAllStatusInfo() (string, error) {
 func runMsinfo() (string, error) {
 	return "", nil
 }
+
+func isWindows() bool {
+	return false
+}

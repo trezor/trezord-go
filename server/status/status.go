@@ -135,6 +135,7 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		IsError:     isErr,
 		Error:       strErr,
 		CSRFField:   csrf.TemplateField(r),
+		IsWindows:   isWindows(),
 	}
 
 	err = statusTemplate.Execute(w, data)

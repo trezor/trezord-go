@@ -23,8 +23,9 @@ type statusTemplateData struct {
 	DeviceCount int
 	Log         string
 
-	IsError bool
-	Error   string
+	IsError   bool
+	Error     string
+	IsWindows bool
 
 	CSRFField template.HTML
 }
@@ -199,11 +200,17 @@ const templateString = `
        <form action="/status/log.gz" method="post">
          {{.CSRFField}}
          <button type="submit">download detailed log</button>
+         <br>
+         {{if .IsWindows}}
+           <p style="margin-top: 6px">
+              Detailed log might take a while to generate.<br>It might also reveal detailed information about your PC configuration.
+           </p>
+         {{end}}
        </form>
      </div>
 
       <div class="space-top">
-        <p>You may need to reload the page after connecting / disconnecting</p>
+        <p>You may need to reload the page after connecting / disconnecting device</p>
         <a href="#" onClick="location.href=location.href">
           <div class="btn-primary">Refresh page</div>
         </a>
