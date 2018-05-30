@@ -24,8 +24,8 @@ type statusTemplateData struct {
 	Log         string
 
 	IsError   bool
-	Error     string
 	IsWindows bool
+	Error     string
 
 	CSRFField template.HTML
 }
