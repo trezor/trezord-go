@@ -1,4 +1,4 @@
-package server
+package status
 
 import "html/template"
 
@@ -18,14 +18,15 @@ type statusTemplateDevice struct {
 }
 
 type statusTemplateData struct {
-	Version        string
-	Devices        []statusTemplateDevice
-	DeviceCount    int
-	Log            string
-	DLogGzipJSData []int
+	Version     string
+	Devices     []statusTemplateDevice
+	DeviceCount int
+	Log         string
 
 	IsError bool
 	Error   string
+
+	CSRFField template.HTML
 }
 
 const templateString = `
@@ -138,6 +139,17 @@ const templateString = `
     #dlog {
       display: none;
     }
+
+    /*fake link*/
+    button {
+      background: none !important;
+      color: #069;
+      border: none;
+      padding: 0 !important;
+      font: inherit;
+      border-bottom: 1px solid #444;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -184,9 +196,10 @@ const templateString = `
        <textarea rows="25" cols="150" id="log">
 {{.Log}}
        </textarea>
-       <p>
-        <a href="" id="detlog">download detailed log</a>
-       </p>
+       <form action="/status/log.gz" method="post">
+         {{.CSRFField}}
+         <button type="submit">download detailed log</button>
+       </form>
      </div>
 
       <div class="space-top">
@@ -197,15 +210,6 @@ const templateString = `
       </div>
     </div>
   </div>
-  <script>
-   var gzipByteArray = new Uint8Array({{.DLogGzipJSData}});
-   var blob = new Blob([gzipByteArray], {type: "application/gzip"});
-   var a = document.getElementById("detlog")
-   var url = window.URL.createObjectURL(blob);
-
-   a.href = url;
-   a.download = "log.gz";
-  </script>
 </body>
 </html>
 `

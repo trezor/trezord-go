@@ -51,6 +51,7 @@ Return Value:
 
     printf("%s\n", pMBBuffer);
 
+    //FormatToStream(stdout,MSG_DUMP_DESCRIPTION,desc);
     return b;
 }
 
@@ -109,6 +110,7 @@ Return Value:
     }
     Padding(1);
     FormatToStream(stdout,MSG_DUMP_DESCRIPTION,desc);
+ 
     delete [] desc;
     return TRUE;
 }
@@ -445,6 +447,7 @@ Return Value:
            file, 1000);
 
         printf("%s\n", pMBBuffer);
+
     }
 
     return NO_ERROR;

@@ -12,6 +12,9 @@ Abstract:
 
 --*/
 
+#define UNICODE 1
+#define _UNICODE 1
+
 #include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>
@@ -28,6 +31,8 @@ Abstract:
 #include <io.h>
 #include <fcntl.h>
 #include <driverspecs.h>
+
+#include <clocale>
 
 #include "msg.h"
 #include "rc_ids.h"

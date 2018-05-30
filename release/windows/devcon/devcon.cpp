@@ -1055,6 +1055,7 @@ Return Value:
 
 --*/
 {
+    std::setlocale(LC_ALL, "");
     LPCTSTR cmd;
     LPCTSTR baseName;
     LPCTSTR machine = NULL;

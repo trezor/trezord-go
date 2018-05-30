@@ -7,7 +7,11 @@ import (
 	"io"
 )
 
-// to prevent possible memory issues
+// This is a helper package that writes logs to memory,
+// rotates the lines, but remembers some lines on the start
+// It is useful for detailed logging, that would take too much memory
+
+// to prevent possible memory issues, hardcode max line length
 const maxLineLength = 500
 
 type MemoryWriter struct {
@@ -17,6 +21,12 @@ type MemoryWriter struct {
 	startLines   [][]byte
 }
 
+func (m *MemoryWriter) Println(s string) {
+	long := []byte(s + "\n")
+	m.Write(long) // nolint: gas, errcheck
+}
+
+// Writer remembers lines in memory
 func (m *MemoryWriter) Write(p []byte) (int, error) {
 	if len(p) > maxLineLength {
 		return 0, errors.New("Input too long")
@@ -25,8 +35,10 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 	copy(newline, p)
 
 	if len(m.startLines) < m.startCount {
+		// do not rotate
 		m.startLines = append(m.startLines, newline)
 	} else {
+		// rotate
 		for len(m.lines) >= m.maxLineCount {
 			m.lines = m.lines[1:]
 		}
@@ -36,27 +48,32 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
+// Exports lines to a writer, plus adds additional text on top
+// In our case, additional text is devcon exports and trezord version
+func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
 	_, err := w.Write([]byte(start))
 	if err != nil {
 		return err
 	}
 
-	for i := len(t.lines) - 1; i >= 0; i-- {
-		line := t.lines[i]
+	// Write end lines (latest on up)
+	for i := len(m.lines) - 1; i >= 0; i-- {
+		line := m.lines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
 		}
 	}
 
+	// ... to make space between start and end
 	_, err = w.Write([]byte("...\n"))
 	if err != nil {
 		return err
 	}
 
-	for i := len(t.startLines) - 1; i >= 0; i-- {
-		line := t.startLines[i]
+	// Write start lines
+	for i := len(m.startLines) - 1; i >= 0; i-- {
+		line := m.startLines[i]
 		_, err = w.Write(line)
 		if err != nil {
 			return err
@@ -66,16 +83,18 @@ func (t *MemoryWriter) writeTo(start string, w io.Writer) error {
 	return nil
 }
 
-func (t *MemoryWriter) String(start string) (string, error) {
+// String exports as string
+func (m *MemoryWriter) String(start string) (string, error) {
 	var b bytes.Buffer
-	err := t.writeTo(start, &b)
+	err := m.writeTo(start, &b)
 	if err != nil {
 		return "", err
 	}
 	return b.String(), nil
 }
 
-func (t *MemoryWriter) gzip(start string) ([]byte, error) {
+// Gzip exports as GZip bytes
+func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	var buf bytes.Buffer
 	gw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if err != nil {
@@ -83,7 +102,7 @@ func (t *MemoryWriter) gzip(start string) ([]byte, error) {
 	}
 
 	gw.Name = "log.txt"
-	err = t.writeTo(start, gw)
+	err = m.writeTo(start, gw)
 	if err != nil {
 		return nil, err
 	}
@@ -94,19 +113,6 @@ func (t *MemoryWriter) gzip(start string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-func (t *MemoryWriter) GzipJsArray(start string) ([]int, error) {
-	zip, err := t.gzip(start)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]int, 0, len(zip))
-
-	for _, b := range zip {
-		res = append(res, int(b))
-	}
-	return res, nil
 }
 
 func New(size int, startSize int) *MemoryWriter {
