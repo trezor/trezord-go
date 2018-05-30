@@ -1,4 +1,4 @@
-package server
+package status
 
 import "html/template"
 

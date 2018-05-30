@@ -3,36 +3,17 @@ package usb
 import (
 	"errors"
 	"fmt"
-	"io"
-)
 
-const (
-	VendorT1            = 0x534c
-	ProductT1Firmware   = 0x0001
-	VendorT2            = 0x1209
-	ProductT2Bootloader = 0x53C0
-	ProductT2Firmware   = 0x53C1
+	"github.com/trezor/trezord-go/core"
 )
 
 var (
 	ErrNotFound = fmt.Errorf("device not found")
 )
 
-type Info struct {
-	Path      string
-	VendorID  int
-	ProductID int
-}
-
-type Device interface {
-	io.ReadWriteCloser
-}
-
-type Bus interface {
-	Enumerate() ([]Info, error)
-	Connect(path string) (Device, error)
-	Has(path string) bool
-}
+type Info = core.USBInfo
+type Device = core.USBDevice
+type Bus = core.USBBus
 
 type USB struct {
 	buses []Bus
@@ -42,6 +23,15 @@ func Init(buses ...Bus) *USB {
 	return &USB{
 		buses: buses,
 	}
+}
+
+func (b *USB) Has(path string) bool {
+	for _, b := range b.buses {
+		if b.Has(path) {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *USB) Enumerate() ([]Info, error) {

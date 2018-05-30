@@ -4,7 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
+
+	"github.com/trezor/trezord-go/memorywriter"
 )
 
 const (
@@ -17,11 +18,11 @@ type Message struct {
 	Kind uint16
 	Data []byte
 
-	Dlogger *log.Logger
+	Log *memorywriter.MemoryWriter
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
-	m.Dlogger.Println("v1 - writeTo - start")
+	m.Log.Println("v1 - writeTo - start")
 
 	var (
 		rep  [packetLen]byte
@@ -35,7 +36,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	binary.BigEndian.PutUint16(rep[3:], kind)
 	binary.BigEndian.PutUint32(rep[5:], size)
 
-	m.Dlogger.Println("v1 - writeTo - actually writing")
+	m.Log.Println("v1 - writeTo - actually writing")
 
 	var (
 		written = 0 // number of written bytes
@@ -72,7 +73,7 @@ var (
 )
 
 func (m *Message) ReadFrom(r io.Reader) (int64, error) {
-	m.Dlogger.Println("v1 - readFrom - start")
+	m.Log.Println("v1 - readFrom - start")
 	var (
 		rep  [packetLen]byte
 		read = 0 // number of read bytes
@@ -84,7 +85,7 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 
 	// skip all the previous messages in the bus
 	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
-		m.Dlogger.Println("v1 - readFrom - detected previous message, skipping")
+		m.Log.Println("v1 - readFrom - detected previous message, skipping")
 		n, err = r.Read(rep[:])
 		if err != nil {
 			return int64(read), err
@@ -92,7 +93,7 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 	}
 	read += n
 
-	m.Dlogger.Println("v1 - readFrom - actual reading started")
+	m.Log.Println("v1 - readFrom - actual reading started")
 
 	// parse header
 	var (
@@ -118,7 +119,7 @@ func (m *Message) ReadFrom(r io.Reader) (int64, error) {
 	m.Kind = kind
 	m.Data = data
 
-	m.Dlogger.Println("v1 - readFrom - actual reading finished")
+	m.Log.Println("v1 - readFrom - actual reading finished")
 
 	return int64(read), nil
 }

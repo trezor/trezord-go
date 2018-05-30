@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -45,71 +46,70 @@ func main() {
 	flag.BoolVar(&withusb, "u", true, "Use USB devices. Can be disabled for testing environments. Example: trezord-go -e 21324 -u=false")
 	flag.Parse()
 
-	var lw io.Writer
+	var stderrWriter io.Writer
 	if logfile != "" {
-		lw = &lumberjack.Logger{
+		stderrWriter = &lumberjack.Logger{
 			Filename:   logfile,
 			MaxSize:    5, // megabytes
 			MaxBackups: 3,
 		}
 	} else {
-		lw = os.Stderr
+		stderrWriter = os.Stderr
 	}
 
-	m := memorywriter.New(2000, 200)
+	stderrLogger := log.New(stderrWriter, "", log.LstdFlags)
 
-	detailedLogWriter := memorywriter.New(90000, 200)
-	logWriter := io.MultiWriter(lw, m, detailedLogWriter)
+	shortMemoryWriter := memorywriter.New(2000, 200)
 
-	logger := log.New(logWriter, "", log.LstdFlags)
-	detailedLogger := log.New(detailedLogWriter, "details: ", log.LstdFlags)
+	longMemoryWriter := memorywriter.New(90000, 200)
 
-	logger.Println("trezord is starting.")
+	stderrLogger.Print("trezord is starting.")
 
 	var bus []usb.Bus
 	if withusb {
-		detailedLogger.Println("Initing webusb")
+		longMemoryWriter.Println("Initing webusb")
 
-		w, err := usb.InitWebUSB(logger, detailedLogger)
+		w, err := usb.InitWebUSB(longMemoryWriter)
 		if err != nil {
-			log.Fatalf("webusb: %s", err)
+			stderrLogger.Fatalf("webusb: %s", err)
 		}
 		defer w.Close()
 
-		detailedLogger.Println("Initing hidapi")
-		h, err := usb.InitHIDAPI(logger, detailedLogger)
+		longMemoryWriter.Println("Initing hidapi")
+		h, err := usb.InitHIDAPI(longMemoryWriter)
 		if err != nil {
-			log.Fatalf("hidapi: %s", err)
+			stderrLogger.Fatalf("hidapi: %s", err)
 		}
 		bus = append(bus, w, h)
 	}
 
-	detailedLogger.Printf("UDP port count - %d\n", len(ports))
+	longMemoryWriter.Println(fmt.Sprintf("UDP port count - %d", len(ports)))
 
 	if len(ports) > 0 {
 		e, errUDP := usb.InitUDP(ports)
 		if errUDP != nil {
-			logger.Fatalf("emulator: %s", errUDP)
+			panic(errUDP)
 		}
 		bus = append(bus, e)
 	}
 
 	if len(bus) == 0 {
-		log.Fatalf("No transports enabled")
+		stderrLogger.Fatalf("No transports enabled")
 	}
 
 	b := usb.Init(bus...)
-	detailedLogger.Println("Creating HTTP server")
-	s, err := server.New(b, logWriter, m, detailedLogWriter, logger, detailedLogger)
+	longMemoryWriter.Println("Creating HTTP server")
+	s, err := server.New(b, stderrWriter, shortMemoryWriter, longMemoryWriter)
+
 	if err != nil {
-		logger.Fatalf("https: %s", err)
+		stderrLogger.Fatalf("https: %s", err)
 	}
 
-	detailedLogger.Println("Running HTTP server")
+	longMemoryWriter.Println("Running HTTP server")
 	err = s.Run()
 	if err != nil {
-		logger.Fatalf("https: %s", err)
+		stderrLogger.Fatalf("https: %s", err)
 	}
 
-	detailedLogger.Println("Main ended successfully")
+	longMemoryWriter.Println("Main ended successfully")
 }

@@ -1,21 +1,26 @@
 // +build windows
 
-package server
+package status
 
 import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/trezor/trezord-go/usb"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/trezor/trezord-go/core"
+	"github.com/trezor/trezord-go/memorywriter"
 )
+
+// Devcon is a tool for listing devices and drivers on windows
+// These are functions for calling that
+// (devcon itself has source code in release/windows)
 
 func devconAllStatusInfo() (string, error) {
 	_, err := os.Stat("devcon.exe")
@@ -50,8 +55,8 @@ func devconAllStatusInfo() (string, error) {
 	return res, nil
 }
 
-func devconInfo(dlogger *log.Logger) (string, error) {
-	dlogger.Println("devconInfo - finding devcon.exe")
+func devconInfo(mw *memorywriter.MemoryWriter) (string, error) {
+	mw.Println("devconInfo - finding devcon.exe")
 	_, err := os.Stat("devcon.exe")
 	if os.IsNotExist(err) {
 		return "devcon.exe does not exist\n", nil
@@ -60,15 +65,15 @@ func devconInfo(dlogger *log.Logger) (string, error) {
 		return "", err
 	}
 
-	dlogger.Println("devconInfo - usbStrings")
-	conn, disconn, err := devconTrezorUsbStrings(dlogger)
+	mw.Println("devconInfo - usbStrings")
+	conn, disconn, err := devconTrezorUsbStrings(mw)
 	if err != nil {
 		return "", err
 	}
 
 	res := "Driver log\nConnected devices:\n"
-	dlogger.Println("devconInfo - finding driver files")
-	cm, err := devconMultipleDriverFiles(conn, dlogger)
+	mw.Println("devconInfo - finding driver files")
+	cm, err := devconMultipleDriverFiles(conn, mw)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +81,7 @@ func devconInfo(dlogger *log.Logger) (string, error) {
 
 	res += "\nDisonnected devices:\n"
 
-	dm, err := devconMultipleDriverFiles(disconn, dlogger)
+	dm, err := devconMultipleDriverFiles(disconn, mw)
 	if err != nil {
 		return "", err
 	}
@@ -103,23 +108,23 @@ func devconAllUsbStrings() ([]string, []string, error) {
 	return conn, disconn, nil
 }
 
-func devconTrezorUsbStrings(dlogger *log.Logger) ([]string, []string, error) {
-	allT1, err := devconUsbStringsVid(usb.VendorT1, true, dlogger)
+func devconTrezorUsbStrings(mw *memorywriter.MemoryWriter) ([]string, []string, error) {
+	allT1, err := devconUsbStringsVid(core.VendorT1, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	allT2, err := devconUsbStringsVid(usb.VendorT2, true, dlogger)
+	allT2, err := devconUsbStringsVid(core.VendorT2, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT1, err := devconUsbStringsVid(usb.VendorT1, false, dlogger)
+	connT1, err := devconUsbStringsVid(core.VendorT1, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT2, err := devconUsbStringsVid(usb.VendorT2, false, dlogger)
+	connT2, err := devconUsbStringsVid(core.VendorT2, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,10 +163,10 @@ func devconMultipleStatuses(ids []string) (string, error) {
 	return res, nil
 }
 
-func devconMultipleDriverFiles(ids []string, dlogger *log.Logger) (string, error) {
+func devconMultipleDriverFiles(ids []string, mw *memorywriter.MemoryWriter) (string, error) {
 	res := ""
 	for _, i := range ids {
-		driverFiles, err := devconDriverFiles(i, dlogger)
+		driverFiles, err := devconDriverFiles(i, mw)
 		if err != nil {
 			return "", err
 		}
@@ -170,10 +175,10 @@ func devconMultipleDriverFiles(ids []string, dlogger *log.Logger) (string, error
 	return res, nil
 }
 
-func runDevcon(cmd, par string, dlogger *log.Logger, unicode bool) (string, error) {
+func runDevcon(cmd, par string, mw *memorywriter.MemoryWriter, unicode bool) (string, error) {
 
-	if dlogger != nil {
-		dlogger.Println("devconInfo - runninng %s %s %s", "devcon.exe", cmd, par)
+	if mw != nil {
+		mw.Println(fmt.Sprintf("devconInfo - runninng %s %s %s", "devcon.exe", cmd, par))
 	}
 	cmdInstance := exec.Command("devcon.exe", "-u", cmd, par) // nolint: gas
 	if !unicode {
@@ -210,7 +215,7 @@ func runMsinfo() (string, error) {
 		return "", err
 	}
 
-	cmdInstance := exec.Command(windir+"msinfo32.exe", "/report", tmpfile.Name())
+	cmdInstance := exec.Command(windir+"msinfo32.exe", "/report", tmpfile.Name()) // nolint: gas
 	cmdInstance.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	cc, err := cmdInstance.CombinedOutput()
 
@@ -239,9 +244,9 @@ func utf16BytesToString(b []byte, o binary.ByteOrder) string {
 	return string(utf16.Decode(utf))
 }
 
-func devconDriverFiles(id string, dlogger *log.Logger) (string, error) {
-	dlogger.Println("devconInfo - finding driver files for %s", id)
-	out, err := runDevcon("driverfiles", "@"+id, dlogger, false)
+func devconDriverFiles(id string, mw *memorywriter.MemoryWriter) (string, error) {
+	mw.Println(fmt.Sprintf("devconInfo - finding driver files for %s", id))
+	out, err := runDevcon("driverfiles", "@"+id, mw, false)
 	if err != nil {
 		return "", err
 	}
@@ -265,15 +270,15 @@ func devconStatus(id string) (string, error) {
 }
 
 func devconUsbStringsEvery(with_disconnected bool) ([]string, error) {
-	return devconUsbStrings("*", with_disconnected, nil, true)
+	return devconUsbStrings("*", with_disconnected, nil)
 }
 
-func devconUsbStrings(filter string, with_disconnected bool, dlogger *log.Logger, shit bool) ([]string, error) {
+func devconUsbStrings(filter string, with_disconnected bool, mw *memorywriter.MemoryWriter) ([]string, error) {
 	command := "find"
 	if with_disconnected {
 		command = "findall"
 	}
-	out, err := runDevcon(command, filter, dlogger, false)
+	out, err := runDevcon(command, filter, mw, false)
 
 	if err != nil {
 		return nil, err
@@ -287,7 +292,7 @@ func devconUsbStrings(filter string, with_disconnected bool, dlogger *log.Logger
 	return lines, nil
 }
 
-func devconUsbStringsVid(vid int, with_disconnected bool, dlogger *log.Logger) ([]string, error) {
+func devconUsbStringsVid(vid int, with_disconnected bool, mw *memorywriter.MemoryWriter) ([]string, error) {
 	v := fmt.Sprintf("*vid_%04x*", vid)
-	return devconUsbStrings(v, with_disconnected, dlogger, false)
+	return devconUsbStrings(v, with_disconnected, mw)
 }
