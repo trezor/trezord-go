@@ -14,6 +14,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+const version = "2.0.13"
+
 type udpPorts []int
 
 func (i *udpPorts) String() string {
@@ -99,7 +101,7 @@ func main() {
 
 	b := usb.Init(bus...)
 	longMemoryWriter.Println("Creating HTTP server")
-	s, err := server.New(b, stderrWriter, shortMemoryWriter, longMemoryWriter)
+	s, err := server.New(b, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)

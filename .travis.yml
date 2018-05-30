@@ -38,7 +38,7 @@ matrix:
         - bash -c '[[ $( gometalinter --deadline=300s . ./server ./server/status ./server/api ./usb ./wire ./core ./memorywriter | grep -v "should have comment" | tee /dev/stderr | wc -l ) -eq 0 ]]' 
     - env: TEST=version-check
       script:
-        - bash -c '[[ $( cat server/http.go | grep "const version" | sed '"'"'s/const version = //'"'"' | sed '"'"'s/"//g'"'"' ) == $( cat VERSION ) ]]' 
+        - bash -c '[[ $( cat trezord.go | grep "const version" | sed '"'"'s/const version = //'"'"' | sed '"'"'s/"//g'"'"' ) == $( cat VERSION ) ]]' 
 
 notifications:
   webhooks:

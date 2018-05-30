@@ -14,8 +14,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "2.0.13"
-
 type Server struct {
 	https *http.Server
 
@@ -27,6 +25,7 @@ func New(
 	stderrWriter io.Writer,
 	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
+	version string,
 ) (*Server, error) {
 
 	c := core.New(bus, longWriter)
