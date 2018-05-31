@@ -244,6 +244,26 @@ func utf16BytesToString(b []byte, o binary.ByteOrder) string {
 	return string(utf16.Decode(utf))
 }
 
+func filterLinesExcluding(lines []string, needle string) []string {
+	res := make([]string, 0, 1)
+	for _, line := range lines {
+		if !strings.Contains(line, needle) {
+			res = append(res, line)
+		}
+	}
+	return res
+}
+
+func filterLinesIncluding(lines []string, needle string) []string {
+	res := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if strings.Contains(line, needle) {
+			res = append(res, line)
+		}
+	}
+	return res
+}
+
 func devconDriverFiles(id string, mw *memorywriter.MemoryWriter) (string, error) {
 	mw.Println(fmt.Sprintf("devconInfo - finding driver files for %s", id))
 	out, err := runDevcon("driverfiles", "@"+id, mw, false)
@@ -252,7 +272,17 @@ func devconDriverFiles(id string, mw *memorywriter.MemoryWriter) (string, error)
 	}
 
 	lines := strings.Split(out, "\n")
-	lines = lines[0 : len(lines)-2]
+	lines = filterLinesExcluding(lines[0:len(lines)-2], "Name: ")
+
+	out, err = runDevcon("driverfiles", "@"+id, mw, true)
+	if err != nil {
+		return "", err
+	}
+	namelines := strings.Split(out, "\n")
+	namelines = filterLinesIncluding(namelines, "Name: ")
+
+	lines = append(lines, namelines...)
+
 	res := strings.Join(lines, "\n")
 	return res, nil
 }
