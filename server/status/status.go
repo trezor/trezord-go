@@ -23,8 +23,8 @@ const csrfkey = "slk0118h51w2qiw4fhrfyd84f59j81ln"
 
 func ServeStatusRedirect(r *mux.Router) {
 	r.HandleFunc("/", redirect)
-	r.Use(OriginCheck(map[string][]string{
-		"": []string{""},
+	r.Use(OriginCheck(map[string]string{
+		"": "",
 	}))
 }
 
@@ -43,9 +43,9 @@ func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.Me
 	r.Methods("POST").Path("/log.gz").HandlerFunc(status.statusGzip)
 
 	r.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
-	r.Use(OriginCheck(map[string][]string{
-		"/status/":       []string{""},
-		"/status/log.gz": []string{"", "http://127.0.0.1:21325"}, // firefox bug - does not set origin on forms
+	r.Use(OriginCheck(map[string]string{
+		"/status/":       "",
+		"/status/log.gz": "http://127.0.0.1:21325",
 	}))
 }
 
