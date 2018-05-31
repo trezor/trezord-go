@@ -197,9 +197,9 @@ const templateString = `
        <textarea rows="25" cols="150" id="log">
 {{.Log}}
        </textarea>
-       <form action="/status/log.gz" method="post">
+       <form>
          {{.CSRFField}}
-         <button type="submit">download detailed log</button>
+         <a href="#" id="submitlog" onClick="doSubmit()">download detailed log</a>
          <br>
          {{if .IsWindows}}
            <p style="margin-top: 6px">
@@ -217,6 +217,40 @@ const templateString = `
       </div>
     </div>
   </div>
+  <script>
+  function doSubmit() {
+    const href = document.getElementById("submitlog");
+    const origtext = href.text;
+    href.text = "please wait..."
+
+    const formElement = document.getElementsByTagName("form")[0]
+    const data = new URLSearchParams();
+    for (const pair of new FormData(formElement)) {
+      data.append(pair[0], pair[1]);
+    }
+
+    fetch("/status/log.gz", {
+      method: 'post',
+      body: data,
+      credentials: 'same-origin',
+    }).then(function(resp) {
+      return resp.blob();
+    }).then(function(blob) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+
+      document.body.appendChild(a);
+      a.style = "display: none";
+      a.href = url;
+      a.download = "log.gz";
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+
+      href.text = origtext;
+    });
+  }
+  </script>
 </body>
 </html>
 `
