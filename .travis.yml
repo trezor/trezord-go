@@ -7,6 +7,7 @@ matrix:
     - env: TEST=build-local
       script:
         - go build .
+        - go test -v ./...
     - env: TEST=build-xgo-linux
       sudo: true
       script:
