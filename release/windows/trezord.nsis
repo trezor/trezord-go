@@ -93,6 +93,9 @@ Section "TREZOR Bridge"
     File /oname=trezord.exe trezord-32b.exe
     File /oname=devcon.exe devcon-32b.exe
   ${EndIf}
+	${If} ${IsWin7}
+		File "reinstall-drivers.bat"
+	${EndIf}
   File "trezord.ico"
 SectionEnd
 
@@ -100,6 +103,9 @@ Section "Start Menu Shortcuts"
   CreateDirectory "$SMPROGRAMS\TREZOR Bridge"
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
+	${If} ${IsWin7}
+		CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Reinstall USB drivers.lnk" "$INSTDIR\reinstall-drivers.bat" "" "$INSTDIR\trezord.ico" 0
+	${EndIf}
   CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
 SectionEnd
 
