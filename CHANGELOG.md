@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.14] - unreleased
+## [2.0.15] - unreleased
+
+- Libusb debug logs put into detailed logs
+- Reverted libusb to 1.0.21 to fix mysterious libusb windows errors
+- On Windows 7, add USB driver reinstall to start menu
+
+## [2.0.14] - 2018-06-08
 
 - Add more devcon and msinfo output on windows
 - Separate detailed log download as a different URL request
