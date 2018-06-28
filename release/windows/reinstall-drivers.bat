@@ -1,6 +1,7 @@
 ::::::::::::::::::::::::::::::::::::::::::::
 :: Elevate.cmd - Version 4
 :: Automatically check & get admin rights
+:: from https://stackoverflow.com/a/12264592/101152
 ::::::::::::::::::::::::::::::::::::::::::::
  @echo off
  CLS
