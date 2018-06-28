@@ -11,6 +11,11 @@
 package usbhid
 
 /*
+extern void goUsbHidLog(const char *s);
+
+#define ENABLE_LOGGING 1
+#define ENABLE_DEBUG_LOGGING 1
+
 #cgo CFLAGS: -I./c/hidapi -I./c/libusb
 
 #cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int

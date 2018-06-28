@@ -31,11 +31,12 @@ type WebUSB struct {
 func InitWebUSB(mw *memorywriter.MemoryWriter) (*WebUSB, error) {
 	var usb usbhid.Context
 	mw.Println("webusb - init")
+	usbhid.SetLogWriter(mw)
+
 	err := usbhid.Init(&usb)
 	if err != nil {
 		return nil, err
 	}
-	usbhid.Set_Debug(usb, int(usbhid.LOG_LEVEL_NONE))
 
 	mw.Println("webusb - init done")
 
