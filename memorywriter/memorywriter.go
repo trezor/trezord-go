@@ -29,7 +29,7 @@ func (m *MemoryWriter) Println(s string) {
 // Writer remembers lines in memory
 func (m *MemoryWriter) Write(p []byte) (int, error) {
 	if len(p) > maxLineLength {
-		return 0, errors.New("Input too long")
+		return 0, errors.New("input too long")
 	}
 	newline := make([]byte, len(p))
 	copy(newline, p)
