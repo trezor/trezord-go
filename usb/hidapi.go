@@ -154,7 +154,7 @@ func detectPrepend(dev *usbhid.HidDevice) (bool, error) {
 		return false, nil
 	}
 
-	return false, errors.New("Unknown HID version")
+	return false, errors.New("unknown HID version")
 }
 
 func (d *HID) readWrite(buf []byte, read bool) (int, error) {
