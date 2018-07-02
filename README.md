@@ -16,6 +16,8 @@ go build github.com/trezor/trezord-go
 ./trezord-go -h
 ```
 
+On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
+
 ## Guide to compiling packages
 
 Prerequisites:
