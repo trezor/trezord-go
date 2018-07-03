@@ -14,7 +14,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const version = "2.0.15"
+const version = "2.0.16"
 
 type udpPorts []int
 
