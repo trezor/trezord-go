@@ -1433,16 +1433,16 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 
 				if (parent_dev == NULL) {
 					usbi_dbg("unlisted ancestor for '%s' (non USB HID, newly connected, etc.) - ignoring", dev_id_path);
-				  continue;
-        } 
+					continue;
+				}
 
-          parent_priv = _device_priv(parent_dev);
-          // virtual USB devices are also listed during GEN - don't process these yet
-          if ((pass == GEN_PASS) && (parent_priv->apib->id != USB_API_HUB)) {
-            libusb_unref_device(parent_dev);
-            continue;
-          }
-        
+				parent_priv = _device_priv(parent_dev);
+				// virtual USB devices are also listed during GEN - don't process these yet
+				if ((pass == GEN_PASS) && (parent_priv->apib->id != USB_API_HUB)) {
+					libusb_unref_device(parent_dev);
+					continue;
+				}
+
 				break;
 			}
 

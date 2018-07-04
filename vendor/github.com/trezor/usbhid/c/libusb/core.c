@@ -2380,8 +2380,8 @@ void usbi_log_v(struct libusb_context *ctx, enum libusb_log_level level,
 
 	if (global_debug) {
 		header_len = snprintf(buf, sizeof(buf),
-			"[%2d.%06d] [%08x] libusb: %s [%s] ",
-			(int)now.tv_sec, (int)(now.tv_nsec / 1000L), usbi_get_tid(), prefix, function);
+			"[%08x] libusb: %s [%s] ",
+			usbi_get_tid(), prefix, function);
 	} else {
 		header_len = snprintf(buf, sizeof(buf),
 			"libusb: %s [%s] ", prefix, function);

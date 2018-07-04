@@ -41,7 +41,7 @@
   branch = "master"
   name = "github.com/trezor/usbhid"
   packages = ["."]
-  revision = "5b31741cbf8db763c7276bb290a1390bbd17914d"
+  revision = "519ec1000beb862bbe9b16b99d782ab77787ea18"
 
 [[projects]]
   name = "gopkg.in/natefinch/lumberjack.v2"

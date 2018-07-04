@@ -8,6 +8,8 @@ Note that this is necessary only because of macOS; on Linux, hidapi is using lib
 
 The code is mostly copied from https://github.com/karalabe/hid and https://github.com/deadsy/libusb
 
+ALSO NOTE - there is a hardcoded device filter because of random windows errors, in hid.go.
+
 ## License
 
 Code is under GNU LGPL 2.1.
