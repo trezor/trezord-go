@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
+	"time"
 )
 
 // This is a helper package that writes logs to memory,
@@ -19,6 +21,8 @@ type MemoryWriter struct {
 	lines        [][]byte // lines include newlines
 	startCount   int
 	startLines   [][]byte
+	startTime    time.Time
+	printTime    bool
 }
 
 func (m *MemoryWriter) Println(s string) {
@@ -31,8 +35,20 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 	if len(p) > maxLineLength {
 		return 0, errors.New("input too long")
 	}
-	newline := make([]byte, len(p))
-	copy(newline, p)
+
+	var newline []byte
+	if !m.printTime {
+		newline = make([]byte, len(p))
+		copy(newline, p)
+	} else {
+		now := time.Now()
+		elapsed := now.Sub(m.startTime)
+
+		elapsedS := fmt.Sprintf("%.6f", elapsed.Seconds())
+		nowS := now.Format("15:04:05")
+
+		newline = []byte(fmt.Sprintf("[%s : %s] %s", elapsedS, nowS, string(p)))
+	}
 
 	if len(m.startLines) < m.startCount {
 		// do not rotate
@@ -115,11 +131,13 @@ func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func New(size int, startSize int) *MemoryWriter {
+func New(size int, startSize int, printTime bool) *MemoryWriter {
 	return &MemoryWriter{
 		maxLineCount: size,
 		lines:        make([][]byte, 0, size),
 		startCount:   startSize,
 		startLines:   make([][]byte, 0, startSize),
+		startTime:    time.Now(),
+		printTime:    printTime,
 	}
 }

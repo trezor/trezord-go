@@ -61,9 +61,9 @@ func main() {
 
 	stderrLogger := log.New(stderrWriter, "", log.LstdFlags)
 
-	shortMemoryWriter := memorywriter.New(2000, 200)
+	shortMemoryWriter := memorywriter.New(2000, 200, false)
 
-	longMemoryWriter := memorywriter.New(90000, 200)
+	longMemoryWriter := memorywriter.New(90000, 200, true)
 
 	stderrLogger.Print("trezord is starting.")
 
