@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.17] - unreleased
+
+- Add timestamps to detailed log for debugging timing issues
+
+## [2.0.16] - unreleased
+
+- Enable verbose libusb enumerate debugging
+- Skip non-trezor USB devices on windows enumeration
+
 ## [2.0.15] - unreleased
 
 - Libusb debug logs put into detailed logs
