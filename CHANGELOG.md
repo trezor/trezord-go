@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.18] - unreleased
+
+- Add logs for errorneous windows libusb error with multiple devices
+- Ignoring windows claim errors
+
 ## [2.0.17] - unreleased
 
 - Add timestamps to detailed log for debugging timing issues
