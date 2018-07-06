@@ -269,6 +269,7 @@ int HID_API_EXPORT hid_exit(void)
 
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
+	hid_log("enumerate started");
 	BOOL res;
 	struct hid_device_info *root = NULL; /* return object */
 	struct hid_device_info *cur_dev = NULL;
@@ -286,20 +287,24 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		return NULL;
 
 	/* Initialize the Windows objects. */
+	hid_log("initializing windows objects");
 	memset(&devinfo_data, 0x0, sizeof(devinfo_data));
 	devinfo_data.cbSize = sizeof(SP_DEVINFO_DATA);
 	device_interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
 	/* Get information for all the devices belonging to the HID class. */
+	hid_log("getting device info set");
 	device_info_set = SetupDiGetClassDevsA(&InterfaceClassGuid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 	
 	/* Iterate over each device in the HID class, looking for the right one. */
 	
 	for (;;) {
+		hid_log("run another iteration");
 		HANDLE write_handle = INVALID_HANDLE_VALUE;
 		DWORD required_size = 0;
 		HIDD_ATTRIBUTES attrib;
 
+		hid_log("SetupDiEnumDeviceInterfaces");
 		res = SetupDiEnumDeviceInterfaces(device_info_set,
 			NULL,
 			&InterfaceClassGuid,
@@ -309,12 +314,15 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		if (!res) {
 			/* A return of FALSE from this function means that
 			   there are no more devices. */
+			hid_log("no more devices => exit");
 			break;
 		}
+
 
 		/* Call with 0-sized detail size, and let the function
 		   tell us how long the detail struct needs to be. The
 		   size is put in &required_size. */
+		hid_log("SetupDiGetDeviceInterfaceDetailA with 0 size");
 		res = SetupDiGetDeviceInterfaceDetailA(device_info_set,
 			&device_interface_data,
 			NULL,
@@ -323,12 +331,14 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			NULL);
 
 		/* Allocate a long enough structure for device_interface_detail_data. */
+		hid_log("allocating detail data structure");
 		device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A*) malloc(required_size);
 		device_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
 
 		/* Get the detailed data for this device. The detail data gives us
 		   the device path for this device, which is then passed into
 		   CreateFile() to get a handle to the device. */
+		hid_log("SetupDiGetDeviceInterfaceDetailA again");
 		res = SetupDiGetDeviceInterfaceDetailA(device_info_set,
 			&device_interface_data,
 			device_interface_detail_data,
@@ -339,8 +349,16 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		if (!res) {
 			/* register_error(dev, "Unable to call SetupDiGetDeviceInterfaceDetail");
 			   Continue to the next device. */
+			hid_log("Unable to call SetupDiGetDeviceInterfaceDetailA");
 			goto cont;
 		}
+		{
+			char cc[900];
+			snprintf(cc, 900, "Found device %s", device_interface_detail_data->DevicePath);
+			hid_log(cc);
+		}
+
+		hid_log("Making sure the device is HID");
 
 		/* Make sure this device is of Setup Class "HIDClass" and has a
 		   driver bound to it. */
@@ -368,6 +386,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		}
 
 		//wprintf(L"HandleName: %s\n", device_interface_detail_data->DevicePath);
+		hid_log("Open a handle to the device");
 
 		/* Open a handle to the device */
 		write_handle = open_device(device_interface_detail_data->DevicePath, TRUE);
@@ -379,6 +398,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			goto cont_close;
 		}		
 
+		hid_log("Get vendor and product ID");
 
 		/* Get the Vendor ID and Product ID for this device. */
 		attrib.Size = sizeof(HIDD_ATTRIBUTES);
@@ -389,6 +409,8 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		   device to the enumeration list. */
 		if ((vendor_id == 0x0 || attrib.VendorID == vendor_id) &&
 		    (product_id == 0x0 || attrib.ProductID == product_id)) {
+		hid_log("Create the record");
+
 
 			#define WSTR_LEN 512
 			const char *str;
@@ -409,6 +431,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 				root = tmp;
 			}
 			cur_dev = tmp;
+			hid_log("Getting usage data");
 
 			/* Get the Usage Page and Usage for this device. */
 			res = HidD_GetPreparsedData(write_handle, &pp_data);
@@ -434,6 +457,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			else
 				cur_dev->path = NULL;
 
+			hid_log("Getting serial number");
 			/* Serial Number */
 			res = HidD_GetSerialNumberString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
@@ -441,6 +465,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 				cur_dev->serial_number = _wcsdup(wstr);
 			}
 
+			hid_log("Getting manufacturer string");
 			/* Manufacturer String */
 			res = HidD_GetManufacturerString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
@@ -448,6 +473,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 				cur_dev->manufacturer_string = _wcsdup(wstr);
 			}
 
+			hid_log("Getting product string");
 			/* Product String */
 			res = HidD_GetProductString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
@@ -462,6 +488,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			/* Release Number */
 			cur_dev->release_number = attrib.VersionNumber;
 
+			hid_log("Parsing interface numbers");
 			/* Interface Number. It can sometimes be parsed out of the path
 			   on Windows if a device has multiple interfaces. See
 			   http://msdn.microsoft.com/en-us/windows/hardware/gg487473 or
@@ -492,6 +519,7 @@ cont:
 
 	}
 
+	hid_log("Close the device information handle");
 	/* Close the device information handle. */
 	SetupDiDestroyDeviceInfoList(device_info_set);
 

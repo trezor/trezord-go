@@ -27,6 +27,7 @@
 #ifndef HIDAPI_H__
 #define HIDAPI_H__
 
+#include <stdio.h>
 #include <wchar.h>
 
 #ifdef _WIN32
@@ -386,6 +387,13 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+
+static void hid_log(const char * str) {
+	char nstr[1000];
+	snprintf(nstr, 1000, "hidapi: %s\n", str);
+	goLog(nstr);
+}
 
 #endif
 
