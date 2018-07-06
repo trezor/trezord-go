@@ -8,10 +8,10 @@
 
 // +build linux,cgo darwin,!ios,cgo windows,cgo
 
-package usbhid
+package lowlevel
 
 /*
-extern void goUsbHidLog(const char *s);
+extern void goLog(const char *s);
 
 #define ENABLE_LOGGING 1
 #define ENABLE_DEBUG_LOGGING 1

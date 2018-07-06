@@ -29,9 +29,5 @@
   version = "1.6.1"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/trezor/usbhid"
-
-[[constraint]]
   name = "gopkg.in/natefinch/lumberjack.v2"
   version = "2.1.0"

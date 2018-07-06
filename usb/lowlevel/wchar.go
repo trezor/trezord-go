@@ -9,7 +9,7 @@
 // +build !ios
 // +build linux darwin windows
 
-package usbhid
+package lowlevel
 
 /*
 #include <wchar.h>

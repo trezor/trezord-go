@@ -9,7 +9,7 @@ Copyright (c) 2017 Jason T. Harris
 //-----------------------------------------------------------------------------
 
 // Package libusb provides go wrappers for libusb-1.0
-package usbhid
+package lowlevel
 
 /*
 // +build linux,cgo darwin,!ios,cgo windows,cgo

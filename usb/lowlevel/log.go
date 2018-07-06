@@ -1,4 +1,4 @@
-package usbhid
+package lowlevel
 
 import (
 	"io"
@@ -12,8 +12,8 @@ func SetLogWriter(l io.Writer) {
 	writer = l
 }
 
-//export goUsbHidLog
-func goUsbHidLog(s *C.char) {
+//export goLog
+func goLog(s *C.char) {
 	if writer != nil {
 		writer.Write([]byte(C.GoString(s)))
 	}

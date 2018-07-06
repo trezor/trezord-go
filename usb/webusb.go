@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/trezor/usbhid"
+	"github.com/trezor/trezord-go/usb/lowlevel"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
@@ -25,16 +25,16 @@ const (
 )
 
 type WebUSB struct {
-	usb usbhid.Context
+	usb lowlevel.Context
 	mw  *memorywriter.MemoryWriter
 }
 
 func InitWebUSB(mw *memorywriter.MemoryWriter) (*WebUSB, error) {
-	var usb usbhid.Context
+	var usb lowlevel.Context
 	mw.Println("webusb - init")
-	usbhid.SetLogWriter(mw)
+	lowlevel.SetLogWriter(mw)
 
-	err := usbhid.Init(&usb)
+	err := lowlevel.Init(&usb)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +49,12 @@ func InitWebUSB(mw *memorywriter.MemoryWriter) (*WebUSB, error) {
 
 func (b *WebUSB) Close() {
 	b.mw.Println("webusb - all close (should happen only on exit)")
-	usbhid.Exit(b.usb)
+	lowlevel.Exit(b.usb)
 }
 
 func (b *WebUSB) Enumerate() ([]Info, error) {
 	b.mw.Println("webusb - enum - low level enumerating")
-	list, err := usbhid.Get_Device_List(b.usb)
+	list, err := lowlevel.Get_Device_List(b.usb)
 
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 
 	defer func() {
 		b.mw.Println("webusb - enum - freeing device list")
-		usbhid.Free_Device_List(list, 1) // unlink devices
+		lowlevel.Free_Device_List(list, 1) // unlink devices
 		b.mw.Println("webusb - enum - freeing device list done")
 	}()
 
@@ -79,7 +79,7 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 	for _, dev := range list {
 		if b.match(dev) {
 			b.mw.Println("webusb - enum - getting device descriptor")
-			dd, err := usbhid.Get_Device_Descriptor(dev)
+			dd, err := lowlevel.Get_Device_Descriptor(dev)
 			if err != nil {
 				b.mw.Println("webusb - enum - error getting device descriptor " + err.Error())
 				continue
@@ -105,7 +105,7 @@ func (b *WebUSB) Has(path string) bool {
 
 func (b *WebUSB) Connect(path string) (Device, error) {
 	b.mw.Println("webusb - connect - low level enumerating")
-	list, err := usbhid.Get_Device_List(b.usb)
+	list, err := lowlevel.Get_Device_List(b.usb)
 
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 
 	defer func() {
 		b.mw.Println("webusb - connect - freeing device list")
-		usbhid.Free_Device_List(list, 1) // unlink devices
+		lowlevel.Free_Device_List(list, 1) // unlink devices
 		b.mw.Println("webusb - connect - freeing device list done")
 	}()
 
@@ -123,7 +123,7 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 	// This is already fixed in libusb 2.0.12;
 	// however, 2.0.12 has other problems with windows, so we
 	// patchfix it here
-	mydevs := make([]usbhid.Device, 0)
+	mydevs := make([]lowlevel.Device, 0)
 	for _, dev := range list {
 		if b.match(dev) && b.identify(dev) == path {
 			mydevs = append(mydevs, dev)
@@ -151,22 +151,22 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 	return nil, err
 }
 
-func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
+func (b *WebUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	b.mw.Println("webusb - connect - low level")
-	d, err := usbhid.Open(dev)
+	d, err := lowlevel.Open(dev)
 	if err != nil {
 		return nil, err
 	}
 	b.mw.Println("webusb - connect - reset")
-	err = usbhid.Reset_Device(d)
+	err = lowlevel.Reset_Device(d)
 	if err != nil {
 		// don't abort if reset fails
-		// usbhid.Close(d)
+		// lowlevel.Close(d)
 		// return nil, err
 		b.mw.Println(fmt.Sprintf("Warning: error at device reset: %s", err))
 	}
 
-	currConf, err := usbhid.Get_Configuration(d)
+	currConf, err := lowlevel.Get_Configuration(d)
 	if err != nil {
 		b.mw.Println(fmt.Sprintf("webusb - connect - current configuration err %s", err.Error()))
 	} else {
@@ -174,15 +174,15 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	}
 
 	b.mw.Println("webusb - connect - set_configuration")
-	err = usbhid.Set_Configuration(d, webConfigNum)
+	err = lowlevel.Set_Configuration(d, webConfigNum)
 	if err != nil {
 		// don't abort if set configuration fails
-		// usbhid.Close(d)
+		// lowlevel.Close(d)
 		// return nil, err
 		b.mw.Println(fmt.Sprintf("Warning: error at configuration set: %s", err))
 	}
 
-	currConf, err = usbhid.Get_Configuration(d)
+	currConf, err = lowlevel.Get_Configuration(d)
 	if err != nil {
 		b.mw.Println(fmt.Sprintf("webusb - connect - current configuration err %s", err.Error()))
 	} else {
@@ -190,11 +190,11 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	}
 
 	b.mw.Println("webusb - connect - claiming interface")
-	err = usbhid.Claim_Interface(d, webIfaceNum)
+	err = lowlevel.Claim_Interface(d, webIfaceNum)
 	if err != nil {
 		if runtime.GOOS != "windows" {
 			b.mw.Println("webusb - connect - claiming interface failed")
-			usbhid.Close(d)
+			lowlevel.Close(d)
 			return nil, err
 		}
 		b.mw.Println(fmt.Sprintf("Warning: error at claim interface: %s", err))
@@ -210,8 +210,8 @@ func (b *WebUSB) connect(dev usbhid.Device) (*WUD, error) {
 	}, nil
 }
 
-func (b *WebUSB) match(dev usbhid.Device) bool {
-	dd, err := usbhid.Get_Device_Descriptor(dev)
+func (b *WebUSB) match(dev lowlevel.Device) bool {
+	dd, err := lowlevel.Get_Device_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("webusb - match - error getting descriptor -" + err.Error())
 		return false
@@ -223,14 +223,14 @@ func (b *WebUSB) match(dev usbhid.Device) bool {
 		return false
 	}
 
-	c, err := usbhid.Get_Active_Config_Descriptor(dev)
+	c, err := lowlevel.Get_Active_Config_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("webusb - match - error getting config descriptor " + err.Error())
 		return false
 	}
 	return (c.BNumInterfaces > webIfaceNum &&
 		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == usbhid.CLASS_VENDOR_SPEC)
+		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
@@ -239,9 +239,9 @@ func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
 	return trezor1 || trezor2
 }
 
-func (b *WebUSB) identify(dev usbhid.Device) string {
+func (b *WebUSB) identify(dev lowlevel.Device) string {
 	var ports [8]byte
-	p, err := usbhid.Get_Port_Numbers(dev, ports[:])
+	p, err := lowlevel.Get_Port_Numbers(dev, ports[:])
 	if err != nil {
 		b.mw.Println(fmt.Sprintf("webusb - identify - error getting port numbers %s", err.Error()))
 		return ""
@@ -250,7 +250,7 @@ func (b *WebUSB) identify(dev usbhid.Device) string {
 }
 
 type WUD struct {
-	dev usbhid.Device_Handle
+	dev lowlevel.Device_Handle
 
 	closed        int32 // atomic
 	transferMutex sync.Mutex
@@ -270,7 +270,7 @@ func (d *WUD) Close() error {
 	d.mw.Println("webusb - close - wait for transferMutex lock")
 	d.transferMutex.Lock()
 	d.mw.Println("webusb - close - low level close")
-	usbhid.Close(d.dev)
+	lowlevel.Close(d.dev)
 	d.transferMutex.Unlock()
 
 	d.mw.Println("webusb - close - done")
@@ -286,7 +286,7 @@ func (d *WUD) finishReadQueue() {
 
 	for err == nil {
 		d.mw.Println("webusb - close - rq - transfer")
-		_, err = usbhid.Interrupt_Transfer(d.dev, webEpIn, buf[:], 50)
+		_, err = lowlevel.Interrupt_Transfer(d.dev, webEpIn, buf[:], 50)
 	}
 	d.transferMutex.Unlock()
 	d.mw.Println("webusb - close - rq - done")
@@ -305,7 +305,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		d.mw.Println("webusb - rw - lock transfer mutex")
 		d.transferMutex.Lock()
 		d.mw.Println("webusb - rw - actual interrupt transport")
-		p, err := usbhid.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
+		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
 		d.transferMutex.Unlock()
 		d.mw.Println("webusb - rw - single transfer done")
 
@@ -320,13 +320,13 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 
 		if err != nil {
 			d.mw.Println(fmt.Sprintf("webusb - rw - error seen - %s", err.Error()))
-			if err.Error() == usbhid.Error_Name(int(usbhid.ERROR_IO)) ||
-				err.Error() == usbhid.Error_Name(int(usbhid.ERROR_NO_DEVICE)) {
+			if err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_IO)) ||
+				err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_NO_DEVICE)) {
 				d.mw.Println("webusb - rw - device probably disconnected")
 				return 0, errDisconnect
 			}
 
-			if err.Error() != usbhid.Error_Name(int(usbhid.ERROR_TIMEOUT)) {
+			if err.Error() != lowlevel.Error_Name(int(lowlevel.ERROR_TIMEOUT)) {
 				d.mw.Println("webusb - rw - other error")
 				return 0, err
 			}

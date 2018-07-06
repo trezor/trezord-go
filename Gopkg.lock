@@ -38,12 +38,6 @@
   version = "v0.8.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/trezor/usbhid"
-  packages = ["."]
-  revision = "519ec1000beb862bbe9b16b99d782ab77787ea18"
-
-[[projects]]
   name = "gopkg.in/natefinch/lumberjack.v2"
   packages = ["."]
   revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
@@ -52,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ad5f38acb81d7d1ffb1510ae0bdb35a08207b8d4e01ff0d087b65e505edf82df"
+  inputs-digest = "f9633ff13fabd1ce67e0747c24b3abd0dfdc10ff32be6ee4a0b58522caa08d7a"
   solver-name = "gps-cdcl"
   solver-version = 1

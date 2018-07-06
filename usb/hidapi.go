@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/trezor/usbhid"
+	"github.com/trezor/trezord-go/usb/lowlevel"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
@@ -36,7 +36,7 @@ func (b *HIDAPI) Enumerate() ([]Info, error) {
 	var infos []Info
 
 	b.mw.Println("hidapi - enumerate - low level")
-	devs := usbhid.HidEnumerate(0, 0)
+	devs := lowlevel.HidEnumerate(0, 0)
 
 	b.mw.Println("hidapi - enumerate - low level done")
 
@@ -58,7 +58,7 @@ func (b *HIDAPI) Has(path string) bool {
 
 func (b *HIDAPI) Connect(path string) (Device, error) {
 	b.mw.Println("hidapi - connect - enumerate to find")
-	devs := usbhid.HidEnumerate(0, 0)
+	devs := lowlevel.HidEnumerate(0, 0)
 	b.mw.Println("hidapi - connect - enumerate done")
 
 	for _, dev := range devs { // enumerate all devices
@@ -84,7 +84,7 @@ func (b *HIDAPI) Connect(path string) (Device, error) {
 	return nil, ErrNotFound
 }
 
-func (b *HIDAPI) match(d *usbhid.HidDeviceInfo) bool {
+func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	vid := d.VendorID
 	pid := d.ProductID
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
@@ -92,14 +92,14 @@ func (b *HIDAPI) match(d *usbhid.HidDeviceInfo) bool {
 	return (trezor1 || trezor2) && (d.Interface == hidIfaceNum || d.UsagePage == hidUsagePage)
 }
 
-func (b *HIDAPI) identify(dev *usbhid.HidDeviceInfo) string {
+func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {
 	path := []byte(dev.Path)
 	digest := sha256.Sum256(path)
 	return hidapiPrefix + hex.EncodeToString(digest[:])
 }
 
 type HID struct {
-	dev     *usbhid.HidDevice
+	dev     *lowlevel.HidDevice
 	prepend bool // on windows, see detectPrepend
 
 	closed        int32 // atomic
@@ -133,7 +133,7 @@ var unknownErrorMessage = "hidapi: unknown failure"
 // or a newer one that is on id 0.
 // The older one does not need prepending, the newer one does
 // This makes difference only on windows
-func detectPrepend(dev *usbhid.HidDevice) (bool, error) {
+func detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 	buf := []byte{63}
 	for i := 0; i < 63; i++ {
 		buf = append(buf, 0xff)

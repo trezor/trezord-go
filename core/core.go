@@ -20,8 +20,8 @@ import (
 // and dealing with sessions, mutexes, ...
 //
 // USB package is not imported for efficiency
-// reasons - USB package uses imports trezor/usbhid and
-// usbhid uses cgo, so it takes about 25 seconds to build;
+// reasons - USB package uses imports /usb/lowlevel and
+// /usb/lowlevel uses cgo, so it takes about 25 seconds to build;
 // so building just this package  on its own
 // takes less seconds when we dont import USB
 // package and use abstract interfaces instead
