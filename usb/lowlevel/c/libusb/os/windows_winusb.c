@@ -1341,7 +1341,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				continue;
 			}
 
-			if (strstr(dev_id_path, "HUB") == NULL && strstr(dev_id_path, HARDCODED_DEVICE_FILTER) == NULL && pass != HCD_PASS && pass != HUB_PASS) {
+			if (strstr(dev_id_path, "HUB") == NULL && strstr(dev_id_path, HARDCODED_LIBUSB_DEVICE_FILTER) == NULL && pass != HCD_PASS && pass != HUB_PASS) {
 				usbi_warn(ctx, "Device '%s' not satisfying filter, skipping (pass %d)", dev_id_path, pass);
 				continue;
 			}

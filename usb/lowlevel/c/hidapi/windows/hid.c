@@ -358,6 +358,11 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			hid_log(cc);
 		}
 
+		if (strstr(device_interface_detail_data->DevicePath, HARDCODED_HIDAPI_DEVICE_FILTER) == NULL) {
+			hid_log("Device does not satisfy filter, skipping");
+			goto cont;
+		}
+
 		hid_log("Making sure the device is HID");
 
 		/* Make sure this device is of Setup Class "HIDClass" and has a
