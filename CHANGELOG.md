@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.19] - unreleased
+
+- Add hidapi enumeration verbose logs on windows
+- Move trezor/usbhid dependency to /usb/lowlevel
+
 ## [2.0.18] - unreleased
 
 - Add logs for errorneous windows libusb error with multiple devices
