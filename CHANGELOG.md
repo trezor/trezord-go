@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Add hidapi enumeration verbose logs on windows
 - Move trezor/usbhid dependency to /usb/lowlevel
+- Skip non-trezor USB devices on windows HID enumeration
 
 ## [2.0.18] - unreleased
 
