@@ -3,7 +3,6 @@ package usb
 import (
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -130,23 +129,13 @@ func (b *WebUSB) Connect(path string) (Device, error) {
 		}
 	}
 
-	if len(mydevs) > 1 {
-		b.mw.Println("webusb - connect - " + string(len(mydevs)) + " multiples")
-	}
-
 	err = ErrNotFound
-	for i, dev := range mydevs {
-		if len(mydevs) > 1 {
-			b.mw.Println("webusb - connect - try multiple " + string(i))
-		}
+	for _, dev := range mydevs {
 		res, errConn := b.connect(dev)
 		if errConn == nil {
 			return res, nil
 		}
 		err = errConn
-		if len(mydevs) > 1 {
-			b.mw.Println("webusb - connect - multiple failed " + err.Error())
-		}
 	}
 	return nil, err
 }
@@ -192,12 +181,9 @@ func (b *WebUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	b.mw.Println("webusb - connect - claiming interface")
 	err = lowlevel.Claim_Interface(d, webIfaceNum)
 	if err != nil {
-		if runtime.GOOS != "windows" {
-			b.mw.Println("webusb - connect - claiming interface failed")
-			lowlevel.Close(d)
-			return nil, err
-		}
-		b.mw.Println(fmt.Sprintf("Warning: error at claim interface: %s", err))
+		b.mw.Println("webusb - connect - claiming interface failed")
+		lowlevel.Close(d)
+		return nil, err
 	}
 
 	b.mw.Println("webusb - connect - claiming interface done")
