@@ -32,8 +32,8 @@ func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
 	}, nil
 }
 
-func (b *HIDAPI) Enumerate() ([]Info, error) {
-	var infos []Info
+func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
+	var infos []core.USBInfo
 
 	b.mw.Println("hidapi - enumerate - low level")
 	devs := lowlevel.HidEnumerate(0, 0)
@@ -42,7 +42,7 @@ func (b *HIDAPI) Enumerate() ([]Info, error) {
 
 	for _, dev := range devs { // enumerate all devices
 		if b.match(&dev) {
-			infos = append(infos, Info{
+			infos = append(infos, core.USBInfo{
 				Path:      b.identify(&dev),
 				VendorID:  int(dev.VendorID),
 				ProductID: int(dev.ProductID),
@@ -56,7 +56,7 @@ func (b *HIDAPI) Has(path string) bool {
 	return strings.HasPrefix(path, hidapiPrefix)
 }
 
-func (b *HIDAPI) Connect(path string) (Device, error) {
+func (b *HIDAPI) Connect(path string) (core.USBDevice, error) {
 	b.mw.Println("hidapi - connect - enumerate to find")
 	devs := lowlevel.HidEnumerate(0, 0)
 	b.mw.Println("hidapi - connect - enumerate done")

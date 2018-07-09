@@ -11,15 +11,11 @@ var (
 	ErrNotFound = fmt.Errorf("device not found")
 )
 
-type Info = core.USBInfo
-type Device = core.USBDevice
-type Bus = core.USBBus
-
 type USB struct {
-	buses []Bus
+	buses []core.USBBus
 }
 
-func Init(buses ...Bus) *USB {
+func Init(buses ...core.USBBus) *USB {
 	return &USB{
 		buses: buses,
 	}
@@ -34,8 +30,8 @@ func (b *USB) Has(path string) bool {
 	return false
 }
 
-func (b *USB) Enumerate() ([]Info, error) {
-	var infos []Info
+func (b *USB) Enumerate() ([]core.USBInfo, error) {
+	var infos []core.USBInfo
 
 	for _, b := range b.buses {
 		l, err := b.Enumerate()
@@ -47,7 +43,7 @@ func (b *USB) Enumerate() ([]Info, error) {
 	return infos, nil
 }
 
-func (b *USB) Connect(path string) (Device, error) {
+func (b *USB) Connect(path string) (core.USBDevice, error) {
 	for _, b := range b.buses {
 		if b.Has(path) {
 			return b.Connect(path)
