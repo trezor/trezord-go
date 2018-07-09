@@ -10,6 +10,8 @@ status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustw
 
 ## Install and run from source
 
+trezord-go requires go >= 1.8
+
 ```
 go get github.com/trezor/trezord-go
 go build github.com/trezor/trezord-go
