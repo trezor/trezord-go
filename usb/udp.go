@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/trezor/trezord-go/core"
 )
 
 var emulatorPing = []byte("PINGPING")
@@ -87,8 +89,8 @@ func checkPort(ping chan []byte, w io.Writer) (bool, error) {
 	}
 }
 
-func (u *UDP) Enumerate() ([]Info, error) {
-	var infos []Info
+func (u *UDP) Enumerate() ([]core.USBInfo, error) {
+	var infos []core.USBInfo
 
 	for _, port := range u.ports {
 		ping := u.pings[port]
@@ -98,7 +100,7 @@ func (u *UDP) Enumerate() ([]Info, error) {
 			return nil, err
 		}
 		if present {
-			infos = append(infos, Info{
+			infos = append(infos, core.USBInfo{
 				Path:      emulatorPrefix + strconv.Itoa(port),
 				VendorID:  0,
 				ProductID: 0,
@@ -112,7 +114,7 @@ func (u *UDP) Has(path string) bool {
 	return strings.HasPrefix(path, emulatorPrefix)
 }
 
-func (u *UDP) Connect(path string) (Device, error) {
+func (u *UDP) Connect(path string) (core.USBDevice, error) {
 	i, err := strconv.Atoi(strings.TrimPrefix(path, emulatorPrefix))
 	if err != nil {
 		return nil, err

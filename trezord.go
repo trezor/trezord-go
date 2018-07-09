@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
 	"github.com/trezor/trezord-go/server"
 	"github.com/trezor/trezord-go/usb"
@@ -67,7 +68,7 @@ func main() {
 
 	stderrLogger.Print("trezord is starting.")
 
-	var bus []usb.Bus
+	var bus []core.USBBus
 	if withusb {
 		longMemoryWriter.Println("Initing webusb")
 

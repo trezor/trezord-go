@@ -51,7 +51,7 @@ func (b *WebUSB) Close() {
 	lowlevel.Exit(b.usb)
 }
 
-func (b *WebUSB) Enumerate() ([]Info, error) {
+func (b *WebUSB) Enumerate() ([]core.USBInfo, error) {
 	b.mw.Println("webusb - enum - low level enumerating")
 	list, err := lowlevel.Get_Device_List(b.usb)
 
@@ -66,7 +66,7 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 		b.mw.Println("webusb - enum - freeing device list done")
 	}()
 
-	var infos []Info
+	var infos []core.USBInfo
 
 	// There is a bug in libusb that makes
 	// device appear twice with the same path.
@@ -86,7 +86,7 @@ func (b *WebUSB) Enumerate() ([]Info, error) {
 			path := b.identify(dev)
 			inset := paths[path]
 			if !inset {
-				infos = append(infos, Info{
+				infos = append(infos, core.USBInfo{
 					Path:      path,
 					VendorID:  int(dd.IdVendor),
 					ProductID: int(dd.IdProduct),
@@ -102,7 +102,7 @@ func (b *WebUSB) Has(path string) bool {
 	return strings.HasPrefix(path, webusbPrefix)
 }
 
-func (b *WebUSB) Connect(path string) (Device, error) {
+func (b *WebUSB) Connect(path string) (core.USBDevice, error) {
 	b.mw.Println("webusb - connect - low level enumerating")
 	list, err := lowlevel.Get_Device_List(b.usb)
 
