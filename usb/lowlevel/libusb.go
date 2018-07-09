@@ -1,3 +1,5 @@
+// +build linux,cgo darwin,!ios,cgo windows,cgo
+
 //-----------------------------------------------------------------------------
 /*
 
@@ -12,8 +14,6 @@ Copyright (c) 2017 Jason T. Harris
 package lowlevel
 
 /*
-// +build linux,cgo darwin,!ios,cgo windows,cgo
-
 #include "./c/libusb/libusb.h"
 
 // When a C struct ends with a zero-sized field, but the struct itself is not zero-sized,
