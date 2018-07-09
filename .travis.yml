@@ -29,6 +29,9 @@ matrix:
         - go get github.com/karalabe/xgo
         - cd release/macos
         - make all
+    - env: TEST=go-vet
+      script:
+        - go vet ./...
     - env: TEST=go-fmt
       script:
         - gofmt -d *.go ./server ./server/status ./server/api ./usb ./wire ./core ./memorywriter 
