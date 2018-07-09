@@ -58,6 +58,18 @@ type EnumerateEntry struct {
 	Session *string `json:"session"`
 }
 
+type EnumerateEntries []EnumerateEntry
+
+func (entries EnumerateEntries) Len() int {
+	return len(entries)
+}
+func (entries EnumerateEntries) Less(i, j int) bool {
+	return entries[i].Path < entries[j].Path
+}
+func (entries EnumerateEntries) Swap(i, j int) {
+	entries[i], entries[j] = entries[j], entries[i]
+}
+
 type Core struct {
 	bus USBBus
 
@@ -132,8 +144,8 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	return entries, nil
 }
 
-func (c *Core) createEnumerateEntries(infos []USBInfo) []EnumerateEntry {
-	entries := make([]EnumerateEntry, 0, len(infos))
+func (c *Core) createEnumerateEntries(infos []USBInfo) EnumerateEntries {
+	entries := make(EnumerateEntries, 0, len(infos))
 	for _, info := range infos {
 		e := EnumerateEntry{
 			Path:    info.Path,
@@ -150,14 +162,12 @@ func (c *Core) createEnumerateEntries(infos []USBInfo) []EnumerateEntry {
 		}
 		entries = append(entries, e)
 	}
-	sortEntries(entries)
+	entries.Sort()
 	return entries
 }
 
-func sortEntries(entries []EnumerateEntry) {
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Path < entries[j].Path
-	})
+func (entries EnumerateEntries) Sort() {
+	sort.Sort(entries)
 }
 
 func (c *Core) releaseDisconnected(infos []USBInfo) {
@@ -202,7 +212,7 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]Enum
 		iterDelay = 500 // ms
 	)
 
-	sortEntries(entries)
+	EnumerateEntries(entries).Sort()
 
 	for i := 0; i < iterMax; i++ {
 		c.Log("listen before enumerating")

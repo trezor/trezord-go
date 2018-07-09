@@ -14,8 +14,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type serverPrivate struct {
+	*http.Server
+}
+
 type Server struct {
-	https *http.Server
+	serverPrivate
 
 	writer io.Writer
 }
@@ -38,8 +42,10 @@ func New(
 
 	allWriter := io.MultiWriter(stderrWriter, shortWriter, longWriter)
 	s := &Server{
-		https:  https,
-		writer: allWriter,
+		serverPrivate: serverPrivate{
+			Server: https,
+		},
+		writer:     allWriter,
 	}
 
 	r := mux.NewRouter()
@@ -77,9 +83,5 @@ func (s *Server) logRequest(handler http.Handler) http.Handler {
 }
 
 func (s *Server) Run() error {
-	return s.https.ListenAndServe()
-}
-
-func (s *Server) Close() error {
-	return s.https.Close()
+	return s.ListenAndServe()
 }
