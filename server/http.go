@@ -45,7 +45,7 @@ func New(
 		serverPrivate: serverPrivate{
 			Server: https,
 		},
-		writer:     allWriter,
+		writer: allWriter,
 	}
 
 	r := mux.NewRouter()
