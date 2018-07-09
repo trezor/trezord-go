@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"io"
+)
+
+const (
+	ioSeekCurrent = 1 // We define this constant (instead of using directly io.SeekCurrent) to be compatible with go1.6
 )
 
 var (
@@ -43,7 +46,7 @@ func Validate(buf []byte) error {
 			if val > maxFieldSize || int64(val) < 0 {
 				return ErrMalformedProtobuf
 			}
-			_, err = r.Seek(int64(val), io.SeekCurrent)
+			_, err = r.Seek(int64(val), ioSeekCurrent)
 			if err != nil {
 				return err
 			}
