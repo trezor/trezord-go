@@ -30,7 +30,7 @@ matrix:
         - go build .
         - go test -v ./...
     - env: TEST=build-local
-      go: 1.10
+      go: "1.10"
       script:
         - go build .
         - go test -v ./...
