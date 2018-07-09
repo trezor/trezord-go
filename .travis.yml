@@ -8,6 +8,11 @@ matrix:
       script:
         - go build .
         - go test -v ./...
+    - env: TEST=build-local-1.8
+      go: 1.8
+      script:
+        - go build .
+        - go test -v ./...
     - env: TEST=build-xgo-linux
       sudo: true
       script:
