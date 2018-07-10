@@ -109,7 +109,8 @@ func main() {
 	}
 
 	longMemoryWriter.Println("Running HTTP server")
-	err = s.Run()
+	err = s.ListenAndServe()
+	defer s.Close()
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
 	}
