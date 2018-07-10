@@ -5,6 +5,11 @@ language: go
 matrix:
   include:
     - env: TEST=build-local
+      go: 1.5
+      script:
+        - go build .
+        - go test -v ./...
+    - env: TEST=build-local
       go: 1.6
       script:
         - go build .
