@@ -81,3 +81,7 @@ func (s *Server) logRequest(handler http.Handler) http.Handler {
 		handler.ServeHTTP(w, r)
 	})
 }
+
+func (s *Server) Run() error {
+	return s.ListenAndServe()
+}
