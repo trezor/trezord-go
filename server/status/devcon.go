@@ -330,3 +330,20 @@ func devconUsbStringsVid(vid int, with_disconnected bool, mw *memorywriter.Memor
 func isWindows() bool {
 	return true
 }
+
+func libwdiReinstallLog() (string, error) {
+	appdata := os.Getenv("AppData")
+	folder := appdata + "\\TREZOR Bridge"
+	file := folder + "\\wdi-log.txt"
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	contentStr := strings.Replace(string(content), "\r\n", "\n", -1)
+	all := "libwdi reinstall log:\n" + contentStr + "\n"
+	return all, nil
+}

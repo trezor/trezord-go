@@ -111,7 +111,14 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + devconLog
+	libwdi, err := libwdiReinstallLog()
+	if err != nil {
+		s.Log("lbwdi err " + err.Error())
+		respondError(w, err)
+		return
+	}
+
+	start := s.version + "\n" + devconLog + "\n" + libwdi
 
 	log, err := s.shortMemoryWriter.String(start)
 	if err != nil {

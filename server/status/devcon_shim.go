@@ -24,3 +24,7 @@ func runMsinfo() (string, error) {
 func isWindows() bool {
 	return false
 }
+
+func libwdiReinstallLog() (string, error) {
+	return "", nil
+}
