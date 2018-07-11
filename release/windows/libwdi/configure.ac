@@ -290,14 +290,6 @@ AC_ARG_ENABLE([toggable-debug], [AS_HELP_STRING([--enable-toggable-debug],
 	[toggable_debug=$enableval],
 	[toggable_debug='no'])
 
-if test "x$debug_log_enabled" != "xno"; then
-	AC_DEFINE([ENABLE_DEBUG_LOGGING], [1], [Debug message logging (forced)])
-else
-	if test "x$toggable_debug" != "xno"; then
-		AC_DEFINE([INCLUDE_DEBUG_LOGGING], [1], [Debug message logging (toggable)])
-	fi
-fi
-
 # --enable-debug : check whether they want to have debug symbols:
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [include debug symbols for gdb (default y)]),
 	[debug_enabled=$enableval],

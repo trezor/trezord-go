@@ -20,12 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef _MSC_VER
-#include "getopt/getopt.h"
-#else
 #include <getopt.h>
-#endif
 #include "libwdi.h"
+#include "logging.h"
 
 #if defined(_PREFAST_)
 /* Disable "Banned API Usage:" errors when using WDK's OACR/Prefast */
@@ -33,8 +30,6 @@
 /* Disable "Consider using 'GetTickCount64' instead of 'GetTickCount'" when using WDK's OACR/Prefast */
 #pragma warning(disable:28159)
 #endif
-
-#define oprintf(...) do {if (!opt_silent) printf(__VA_ARGS__);} while(0)
 
 /*
  * Change these values according to your device if
@@ -98,7 +93,6 @@ int __cdecl main(int argc, char** argv)
 	static struct wdi_options_prepare_driver opd = { 0 };
 	static struct wdi_options_install_driver oid = { 0 };
 	static struct wdi_options_install_cert oic = { 0 };
-	static int opt_silent = 0, opt_extract = 0, log_level = WDI_LOG_LEVEL_WARNING;
 	static BOOL matching_device_found;
 	int c, r;
 	char *inf_name = INF_NAME;
@@ -182,19 +176,9 @@ int __cdecl main(int argc, char** argv)
 			usage();
 			exit(0);
 			break;
-		case 'x':
-			opt_extract = 1;
-			break;
-		case 's':
-			opt_silent = 1;
-			log_level = WDI_LOG_LEVEL_NONE;
-			break;
 		case 'b':
 			oid.hWnd = (optarg)?(HWND)(uintptr_t)strtol(optarg, NULL, 0):GetConsoleHwnd();
 			oic.hWnd = oid.hWnd;
-			break;
-		case 'l':
-			log_level = (int)strtol(optarg, NULL, 0);
 			break;
 		default:
 			usage();
@@ -202,44 +186,47 @@ int __cdecl main(int argc, char** argv)
 		}
 	}
 
-	wdi_set_log_level(log_level);
-
-	oprintf("Extracting driver files...\n");
+	wdi_dbg("Extracting driver files...");
 	r = wdi_prepare_driver(&dev, ext_dir, inf_name, &opd);
-	oprintf("  %s\n", wdi_strerror(r));
-	if ((r != WDI_SUCCESS) || (opt_extract))
+	wdi_dbg("  %s", wdi_strerror(r));
+	if ((r != WDI_SUCCESS))
 		return r;
 
 	if (cert_name != NULL) {
-		oprintf("Installing certificate '%s' as a Trusted Publisher...\n", cert_name);
+		wdi_dbg("Installing certificate '%s' as a Trusted Publisher...", cert_name);
 		r = wdi_install_trusted_certificate(cert_name, &oic);
-		oprintf("  %s\n", wdi_strerror(r));
+		wdi_dbg("  %s\n", wdi_strerror(r));
 	}
 
-	oprintf("Installing driver(s)...\n");
+	wdi_dbg("Installing driver(s)...");
 
 	// Try to match against a plugged device to avoid device manager prompts
 	matching_device_found = FALSE;
 	if (wdi_create_list(&ldev, &ocl) == WDI_SUCCESS) {
+		wdi_dbg("Going through devices.");
 		r = WDI_SUCCESS;
+		int i = 0;
 		for (; (ldev != NULL) && (r == WDI_SUCCESS); ldev = ldev->next) {
+			i++;
+			wdi_dbg("See a device! %d - vid %x, pid %x", i, ldev->vid, ldev->pid);
 			if ( (ldev->vid == dev.vid) && (ldev->pid == dev.pid) && (ldev->mi == dev.mi) &&(ldev->is_composite == dev.is_composite) ) {
+				wdi_dbg("Device matching, let's install.");
 				
 				dev.hardware_id = ldev->hardware_id;
 				dev.device_id = ldev->device_id;
 				matching_device_found = TRUE;
-				oprintf("  %s: ", dev.hardware_id);
-				fflush(stdout);
+				wdi_dbg("  %s: ", dev.hardware_id);
 				r = wdi_install_driver(&dev, ext_dir, inf_name, &oid);
-				oprintf("%s\n", wdi_strerror(r));
+				wdi_dbg("%s", wdi_strerror(r));
 			}
 		}
 	}
 
 	// No plugged USB device matches this one -> install driver
 	if (!matching_device_found) {
+		wdi_dbg("Did not match a device, installing driver for all");
 		r = wdi_install_driver(&dev, ext_dir, inf_name, &oid);
-		oprintf("  %s\n", wdi_strerror(r));
+		wdi_dbg("  %s", wdi_strerror(r));
 	}
 
 	return r;

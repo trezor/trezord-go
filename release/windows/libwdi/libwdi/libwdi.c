@@ -676,6 +676,8 @@ static void free_di(struct wdi_device_info *di)
 int LIBWDI_API wdi_create_list(struct wdi_device_info** list,
 							   struct wdi_options_create_list* options)
 {
+
+	wdi_dbg("start");
 	PF_DECL_LIBRARY(Cfgmgr32);
 	PF_TYPE_DECL(WINAPI, CONFIGRET, CM_Get_Device_IDA, (DEVINST, PCHAR, ULONG, ULONG));
 
@@ -714,26 +716,32 @@ int LIBWDI_API wdi_create_list(struct wdi_device_info** list,
 	r = WDI_ERROR_RESOURCE;
 	PF_INIT_OR_OUT(CM_Get_Device_IDA, Cfgmgr32);
 
+	wdi_dbg("SetupDiGetClassDevsA");
 	// List all connected USB devices
 	dev_info = SetupDiGetClassDevsA(NULL, "USB", NULL, DIGCF_PRESENT|DIGCF_ALLCLASSES);
 	if (dev_info == INVALID_HANDLE_VALUE) {
+		wdi_dbg("SetupDiEnumDeviceInfo INVALID_HANDLE_VALUE");
 		r = WDI_ERROR_NO_DEVICE;
 		goto out;
 	}
 
+	wdi_dbg("finding driverless devices");
 	// Find the ones that are driverless
 	for (i = 0; ; i++) {
 		// Free any invalid previously allocated struct
 		free_di(device_info);
+		wdi_dbg("driverless device %d", i);
 
 		dev_info_data.cbSize = sizeof(dev_info_data);
 		if (!SetupDiEnumDeviceInfo(dev_info, i, &dev_info_data)) {
+			wdi_dbg("cannot get info, break");
 			break;
 		}
 
 		// Allocate a driver_info struct to store our data
 		device_info = (struct wdi_device_info*)calloc(1, sizeof(struct wdi_device_info));
 		if (device_info == NULL) {
+			wdi_dbg("got null, last one");
 			wdi_destroy_list(start);
 			SetupDiDestroyDeviceInfoList(dev_info);
 			r = WDI_ERROR_RESOURCE;
@@ -748,14 +756,19 @@ int LIBWDI_API wdi_create_list(struct wdi_device_info** list,
 			if ((options == NULL) || (!options->list_all)) {
 				continue;
 			}
+			wdi_dbg("asking for driver version");
 			// While we have the driver key, pick up the driver version
 			key = SetupDiOpenDevRegKey(dev_info, &dev_info_data, DICS_FLAG_GLOBAL, 0, DIREG_DRV, KEY_READ);
 			size = sizeof(drv_version);
 			if (key != INVALID_HANDLE_VALUE) {
 				RegQueryValueExA(key, "DriverVersion", NULL, &reg_type, (BYTE*)drv_version, &size);
 			}
+		} else {
+			int32_t err = GetLastError();
+			wdi_dbg("error asking for SRDP_DRIVER number %d", err);
 		}
 
+		wdi_dbg("eliminating USB hubs...");
 		// Eliminate USB hubs by checking the driver string
 		strbuf[0] = 0;
 		if (!SetupDiGetDeviceRegistryPropertyA(dev_info, &dev_info_data, SPDRP_SERVICE,
@@ -767,6 +780,7 @@ int LIBWDI_API wdi_create_list(struct wdi_device_info** list,
 		is_hub = FALSE;
 		for (j=0; j<ARRAYSIZE(usbhub_name); j++) {
 			if (safe_stricmp(strbuf, usbhub_name[j]) == 0) {
+				wdi_dbg("It is hub!");
 				is_hub = TRUE;
 				break;
 			}
@@ -776,14 +790,17 @@ int LIBWDI_API wdi_create_list(struct wdi_device_info** list,
 		}
 		// Also eliminate composite devices parent drivers, as replacing these drivers
 		// is a bad idea
+		wdi_dbg("eliminating composite device parent driver");
 		is_composite_parent = FALSE;
 		if (safe_stricmp(strbuf, usbccgp_name) == 0) {
 			if ((options == NULL) || (!options->list_hubs)) {
 				continue;
 			}
+			wdi_dbg("it is composite");
 			is_composite_parent = TRUE;
 		}
 
+		wdi_dbg("Retrieve the first hardware ID");
 		// Retrieve the first hardware ID
 		if (SetupDiGetDeviceRegistryPropertyA(dev_info, &dev_info_data, SPDRP_HARDWAREID,
 			&reg_type, (BYTE*)strbuf, STR_BUFFER_SIZE, &size)) {
@@ -1026,9 +1043,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 								  const char* inf_name, struct wdi_options_prepare_driver* options)
 {
 	const wchar_t bom = 0xFEFF;
-#if defined(ENABLE_DEBUG_LOGGING) || defined(INCLUDE_DEBUG_LOGGING)
 	const char* driver_display_name[WDI_NB_DRIVERS] = { "WinUSB", "libusb0.sys", "libusbK.sys", "Generic USB CDC", "user driver" };
-#endif
 	const char* inf_ext = ".inf";
 	const char* vendor_name = NULL;
 	const char* cat_list[CAT_LIST_MAX_ENTRIES+1];

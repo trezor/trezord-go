@@ -32,6 +32,8 @@
 #include <fcntl.h>
 #include <stdint.h>
 
+#include <time.h>
+
 #include "libwdi.h"
 #include "logging.h"
 
@@ -44,8 +46,6 @@ static UINT logger_msg = 0;
 static unsigned log_messages_pending = 0;
 // Keep track of how many bytes are in the pipe
 static DWORD log_messages_pipe_size = 0;
-// Global debug level
-static int global_log_level = WDI_LOG_LEVEL_INFO;
 
 extern char *windows_error_str(uint32_t retval);
 
@@ -87,11 +87,6 @@ static void pipe_wdi_log_v(enum wdi_log_level level,
 	if (logger_wr_handle == INVALID_HANDLE_VALUE)
 		return;
 
-#ifndef ENABLE_DEBUG_LOGGING
-	if (level < global_log_level)
-		return;
-#endif
-
 	switch (level) {
 	case WDI_LOG_LEVEL_DEBUG:
 		prefix = "debug";
@@ -110,7 +105,11 @@ static void pipe_wdi_log_v(enum wdi_log_level level,
 		break;
 	}
 
-	size1 = safe_snprintf(buffer, LOGBUF_SIZE, "libwdi:%s [%s] ", prefix, function);
+	time_t mytime = time(NULL);
+	char * time_str = ctime(&mytime);
+	time_str[strlen(time_str)-1] = '\0';
+
+	size1 = safe_snprintf(buffer, LOGBUF_SIZE, "[%s] %s [%s] ", time_str, prefix, function);
 	size2 = 0;
 	if (size1 < 0) {
 		buffer[LOGBUF_SIZE-1] = 0;
@@ -138,11 +137,6 @@ static void console_wdi_log_v(enum wdi_log_level level,
 
 	stream = stdout;
 
-#ifndef ENABLE_DEBUG_LOGGING
-	if (level < global_log_level)
-		return;
-#endif
-
 	switch (level) {
 	case WDI_LOG_LEVEL_DEBUG:
 		stream = stderr;
@@ -165,7 +159,11 @@ static void console_wdi_log_v(enum wdi_log_level level,
 		break;
 	}
 
-	fprintf(stream, "libwdi:%s [%s] ", prefix, function);
+	time_t mytime = time(NULL);
+	char * time_str = ctime(&mytime);
+	time_str[strlen(time_str)-1] = '\0';
+
+	fprintf(stream, "[%s] %s [%s] ", time_str, prefix, function);
 
 	vfprintf(stream, format, args);
 
@@ -344,14 +342,3 @@ out:
 	return r;
 }
 
-/*
- * Set the global log level. Only works if ENABLE_DEBUG_LOGGING is not set
- */
-int LIBWDI_API wdi_set_log_level(int level)
-{
-#if defined(ENABLE_DEBUG_LOGGING)
-	return WDI_ERROR_NOT_SUPPORTED;
-#endif
-	global_log_level = level;
-	return WDI_SUCCESS;
-}
