@@ -27,7 +27,6 @@ type Server struct {
 func New(
 	bus core.USBBus,
 	stderrWriter io.Writer,
-	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
 	version string,
 ) (*Server, error) {
@@ -40,7 +39,7 @@ func New(
 		Addr: "127.0.0.1:21325",
 	}
 
-	allWriter := io.MultiWriter(stderrWriter, shortWriter, longWriter)
+	allWriter := io.MultiWriter(stderrWriter, longWriter)
 	s := &Server{
 		serverPrivate: serverPrivate{
 			Server: https,
@@ -53,7 +52,7 @@ func New(
 	postRouter := r.Methods("POST").Subrouter()
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
-	status.ServeStatus(statusRouter, c, version, shortWriter, longWriter)
+	status.ServeStatus(statusRouter, c, version, longWriter)
 	err := api.ServeAPI(postRouter, c, version, longWriter)
 	if err != nil {
 		panic(err) // only error is an error from originValidator regexp constructor

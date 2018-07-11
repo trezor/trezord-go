@@ -21,7 +21,6 @@ type statusTemplateData struct {
 	Version     string
 	Devices     []statusTemplateDevice
 	DeviceCount int
-	Log         string
 
 	IsError   bool
 	IsWindows bool
@@ -133,10 +132,6 @@ const templateString = `
       background-color: #00A24C;
     }
 
-    textarea{
-      max-width: 700px;
-    }
-
     #dlog {
       display: none;
     }
@@ -192,15 +187,12 @@ const templateString = `
       {{end}}
 
        <div class="space-top">
-       <p>Console Log
-       </p>
-       <textarea rows="25" cols="150" id="log">
-{{.Log}}
-       </textarea>
        <form>
          {{.CSRFField}}
-         <a href="#" id="submitlog" onClick="doSubmit()">download detailed log</a>
-         <br>
+         <a href="#" id="submitlog" onClick="doSubmit()">
+           <div class="btn-primary">Download detailed log</div>
+         </a>
+         <div id="wait" class="badge" style="display: none">Please wait...</div>
          {{if .IsWindows}}
            <p style="margin-top: 6px">
               Detailed log might take a while to generate.<br>It might also reveal detailed information about your PC configuration.
@@ -219,9 +211,22 @@ const templateString = `
   </div>
   <script>
   function doSubmit() {
-    const href = document.getElementById("submitlog");
-    const origtext = href.text;
-    href.text = "please wait..."
+    document.getElementById("submitlog").style.display = "none";
+    document.getElementById("wait").style.display = "inline";
+
+    // the time estimate is 100% fake
+    // but we want to show user something so he feels
+    // something is hapenning
+    var run = true;
+    var time = 90
+    function runOne() {
+        document.getElementById("wait").innerText = "Please wait " + time + " seconds";
+        time -= 1
+        if (time > 0 && run) {
+            setTimeout(runOne, 1*1000)
+        }
+    }
+    runOne()
 
     const formElement = document.getElementsByTagName("form")[0]
     const data = new URLSearchParams();
@@ -247,7 +252,9 @@ const templateString = `
 
       window.URL.revokeObjectURL(url);
 
-      href.text = origtext;
+      document.getElementById("submitlog").style.display = "inline";
+      document.getElementById("wait").style.display = "none";
+      run = false;
     });
   }
   </script>

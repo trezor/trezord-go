@@ -62,8 +62,6 @@ func main() {
 
 	stderrLogger := log.New(stderrWriter, "", log.LstdFlags)
 
-	shortMemoryWriter := memorywriter.New(2000, 200, false)
-
 	longMemoryWriter := memorywriter.New(90000, 200, true)
 
 	stderrLogger.Print("trezord is starting.")
@@ -102,7 +100,7 @@ func main() {
 
 	b := usb.Init(bus...)
 	longMemoryWriter.Println("Creating HTTP server")
-	s, err := server.New(b, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
+	s, err := server.New(b, stderrWriter, longMemoryWriter, version)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)

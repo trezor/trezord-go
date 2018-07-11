@@ -14,9 +14,9 @@ import (
 // log file at /status/log.gz with the detailed log
 
 type status struct {
-	core                                *core.Core
-	version                             string
-	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter
+	core             *core.Core
+	version          string
+	longMemoryWriter *memorywriter.MemoryWriter
 }
 
 const csrfkey = "slk0118h51w2qiw4fhrfyd84f59j81ln"
@@ -32,12 +32,11 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.MemoryWriter) {
+func ServeStatus(r *mux.Router, c *core.Core, v string, dmw *memorywriter.MemoryWriter) {
 	status := &status{
-		core:              c,
-		version:           v,
-		shortMemoryWriter: mw,
-		longMemoryWriter:  dmw,
+		core:             c,
+		version:          v,
+		longMemoryWriter: dmw,
 	}
 	r.Methods("GET").Path("/").HandlerFunc(status.statusPage)
 	r.Methods("POST").Path("/log.gz").HandlerFunc(status.statusGzip)
@@ -77,7 +76,16 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD
+	s.Log("getting libwdi")
+	libwdi, err := libwdiReinstallLog()
+	if err != nil {
+		s.Log("lbwdi err " + err.Error())
+		respondError(w, err)
+		return
+	}
+	s.Log("fuck")
+
+	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + libwdi
 
 	gzip, err := s.longMemoryWriter.Gzip(start)
 	if err != nil {
@@ -104,28 +112,6 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		templateErr = err
 	}
 
-	devconLog, err := devconInfo(s.longMemoryWriter)
-	if err != nil {
-		s.Log("devcon err " + err.Error())
-		respondError(w, err)
-		return
-	}
-
-	libwdi, err := libwdiReinstallLog()
-	if err != nil {
-		s.Log("lbwdi err " + err.Error())
-		respondError(w, err)
-		return
-	}
-
-	start := s.version + "\n" + devconLog + "\n" + libwdi
-
-	log, err := s.shortMemoryWriter.String(start)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-
 	s.Log("actually building status data")
 
 	isErr := templateErr != nil
@@ -138,7 +124,6 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		Version:     s.version,
 		Devices:     tdevs,
 		DeviceCount: len(tdevs),
-		Log:         log,
 		IsError:     isErr,
 		Error:       strErr,
 		CSRFField:   csrf.TemplateField(r),
