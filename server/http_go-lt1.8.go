@@ -7,14 +7,14 @@ package server
 import (
 	"fmt"
 	"net"
-	"time"
 	"sync"
+	"time"
 )
 
 type serverCompat struct {
-	conns []*conn
+	conns      []*conn
 	connsMutex *sync.Mutex
-	listener net.Listener
+	listener   net.Listener
 }
 
 const (
@@ -83,10 +83,11 @@ type tcpKeepAliveListener struct {
 type conn struct {
 	net.Conn
 
-	server *Server
-	mutex *sync.Mutex
+	server   *Server
+	mutex    *sync.Mutex
 	isClosed bool
 }
+
 func (conn *conn) Close() error {
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()
