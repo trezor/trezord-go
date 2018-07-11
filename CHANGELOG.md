@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.20] - unreleased
+
+- Fixes for golang 1.5 and later
+- Import libwdi code
+- Add libwdi driver reinstall debug to detailed log
+
 ## [2.0.19] - unreleased
 
 - Add hidapi enumeration verbose logs on windows
