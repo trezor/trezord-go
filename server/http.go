@@ -15,10 +15,9 @@ import (
 )
 
 type serverPrivate struct {
-	*http.Server
+	serverCompat // This structure is used only on Go of version prior to 1.8 (see `http_go-lt1.8.go`):
 
-	// This structure is used only on Go of version prior to 1.8 (see `http_go-lt1.8.go`):
-	serverCompat
+	*http.Server
 }
 
 type Server struct {
