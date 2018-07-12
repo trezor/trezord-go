@@ -15,6 +15,8 @@ import (
 )
 
 type serverPrivate struct {
+	serverCompat // This structure is used only on Go of version prior to 1.8 (see `http_go-lt1.8.go`):
+
 	*http.Server
 }
 
@@ -81,6 +83,7 @@ func (s *Server) logRequest(handler http.Handler) http.Handler {
 	})
 }
 
+// Run starts to (*Server).ListenAndServe(). To stop it call (*Server).Close().
 func (s *Server) Run() error {
 	return s.ListenAndServe()
 }
