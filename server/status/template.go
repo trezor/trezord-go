@@ -21,6 +21,7 @@ type statusTemplateData struct {
 	Version     string
 	Devices     []statusTemplateDevice
 	DeviceCount int
+	Log         string
 
 	IsError   bool
 	IsWindows bool
@@ -132,6 +133,10 @@ const templateString = `
       background-color: #00A24C;
     }
 
+    textarea{
+      max-width: 700px;
+    }
+
     #dlog {
       display: none;
     }
@@ -187,6 +192,11 @@ const templateString = `
       {{end}}
 
        <div class="space-top">
+       <p>Console Log
+       </p>
+       <textarea rows="25" cols="150" id="log">
+{{.Log}}
+       </textarea>
        <form>
          {{.CSRFField}}
          <a href="#" id="submitlog" onClick="doSubmit()">
