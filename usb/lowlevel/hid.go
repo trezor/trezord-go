@@ -6,7 +6,7 @@
 
 // Package hid provides an interface for USB HID devices.
 
-// +build linux,cgo darwin,!ios,cgo windows,cgo
+// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
 
 package lowlevel
 
@@ -21,6 +21,8 @@ extern void goLog(const char *s);
 
 #cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
 #cgo linux,!android LDFLAGS: -lrt
+#cgo freebsd CFLAGS: -DOS_FREEBSD
+#cgo freebsd LDFLAGS: -lusb
 #cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
 #cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
@@ -34,6 +36,8 @@ extern void goLog(const char *s);
 	#include "os/poll_posix.c"
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"
+#elif OS_FREEBSD
+	#include <stdlib.h>
 #elif OS_DARWIN
 	#include <sys/poll.h>
 
@@ -50,14 +54,20 @@ extern void goLog(const char *s);
 	#include "os/threads_windows.c"
 #endif
 
-#include "core.c"
-#include "descriptor.c"
-#include "hotplug.c"
-#include "io.c"
-#include "strerror.c"
-#include "sync.c"
+#ifndef OS_FREEBSD
+	#include "core.c"
+	#include "descriptor.c"
+	#include "hotplug.c"
+	#include "io.c"
+	#include "strerror.c"
+	#include "sync.c"
+#else
+	#include <libusb.h>
+#endif
 
 #ifdef OS_LINUX
+	#include "linux/hid.c"
+#elif OS_FREEBSD
 	#include "linux/hid.c"
 #elif OS_DARWIN
 	#include "mac/hid.c"

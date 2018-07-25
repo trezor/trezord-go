@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 
 	"github.com/trezor/trezord-go/core"
@@ -83,7 +84,11 @@ func main() {
 		if err != nil {
 			stderrLogger.Fatalf("hidapi: %s", err)
 		}
-		bus = append(bus, w, h)
+		if runtime.GOOS != "freebsd" {
+			bus = append(bus, w, h)
+		} else {
+			bus = append(bus, w)
+		}
 	}
 
 	longMemoryWriter.Println(fmt.Sprintf("UDP port count - %d", len(ports)))
