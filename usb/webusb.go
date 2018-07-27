@@ -215,9 +215,14 @@ func (b *WebUSB) match(dev lowlevel.Device) bool {
 		b.mw.Println("webusb - match - error getting config descriptor " + err.Error())
 		return false
 	}
-	return (c.BNumInterfaces > webIfaceNum &&
-		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-		(c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC || runtime.GOOS == "freebsd"))
+	if runtime.GOOS != "freebsd" {
+		return (c.BNumInterfaces > webIfaceNum &&
+			c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
+			c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
+	} else {
+		return (c.BNumInterfaces > webIfaceNum &&
+			c.Interface[webIfaceNum].Num_altsetting > webAltSetting)
+	}
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
@@ -227,6 +232,7 @@ func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
 }
 
 func (b *WebUSB) identify(dev lowlevel.Device) string {
+	var path string
 	if runtime.GOOS != "freebsd" {
 		var ports [8]byte
 		p, err := lowlevel.Get_Port_Numbers(dev, ports[:])
@@ -234,12 +240,13 @@ func (b *WebUSB) identify(dev lowlevel.Device) string {
 			b.mw.Println(fmt.Sprintf("webusb - identify - error getting port numbers %s", err.Error()))
 			return ""
 		}
-		return webusbPrefix + hex.EncodeToString(p)
+		path = hex.EncodeToString(p)
 	} else {
 		bn := lowlevel.Get_Bus_Number(dev)
 		da := lowlevel.Get_Device_Address(dev)
-		return fmt.Sprintf("%s%02x%02x", webusbPrefix, bn, da)
+		path = fmt.Sprintf("%02x%02x", bn, da)
 	}
+	return webusbPrefix + path
 }
 
 type WUD struct {
