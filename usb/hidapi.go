@@ -69,7 +69,7 @@ func (b *HIDAPI) Connect(path string) (core.USBDevice, error) {
 				return nil, err
 			}
 			b.mw.Println("hidapi - connect - detecting prepend")
-			prepend, err := detectPrepend(d)
+			prepend, err := b.detectPrepend(d)
 			if err != nil {
 				return nil, err
 			}
@@ -133,20 +133,24 @@ var unknownErrorMessage = "hidapi: unknown failure"
 // or a newer one that is on id 0.
 // The older one does not need prepending, the newer one does
 // This makes difference only on windows
-func detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
+func (b *HIDAPI) detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 	buf := []byte{63}
 	for i := 0; i < 63; i++ {
 		buf = append(buf, 0xff)
 	}
 
 	// first test newer version
-	w, _ := dev.Write(buf, true)
+	w, err := dev.Write(buf, true)
 	if w == 65 {
 		return true, nil
 	}
+	if err != nil {
+		b.mw.Println("hidapi - detectPrepend found older version - error")
+		b.mw.Println(err.Error())
+	}
 
 	// then test older version
-	w, err := dev.Write(buf, false)
+	w, err = dev.Write(buf, false)
 	if err != nil {
 		return false, err
 	}
