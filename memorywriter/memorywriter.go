@@ -27,7 +27,11 @@ type MemoryWriter struct {
 
 func (m *MemoryWriter) Println(s string) {
 	long := []byte(s + "\n")
-	m.Write(long) // nolint: gas, errcheck
+	_, err := m.Write(long)
+	if err != nil {
+		// give up, just print on stdout
+		fmt.Println(err)
+	}
 }
 
 // Writer remembers lines in memory

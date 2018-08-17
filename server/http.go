@@ -77,7 +77,11 @@ func New(
 func (s *Server) logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		text := fmt.Sprintf("%s %s\n", r.Method, r.URL)
-		s.writer.Write([]byte(text)) // nolint: errcheck, gas
+		_, err := s.writer.Write([]byte(text))
+		if err != nil {
+			// give up, just print on stdout
+			fmt.Println(err)
+		}
 		handler.ServeHTTP(w, r)
 	})
 }
