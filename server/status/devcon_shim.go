@@ -28,3 +28,7 @@ func isWindows() bool {
 func libwdiReinstallLog() (string, error) {
 	return "", nil
 }
+
+func setupAPIDevLog() (string, error) {
+	return "", nil
+}

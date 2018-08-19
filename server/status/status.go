@@ -85,7 +85,15 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + libwdi
+	s.Log("getting setupapi")
+	setupapi, err := setupAPIDevLog()
+	if err != nil {
+		s.Log("setupapi err " + err.Error())
+		respondError(w, err)
+		return
+	}
+
+	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + libwdi + setupapi
 
 	gzip, err := s.longMemoryWriter.Gzip(start)
 	if err != nil {

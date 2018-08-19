@@ -347,3 +347,20 @@ func libwdiReinstallLog() (string, error) {
 	all := "libwdi reinstall log:\n" + contentStr + "\n"
 	return all, nil
 }
+
+func setupAPIDevLog() (string, error) {
+	sysroot := os.Getenv("SystemRoot")
+	folder := sysroot + "\\inf"
+	file := folder + "\\SetupAPI.dev.log"
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	contentStr := strings.Replace(string(content), "\r\n", "\n", -1)
+	all := "setupapi device log:\n" + contentStr + "\n"
+	return all, nil
+}
