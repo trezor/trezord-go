@@ -56,5 +56,5 @@
  ::::::::::::::::::::::::::::
  ::START
  ::::::::::::::::::::::::::::
- wdi-simple.exe --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 -b > "%AppData%\TREZOR Bridge\wdi-log.txt" 2>&1
+ wdi-simple.exe --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 -b >> "%AppData%\TREZOR Bridge\wdi-log.txt" 2>>&1
  wdi-simple.exe --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 -b >> "%AppData%\TREZOR Bridge\wdi-log.txt" 2>>&1
