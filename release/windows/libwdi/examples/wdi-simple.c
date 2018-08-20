@@ -88,6 +88,7 @@ HWND GetConsoleHwnd(void)
 
 int __cdecl main(int argc, char** argv)
 {
+	wdi_dbg("------ LIBWDI INSTALL START --- ");
 	static struct wdi_device_info *ldev, dev = {NULL, VID, PID, FALSE, 0, DESC, NULL, NULL, NULL};
 	static struct wdi_options_create_list ocl = { 0 };
 	static struct wdi_options_prepare_driver opd = { 0 };
