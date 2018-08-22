@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.21] - unreleased
+
+- Add timeout to WDI installer
+
 ## [2.0.20] - unreleased
 
 - Fixes for golang 1.5 and later
