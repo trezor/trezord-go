@@ -1,21 +1,26 @@
-all: .windows .linux .macos .copy
+.PHONY: windows linux macos copy gpg clean
 
-.linux:
+all: windows linux macos copy gpg
+
+linux:
 	make -C linux all
 
-.macos:
+macos:
 	make -C macos all
 
-.windows:
+windows:
 	make -C windows all
 
-.copy:
+copy:
 	rm -rf installers
 	mkdir installers
 	cp macos/build/*.pkg installers
 	cp windows/build/trezor-bridge*.exe installers
 	cp linux/build/*.deb linux/build/*.rpm installers
 
-.gpg:
+gpg:
 	gpg --armor --detach-sig installers/trezor-bridge*.exe
 	gpg --armor --detach-sig installers/*.pkg
+
+clean:
+	rm -rf installers
