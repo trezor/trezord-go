@@ -1279,8 +1279,8 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 	for (pass = 0; ((pass < nb_guids) && (r == LIBUSB_SUCCESS)); pass++) {
 //#define ENUM_DEBUG
 #if defined(ENABLE_LOGGING) && defined(ENUM_DEBUG)
-		const char *passname[] = { "HCD", "HUB", "GEN", "DEV", "HID", "EXT" };
-		usbi_dbg("#### PROCESSING %ss %s", passname[pass],
+		const char *passname[] = { "HCD", "HUB", "GEN", "DEV"};
+		usbi_dbg("#### PROCESSING %ss %s", pass <= DEV_PASS ? passname[pass] : "EXT",
 			(pass != GEN_PASS) ? guid_to_string(guid[pass]) : "");
 #endif
 		for (i = 0; ; i++) {
@@ -1374,6 +1374,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 					&reg_type, (BYTE *)strbuf, size, &size)) {
 						usbi_info(ctx, "The following device has no driver: '%s'", dev_id_path);
 						usbi_info(ctx, "libusb will not be able to access it.");
+						usbi_info(ctx, "error number: %u", (unsigned int)GetLastError());
 				}
 				// ...and to add the additional device interface GUIDs
 				key = pSetupDiOpenDevRegKey(dev_info, &dev_info_data, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
@@ -1396,7 +1397,11 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 						pCLSIDFromString(guid_string_w, if_guid);
 						guid[nb_guids++] = if_guid;
 						usbi_dbg("extra GUID: %s", guid_to_string(if_guid));
+					} else {
+						usbi_info(ctx, "Error number %ld on RegQueryValueEx", s);
 					}
+				} else {
+					usbi_info(ctx, "Invalid key handle on SetupDiOpenDevRegKey");
 				}
 				break;
 			default:
@@ -1414,6 +1419,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				break;
 			}
 
+			usbi_info(ctx, "Find parent device");
 			// Find parent device (for the passes that need it)
 			switch (pass) {
 			case HCD_PASS:
@@ -1439,6 +1445,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				parent_priv = _device_priv(parent_dev);
 				// virtual USB devices are also listed during GEN - don't process these yet
 				if ((pass == GEN_PASS) && (parent_priv->apib->id != USB_API_HUB)) {
+					usbi_info(ctx, "skipping virtual device");
 					libusb_unref_device(parent_dev);
 					continue;
 				}
@@ -1446,6 +1453,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				break;
 			}
 
+			usbi_info(ctx, "Create new or match existing device");
 			// Create new or match existing device, using the (hashed) device_id as session id
 			if (pass <= DEV_PASS) {	// For subsequent passes, we'll lookup the parent
 				// These are the passes that create "new" devices
@@ -1476,8 +1484,8 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 							// time of enumeration, so the currently assigned parent may in fact be a
 							// grandparent.  If the devices differ, we assume the "new" parent device
 							// is in fact closer to the device.
-                                                        usbi_dbg("updating parent device [session %lX -> %lX]",
-                                                                dev->parent_dev->session_data, parent_dev->session_data);
+							usbi_dbg("updating parent device [session %lX -> %lX]",
+									dev->parent_dev->session_data, parent_dev->session_data);
 							libusb_unref_device(dev->parent_dev);
 							dev->parent_dev = parent_dev;
 						} else {
@@ -1502,6 +1510,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				}
 			}
 
+			usbi_info(ctx, "Setup device");
 			// Setup device
 			switch (pass) {
 			case HCD_PASS:
@@ -1719,12 +1728,14 @@ static int windows_open(struct libusb_device_handle *dev_handle)
 {
 	struct windows_device_priv *priv = _device_priv(dev_handle->dev);
 	struct libusb_context *ctx = DEVICE_CTX(dev_handle->dev);
+	usbi_info(ctx, "windows open start");
 
 	if (priv->apib == NULL) {
 		usbi_err(ctx, "program assertion failed - device is not initialized");
 		return LIBUSB_ERROR_NO_DEVICE;
 	}
 
+	usbi_info(ctx, "windows open - go lower");
 	return priv->apib->open(SUB_API_NOTSET, dev_handle);
 }
 
@@ -2060,6 +2071,7 @@ static int unsupported_exit(int sub_api)
 
 static int unsupported_open(int sub_api, struct libusb_device_handle *dev_handle)
 {
+	usbi_dbg("unsupported open");
 	PRINT_UNSUPPORTED_API(open);
 }
 
@@ -2334,6 +2346,7 @@ static int winusbx_exit(int sub_api)
 static int winusbx_open(int sub_api, struct libusb_device_handle *dev_handle)
 {
 	struct libusb_context *ctx = DEVICE_CTX(dev_handle->dev);
+	usbi_info(ctx, "winusbx_open start");
 	struct windows_device_priv *priv = _device_priv(dev_handle->dev);
 	struct windows_device_handle_priv *handle_priv = _device_handle_priv(dev_handle);
 
@@ -2341,11 +2354,13 @@ static int winusbx_open(int sub_api, struct libusb_device_handle *dev_handle)
 	int i;
 
 	CHECK_WINUSBX_AVAILABLE(sub_api);
+	usbi_info(ctx, "winusbx available");
 
 	// WinUSB requires a separate handle for each interface
 	for (i = 0; i < USB_MAXINTERFACES; i++) {
 		if ((priv->usb_interface[i].path != NULL)
 				&& (priv->usb_interface[i].apib->id == USB_API_WINUSBX)) {
+			usbi_info(ctx, "API for %d is WinUSB", i);
 			file_handle = CreateFileA(priv->usb_interface[i].path, GENERIC_WRITE | GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ,
 				NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 			if (file_handle == INVALID_HANDLE_VALUE) {
@@ -2360,8 +2375,10 @@ static int winusbx_open(int sub_api, struct libusb_device_handle *dev_handle)
 				}
 			}
 			handle_priv->interface_handle[i].dev_handle = file_handle;
+			usbi_info(ctx, "handle handled");
 		}
 	}
+	usbi_info(ctx, "open success");
 
 	return LIBUSB_SUCCESS;
 }
@@ -2933,6 +2950,8 @@ static int composite_exit(int sub_api)
 
 static int composite_open(int sub_api, struct libusb_device_handle *dev_handle)
 {
+	struct libusb_context *ctx = DEVICE_CTX(dev_handle->dev);
+	usbi_info(ctx, "composite open");
 	struct windows_device_priv *priv = _device_priv(dev_handle->dev);
 	int r = LIBUSB_ERROR_NOT_FOUND;
 	uint8_t i;
