@@ -380,6 +380,8 @@ struct libusb_device {
 	struct list_head list;
 	unsigned long session_data;
 
+	int has_winusb_driver;
+
 	struct libusb_device_descriptor device_descriptor;
 	int attached;
 
