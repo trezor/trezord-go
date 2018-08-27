@@ -74,9 +74,6 @@ extern "C" {
 #define ARRAYSIZE(array) (sizeof(array) / sizeof(array[0]))
 #endif
 
-struct list_head {
-	struct list_head *prev, *next;
-};
 
 /* Get an entry from the list
  *  ptr - the address of this list_head element in "type"

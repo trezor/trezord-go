@@ -26,13 +26,6 @@
 
 #define usbi_mutex_t		HANDLE
 
-typedef struct usbi_cond {
-	// Every time a thread touches the CV, it winds up in one of these lists.
-	//   It stays there until the CV is destroyed, even if the thread terminates.
-	struct list_head waiters;
-	struct list_head not_waiting;
-} usbi_cond_t;
-
 // We *were* getting timespec from pthread.h:
 #if (!defined(HAVE_STRUCT_TIMESPEC) && !defined(_TIMESPEC_DEFINED))
 #define HAVE_STRUCT_TIMESPEC 1
