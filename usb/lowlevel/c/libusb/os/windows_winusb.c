@@ -1103,6 +1103,8 @@ static int init_device(struct libusb_device *dev, struct libusb_device *parent_d
 		dev->device_address = 1; // root hubs are set to use device number 1
 		force_hcd_device_descriptor(dev);
 	}
+	
+	dev->has_winusb_driver = 0;
 
 	usbi_sanitize_device(dev);
 
@@ -1177,6 +1179,10 @@ static int set_composite_interface(struct libusb_context *ctx, struct libusb_dev
 	if (priv->apib->id != USB_API_COMPOSITE) {
 		usbi_err(ctx, "program assertion failed: '%s' is not composite", device_id);
 		return LIBUSB_ERROR_NO_DEVICE;
+	}
+
+	if (api == USB_API_WINUSBX) {
+		dev->has_winusb_driver = 1;
 	}
 
 	// Because MI_## are not necessarily in sequential order (some composite
@@ -1547,6 +1553,8 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 
 					priv->hid->nb_interfaces = 0;
 					break;
+				case USB_API_WINUSBX:
+					dev->has_winusb_driver = 1;
 				default:
 					// For other devices, the first interface is the same as the device
 					priv->usb_interface[0].path = _strdup(priv->path);
@@ -1561,6 +1569,7 @@ static int windows_get_device_list(struct libusb_context *ctx, struct discovered
 				}
 				break;
 			case GEN_PASS:
+				usbi_info(ctx, "Will init device");
 				r = init_device(dev, parent_dev, (uint8_t)port_nr, dev_id_path, dev_info_data.DevInst);
 				if (r == LIBUSB_SUCCESS) {
 					// Append device to the list of discovered devices
