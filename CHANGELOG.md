@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.22] - unreleased
+
+- Show only WinUSB devices on Windows when using libusb
+- More Windows debug output
+
 ## [2.0.21] - unreleased
 
 - Add timeout to WDI installer
