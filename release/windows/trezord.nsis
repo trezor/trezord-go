@@ -68,6 +68,17 @@ ShowUninstDetails hide
 
 XPStyle on
 
+
+Function .onInit
+UserInfo::GetAccountType
+pop $0
+${If} $0 != "admin" ;Require admin rights on NT4+
+  MessageBox mb_iconstop "You need to be an admin to install TREZOR Bridge. Sorry!"
+  SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+  Quit
+${EndIf}
+FunctionEnd
+
 Page directory
 Page instfiles
 
