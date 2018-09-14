@@ -3,7 +3,6 @@ package usb
 import (
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -197,16 +196,7 @@ func (b *WebUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	}, nil
 }
 
-func isWindows() bool {
-	return strings.HasPrefix(runtime.GOOS, "windows")
-}
-
 func (b *WebUSB) match(dev lowlevel.Device) bool {
-	if isWindows() {
-		if !lowlevel.Device_Has_Winusb(dev) {
-			return false
-		}
-	}
 	dd, err := lowlevel.Get_Device_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("webusb - match - error getting descriptor -" + err.Error())

@@ -11,10 +11,6 @@
 package lowlevel
 
 /*
-struct list_head {
-	struct list_head *prev, *next;
-};
-
 extern void goLog(const char *s);
 
 #define ENABLE_LOGGING 1
@@ -48,20 +44,11 @@ extern void goLog(const char *s);
 	#define HARDCODED_HIDAPI_DEVICE_FILTER "vid_534c"
 	#define HARDCODED_LIBUSB_DEVICE_FILTER "VID_1209"
 
-
-  typedef struct usbi_cond {
-    struct list_head waiters;
-    struct list_head not_waiting;
-  } usbi_cond_t;
-
-
 	#include <oledlg.h>
 
 	#include "os/poll_windows.c"
 	#include "os/threads_windows.c"
 #endif
-
-#include "libusbi.h"
 
 #include "core.c"
 #include "descriptor.c"

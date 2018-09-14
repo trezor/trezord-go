@@ -14,30 +14,7 @@ Copyright (c) 2017 Jason T. Harris
 package lowlevel
 
 /*
-struct list_head {
-	struct list_head *prev, *next;
-};
-
 #include "./c/libusb/libusb.h"
-
-#ifdef OS_WINDOWS
-  #define usbi_mutex_t              HANDLE
-  #define usbi_tls_key_t                      DWORD
-
-  typedef struct usbi_cond {
-    struct list_head waiters;
-    struct list_head not_waiting;
-  } usbi_cond_t;
-
-  #define usbi_mutex_static_t       volatile LONG
-#else
-  #define usbi_mutex_t              pthread_mutex_t
-  #define usbi_tls_key_t                      pthread_key_t
-  #define usbi_cond_t                 pthread_cond_t
-  #define usbi_mutex_static_t         pthread_mutex_t
-#endif
-
-#include "./c/libusb/libusbi.h"
 
 // When a C struct ends with a zero-sized field, but the struct itself is not zero-sized,
 // Go code can no longer refer to the zero-sized field. Any such references will have to be rewritten.
@@ -1122,11 +1099,6 @@ func Strerror(errcode int) string {
 
 //-----------------------------------------------------------------------------
 // USB descriptors
-
-func Device_Has_Winusb(dev Device) bool {
-	cHas := int(dev.has_winusb_driver)
-	return cHas == 1
-}
 
 func Get_Device_Descriptor(dev Device) (*Device_Descriptor, error) {
 	var desc C.struct_libusb_device_descriptor

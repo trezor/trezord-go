@@ -534,7 +534,7 @@ int usbi_device_cache_descriptor(libusb_device *dev)
  * This is a non-blocking function; the device descriptor is cached in memory.
  *
  * Note since libusb-1.0.16, \ref LIBUSB_API_VERSION >= 0x01000102, this
- * function always succeeds.
+ * function always succeeds. (Not true in trezord fork on windows.)
  *
  * \param dev the device
  * \param desc output location for the descriptor data
@@ -546,6 +546,16 @@ int API_EXPORTED libusb_get_device_descriptor(libusb_device *dev,
 	usbi_dbg("");
 	memcpy((unsigned char *) desc, (unsigned char *) &dev->device_descriptor,
 	       sizeof (dev->device_descriptor));
+
+	#ifdef OS_WINDOWS
+	// hack for filtering out non-winusb devices in trezord
+	// (note that in trezord layer, throwing error here does NOT throw error up the chain,
+	//  it just ignores the device)
+	if (!dev->has_winusb_driver) {
+		usbi_dbg("winUSB not detected, return error");
+		return LIBUSB_ERROR_OTHER;
+	}
+	#endif
 	return 0;
 }
 

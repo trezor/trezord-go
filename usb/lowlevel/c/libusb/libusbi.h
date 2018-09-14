@@ -74,6 +74,9 @@ extern "C" {
 #define ARRAYSIZE(array) (sizeof(array) / sizeof(array[0]))
 #endif
 
+struct list_head {
+	struct list_head *prev, *next;
+};
 
 /* Get an entry from the list
  *  ptr - the address of this list_head element in "type"
@@ -377,7 +380,9 @@ struct libusb_device {
 	struct list_head list;
 	unsigned long session_data;
 
+	#ifdef OS_WINDOWS
 	int has_winusb_driver;
+	#endif
 
 	struct libusb_device_descriptor device_descriptor;
 	int attached;
