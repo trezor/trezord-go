@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.23] - unreleased
+
+- Fix installation when not an admin user (runtime UAC checks + install to all users)
+
 ## [2.0.22] - unreleased
 
 - Show only WinUSB devices on Windows when using libusb
