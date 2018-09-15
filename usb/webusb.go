@@ -215,20 +215,29 @@ func (b *WebUSB) match(dev lowlevel.Device) bool {
 		b.mw.Println("webusb - match - error getting config descriptor " + err.Error())
 		return false
 	}
-	if runtime.GOOS != "freebsd" {
-		return (c.BNumInterfaces > webIfaceNum &&
-			c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-			c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
-	} else {
+
+	if runtime.GOOS == "freebsd" {
+		// freebsd also lists HID devices, not just webusb devices
+		// and it seems to be working
 		return (c.BNumInterfaces > webIfaceNum &&
 			c.Interface[webIfaceNum].Num_altsetting > webAltSetting)
 	}
+
+	return (c.BNumInterfaces > webIfaceNum &&
+		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
+		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
-	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+	// Note: Trezor1 webusb will actually have the T2 vid/pid
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return trezor1 || trezor2
+
+	if runtime.GOOS == "freebsd" {
+		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+		return trezor1 || trezor2
+	}
+
+	return trezor2
 }
 
 func (b *WebUSB) identify(dev lowlevel.Device) string {

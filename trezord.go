@@ -40,6 +40,31 @@ func (i *udpPorts) Set(value string) error {
 	return nil
 }
 
+func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.USBBus {
+	if init {
+		wr.Println("Initing webusb")
+
+		w, err := usb.InitWebUSB(wr)
+		if err != nil {
+			sl.Fatalf("webusb: %s", err)
+		}
+		// defer w.Close()
+    // not defering - originally in main, now here, here makes no sense
+
+		if runtime.GOOS == "freebsd" {
+			return []core.USBBus{w}
+		}
+
+		wr.Println("Initing hidapi")
+		h, err := usb.InitHIDAPI(wr)
+		if err != nil {
+			sl.Fatalf("hidapi: %s", err)
+		}
+	  return []core.USBBus{w, h}
+	}
+	return nil
+}
+
 func main() {
 	var logfile string
 	var ports udpPorts
@@ -69,27 +94,7 @@ func main() {
 
 	stderrLogger.Print("trezord is starting.")
 
-	var bus []core.USBBus
-	if withusb {
-		longMemoryWriter.Println("Initing webusb")
-
-		w, err := usb.InitWebUSB(longMemoryWriter)
-		if err != nil {
-			stderrLogger.Fatalf("webusb: %s", err)
-		}
-		defer w.Close()
-
-		longMemoryWriter.Println("Initing hidapi")
-		h, err := usb.InitHIDAPI(longMemoryWriter)
-		if err != nil {
-			stderrLogger.Fatalf("hidapi: %s", err)
-		}
-		if runtime.GOOS != "freebsd" {
-			bus = append(bus, w, h)
-		} else {
-			bus = append(bus, w)
-		}
-	}
+	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
 	longMemoryWriter.Println(fmt.Sprintf("UDP port count - %d", len(ports)))
 
