@@ -77,7 +77,8 @@ func (b *WebUSB) Enumerate() ([]core.USBInfo, error) {
 	paths := make(map[string]bool)
 
 	for _, dev := range list {
-		if b.match(dev) {
+		m, t := b.match(dev)
+		if m {
 			b.mw.Println("webusb - enum - getting device descriptor")
 			dd, err := lowlevel.Get_Device_Descriptor(dev)
 			if err != nil {
@@ -91,6 +92,7 @@ func (b *WebUSB) Enumerate() ([]core.USBInfo, error) {
 					Path:      path,
 					VendorID:  int(dd.IdVendor),
 					ProductID: int(dd.IdProduct),
+					Type:      t,
 				})
 				paths[path] = true
 			}
@@ -125,7 +127,8 @@ func (b *WebUSB) Connect(path string) (core.USBDevice, error) {
 	// patchfix it here
 	mydevs := make([]lowlevel.Device, 0)
 	for _, dev := range list {
-		if b.match(dev) && b.identify(dev) == path {
+		m, _ := b.match(dev)
+		if m && b.identify(dev) == path {
 			mydevs = append(mydevs, dev)
 		}
 	}
@@ -197,35 +200,65 @@ func (b *WebUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	}, nil
 }
 
-func (b *WebUSB) match(dev lowlevel.Device) bool {
+func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
+	if dd.IdProduct == core.ProductT1Firmware {
+		// this is HID, in FreeBSD (uses WebUSB layer in go)
+		return core.TypeT1Hid
+	}
+
+	if dd.IdProduct == core.ProductT2Bootloader {
+		if int(dd.BcdDevice>>8) == 1 {
+			return core.TypeT1WebusbBoot
+		}
+		return core.TypeT2Boot
+	}
+
+	if int(dd.BcdDevice>>8) == 1 {
+		return core.TypeT1Webusb
+	}
+
+	return core.TypeT2
+}
+
+func (b *WebUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	dd, err := lowlevel.Get_Device_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("webusb - match - error getting descriptor -" + err.Error())
-		return false
+		return false, 0
 	}
 
 	vid := dd.IdVendor
 	pid := dd.IdProduct
 	if !b.matchVidPid(vid, pid) {
-		return false
+		return false, 0
 	}
 
 	c, err := lowlevel.Get_Active_Config_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("webusb - match - error getting config descriptor " + err.Error())
-		return false
+		return false, 0
 	}
 
+	var is bool
 	if runtime.GOOS == "freebsd" {
+
 		// freebsd also lists HID devices, not just webusb devices
 		// and it seems to be working
-		return (c.BNumInterfaces > webIfaceNum &&
+		is = (c.BNumInterfaces > webIfaceNum &&
 			c.Interface[webIfaceNum].Num_altsetting > webAltSetting)
+
+	} else {
+
+		is = (c.BNumInterfaces > webIfaceNum &&
+			c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
+			c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
 	}
 
-	return (c.BNumInterfaces > webIfaceNum &&
-		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
-		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
+	if !is {
+		return false, 0
+	}
+	return true, matchType(dd)
+
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {

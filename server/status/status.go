@@ -181,24 +181,13 @@ func (s *status) statusEnumerate() ([]statusTemplateDevice, error) {
 }
 
 func makeStatusTemplateDevice(dev core.EnumerateEntry) statusTemplateDevice {
-	var devType statusTemplateDevType
-	if dev.Vendor == core.VendorT1 {
-		devType = typeT1
-	}
-	if dev.Vendor == core.VendorT2 {
-		if dev.Product == core.ProductT2Firmware {
-			devType = typeT2
-		} else {
-			devType = typeT2Boot
-		}
-	}
 	var session string
 	if dev.Session != nil {
 		session = *dev.Session
 	}
 	tdev := statusTemplateDevice{
 		Path:    dev.Path,
-		Type:    devType,
+		Type:    dev.Type,
 		Used:    dev.Session != nil,
 		Session: session,
 	}

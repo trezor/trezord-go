@@ -1,17 +1,13 @@
 package status
 
-import "html/template"
+import (
+	"html/template"
 
-type statusTemplateDevType int
-
-const (
-	typeT1     statusTemplateDevType = 0
-	typeT2     statusTemplateDevType = 1
-	typeT2Boot statusTemplateDevType = 2
+	"github.com/trezor/trezord-go/core"
 )
 
 type statusTemplateDevice struct {
-	Type    statusTemplateDevType
+	Type    core.DeviceType
 	Path    string
 	Used    bool
 	Session string
@@ -173,16 +169,29 @@ const templateString = `
       {{range .Devices}}
       <div class="item">
         <h3>{{if eq .Type 0}}
-          TREZOR One
+          TREZOR One (HID)
         {{end}}
 
         {{if eq .Type 1}}
-          TREZOR Model T
+          TREZOR One (WebUSB)
         {{end}}
 
         {{if eq .Type 2}}
+          TREZOR One (WebUSB, bootloader)
+        {{end}}
+
+        {{if eq .Type 3}}
+          TREZOR Model T
+        {{end}}
+
+        {{if eq .Type 4}}
           TREZOR Model T (bootloader)
         {{end}}
+
+        {{if eq .Type 5}}
+          TREZOR Emulator
+        {{end}}
+
       </h3>
         <span class="session">
         {{if .Used}} Session: {{.Session}} {{end}} {{if not .Used}} Session: no session {{end}}

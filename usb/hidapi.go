@@ -46,6 +46,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 				Path:      b.identify(&dev),
 				VendorID:  int(dev.VendorID),
 				ProductID: int(dev.ProductID),
+				Type:      core.TypeT1Hid,
 			})
 		}
 	}
