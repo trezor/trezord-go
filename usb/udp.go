@@ -136,7 +136,7 @@ type UDPDevice struct {
 	closed int32 // atomic
 }
 
-func (d *UDPDevice) Close() error {
+func (d *UDPDevice) Close(disconnected bool) error {
 	atomic.StoreInt32(&d.closed, 1)
 	return nil
 }
