@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.24] - unreleased
+
+- Remove wait for other pending driver installation on Windows
+- Do not attempt to read from a disconnected device
+- Add FreeBSD support (but not as release target)
+- Fix device types on status page with V1+WebUSB
+- Nicer error on disconnect during call
+
 ## [2.0.23] - unreleased
 
 - Fix installation when not an admin user (runtime UAC checks + install to all users)
