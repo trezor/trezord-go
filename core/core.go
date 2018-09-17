@@ -53,7 +53,8 @@ type USBInfo struct {
 }
 
 type USBDevice interface {
-	io.ReadWriteCloser
+	io.ReadWriter
+	Close(disconnected bool) error
 }
 
 type session struct {
@@ -194,7 +195,7 @@ func (c *Core) releaseDisconnected(infos []USBInfo) {
 		}
 		if !connected {
 			c.Log(fmt.Sprintf("releasing disconnected device %s", ssid))
-			err := c.Release(ssid)
+			err := c.release(ssid, true)
 			// just log if there is an error
 			// they are disconnected anyway
 			if err != nil {
@@ -205,6 +206,10 @@ func (c *Core) releaseDisconnected(infos []USBInfo) {
 }
 
 func (c *Core) Release(session string) error {
+	return c.release(session, false)
+}
+
+func (c *Core) release(session string, disconnected bool) error {
 	c.Log(fmt.Sprintf("inner release - session %s", session))
 	acquired := c.sessions[session]
 	if acquired == nil {
@@ -214,7 +219,7 @@ func (c *Core) Release(session string) error {
 	delete(c.sessions, session)
 
 	c.Log("inner release - bus close")
-	err := acquired.dev.Close()
+	err := acquired.dev.Close(disconnected)
 	return err
 }
 
@@ -283,7 +288,7 @@ func (c *Core) Acquire(path, prev string) (string, error) {
 
 	if prev != "" {
 		c.Log("acquire - releasing previous")
-		err := c.Release(prev)
+		err := c.release(prev, false)
 		if err != nil {
 			return "", err
 		}
@@ -391,7 +396,7 @@ func (c *Core) Call(body []byte, session string, skipRead bool, closeNotify <-ch
 			return
 		case <-closeNotify:
 			c.Log("call - detected request close, auto-release")
-			errRelease := c.Release(session)
+			errRelease := c.release(session, false)
 			if errRelease != nil {
 				// just log, since request is already closed
 				c.Log(fmt.Sprintf("Error while releasing: %s", errRelease.Error()))

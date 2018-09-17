@@ -294,12 +294,16 @@ type WUD struct {
 	mw *memorywriter.MemoryWriter
 }
 
-func (d *WUD) Close() error {
+func (d *WUD) Close(disconnected bool) error {
 	d.mw.Println("webusb - close - storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
-	d.mw.Println("webusb - close - finishing read queue")
-	d.finishReadQueue()
+	// reading recently disconnected device sometimes causes weird issues
+	// => if we *know* it is disconnected, don't finish read queue
+	if !disconnected {
+		d.mw.Println("webusb - close - finishing read queue")
+		d.finishReadQueue()
+	}
 
 	d.mw.Println("webusb - close - wait for transferMutex lock")
 	d.transferMutex.Lock()

@@ -111,7 +111,7 @@ type HID struct {
 	mw *memorywriter.MemoryWriter
 }
 
-func (d *HID) Close() error {
+func (d *HID) Close(disconnected bool) error {
 
 	d.mw.Println("hidapi - close - storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
