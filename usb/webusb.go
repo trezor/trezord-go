@@ -3,6 +3,7 @@ package usb
 import (
 	"encoding/hex"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -214,15 +215,29 @@ func (b *WebUSB) match(dev lowlevel.Device) bool {
 		b.mw.Println("webusb - match - error getting config descriptor " + err.Error())
 		return false
 	}
+
+	if runtime.GOOS == "freebsd" {
+		// freebsd also lists HID devices, not just webusb devices
+		// and it seems to be working
+		return (c.BNumInterfaces > webIfaceNum &&
+			c.Interface[webIfaceNum].Num_altsetting > webAltSetting)
+	}
+
 	return (c.BNumInterfaces > webIfaceNum &&
 		c.Interface[webIfaceNum].Num_altsetting > webAltSetting &&
 		c.Interface[webIfaceNum].Altsetting[webAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
 }
 
 func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
-	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+	// Note: Trezor1 webusb will actually have the T2 vid/pid
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return trezor1 || trezor2
+
+	if runtime.GOOS == "freebsd" {
+		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+		return trezor1 || trezor2
+	}
+
+	return trezor2
 }
 
 func (b *WebUSB) identify(dev lowlevel.Device) string {
@@ -306,12 +321,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 
 		if err != nil {
 			d.mw.Println(fmt.Sprintf("webusb - rw - error seen - %s", err.Error()))
-			if err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_IO)) ||
-				err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_NO_DEVICE)) ||
-				err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_PIPE)) {
-				// according to libusb docs, disconnecting device should cause only
-				// LIBUSB_ERROR_NO_DEVICE error, but in real life, it causes also
-				// LIBUSB_ERROR_IO and LIBUSB_ERROR_PIPE
+			if isErrorDisconnect(err) {
 				d.mw.Println("webusb - rw - device probably disconnected")
 				return 0, errDisconnect
 			}
@@ -325,6 +335,17 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 
 		// continue the for cycle
 	}
+}
+
+func isErrorDisconnect(err error) bool {
+	// according to libusb docs, disconnecting device should cause only
+	// LIBUSB_ERROR_NO_DEVICE error, but in real life, it causes also
+	// LIBUSB_ERROR_IO, LIBUSB_ERROR_PIPE, LIBUSB_ERROR_OTHER
+
+	return (err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_IO)) ||
+		err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_NO_DEVICE)) ||
+		err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_OTHER)) ||
+		err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_PIPE)))
 }
 
 func (d *WUD) Write(buf []byte) (int, error) {

@@ -7,7 +7,7 @@
 // https://github.com/orofarne/gowchar/blob/master/LICENSE
 
 // +build !ios
-// +build linux darwin windows
+// +build linux freebsd darwin windows
 
 package lowlevel
 
