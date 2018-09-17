@@ -34,10 +34,22 @@ type USBBus interface {
 	Has(path string) bool
 }
 
+type DeviceType int
+
+const (
+	TypeT1Hid        DeviceType = 0
+	TypeT1Webusb     DeviceType = 1
+	TypeT1WebusbBoot DeviceType = 2
+	TypeT2           DeviceType = 3
+	TypeT2Boot       DeviceType = 4
+	TypeEmulator     DeviceType = 5
+)
+
 type USBInfo struct {
 	Path      string
 	VendorID  int
 	ProductID int
+	Type      DeviceType
 }
 
 type USBDevice interface {
@@ -52,10 +64,11 @@ type session struct {
 }
 
 type EnumerateEntry struct {
-	Path    string  `json:"path"`
-	Vendor  int     `json:"vendor"`
-	Product int     `json:"product"`
-	Session *string `json:"session"`
+	Path    string     `json:"path"`
+	Vendor  int        `json:"vendor"`
+	Product int        `json:"product"`
+	Session *string    `json:"session"`
+	Type    DeviceType `json:"-"` // used only in status page, not in JSON
 }
 
 type EnumerateEntries []EnumerateEntry
@@ -151,6 +164,7 @@ func (c *Core) createEnumerateEntries(infos []USBInfo) EnumerateEntries {
 			Path:    info.Path,
 			Vendor:  info.VendorID,
 			Product: info.ProductID,
+			Type:    info.Type,
 		}
 		for _, ss := range c.sessions {
 			if ss.path == info.Path {
@@ -219,6 +233,9 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]Enum
 		e, enumErr := c.Enumerate()
 		if enumErr != nil {
 			return nil, enumErr
+		}
+		for i := range e {
+			e[i].Type = 0 // type is not exported/imported to json
 		}
 		if reflect.DeepEqual(entries, e) {
 			c.Log("listen equal, waiting")
