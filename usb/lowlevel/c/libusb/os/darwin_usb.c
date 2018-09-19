@@ -133,24 +133,43 @@ static const char *darwin_error_str (int result) {
 static int darwin_to_libusb (int result) {
   switch (result) {
   case kIOReturnUnderrun:
+    usbi_dbg ("kIOReturnUnderrun");
+    return LIBUSB_SUCCESS;
   case kIOReturnSuccess:
+    usbi_dbg ("kIOReturnSuccess");
     return LIBUSB_SUCCESS;
   case kIOReturnNotOpen:
+    usbi_dbg ("kIOReturnNotOpen");
+    return LIBUSB_ERROR_NO_DEVICE;
   case kIOReturnNoDevice:
+    usbi_dbg ("kIOReturnNoDevice");
     return LIBUSB_ERROR_NO_DEVICE;
   case kIOReturnExclusiveAccess:
+    usbi_dbg ("kIOReturnExclusiveAccess");
     return LIBUSB_ERROR_ACCESS;
   case kIOUSBPipeStalled:
+    usbi_dbg ("kIOUSBPipeStalled");
     return LIBUSB_ERROR_PIPE;
   case kIOReturnBadArgument:
+    usbi_dbg ("kIOUSBBadArgument");
     return LIBUSB_ERROR_INVALID_PARAM;
   case kIOUSBTransactionTimeout:
+    usbi_dbg ("kIOUSBTransactionTimeout");
     return LIBUSB_ERROR_TIMEOUT;
   case kIOReturnNotResponding:
+    usbi_dbg ("kIOReturnNotResponding");
+    return LIBUSB_ERROR_OTHER;
   case kIOReturnAborted:
+    usbi_dbg ("kIOReturnAborted");
+    return LIBUSB_ERROR_OTHER;
   case kIOReturnError:
+    usbi_dbg ("kIOReturnError");
+    return LIBUSB_ERROR_OTHER;
   case kIOUSBNoAsyncPortErr:
+    usbi_dbg ("kIOUSBNoAsyncPortErr");
+    return LIBUSB_ERROR_OTHER;
   default:
+    usbi_dbg ("darwin_to_libusb Other error");
     return LIBUSB_ERROR_OTHER;
   }
 }
@@ -1910,18 +1929,22 @@ static int darwin_transfer_status (struct usbi_transfer *itransfer, kern_return_
 
   switch (result) {
   case kIOReturnUnderrun:
+    usbi_dbg ("kIOReturnUnderrun");
+    return LIBUSB_TRANSFER_COMPLETED;
   case kIOReturnSuccess:
+    usbi_dbg ("kIOReturnSuccess");
     return LIBUSB_TRANSFER_COMPLETED;
   case kIOReturnAborted:
+    usbi_dbg ("kIOReturnAborted");
     return LIBUSB_TRANSFER_CANCELLED;
   case kIOUSBPipeStalled:
-    usbi_dbg ("transfer error: pipe is stalled");
+    usbi_dbg ("kIOUSBPipeStalled");
     return LIBUSB_TRANSFER_STALL;
   case kIOReturnOverrun:
-    usbi_warn (ITRANSFER_CTX (itransfer), "transfer error: data overrun");
+    usbi_dbg ("kIOReturnOverrun");
     return LIBUSB_TRANSFER_OVERFLOW;
   case kIOUSBTransactionTimeout:
-    usbi_warn (ITRANSFER_CTX (itransfer), "transfer error: timed out");
+    usbi_dbg ("kIOUSBTransactionTimeout");
     itransfer->timeout_flags |= USBI_TRANSFER_TIMED_OUT;
     return LIBUSB_TRANSFER_TIMED_OUT;
   default:
