@@ -114,11 +114,12 @@ static int pthread_barrier_wait(pthread_barrier_t *barrier)
 extern "C" {
 #endif
 
-#ifdef DEBUG_PRINTF
-#define LOG(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define LOG(...) do {} while (0)
-#endif
+#define LOG(...) { char nstr[1000]; \
+	snprintf(nstr, 1000, __VA_ARGS__); \
+	char anstr[1000]; \
+	snprintf(anstr, 1000, "hidapi: %s\n", nstr); \
+	goLog(anstr); \
+}
 
 #ifndef __FreeBSD__
 #define DETACH_KERNEL_DRIVER
@@ -786,7 +787,7 @@ static void read_callback(struct libusb_transfer *transfer)
 		return;
 	}
 	else if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
-		//LOG("Timeout (normal)\n");
+		LOG("Timeout (normal)\n");
 	}
 	else {
 		LOG("Unknown transfer code: %d\n", transfer->status);

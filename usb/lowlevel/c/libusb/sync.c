@@ -167,27 +167,35 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 	unsigned char endpoint, unsigned char *buffer, int length,
 	int *transferred, unsigned int timeout, unsigned char type)
 {
+	usbi_dbg("start");
 	struct libusb_transfer *transfer;
 	int completed = 0;
 	int r;
 
-	if (usbi_handling_events(HANDLE_CTX(dev_handle)))
+	if (usbi_handling_events(HANDLE_CTX(dev_handle))) {
+		usbi_dbg("busy");
 		return LIBUSB_ERROR_BUSY;
+  }
 
 	transfer = libusb_alloc_transfer(0);
-	if (!transfer)
+	if (!transfer) {
+		usbi_dbg("no memory");
 		return LIBUSB_ERROR_NO_MEM;
+	}
 
 	libusb_fill_bulk_transfer(transfer, dev_handle, endpoint, buffer, length,
 		sync_transfer_cb, &completed, timeout);
 	transfer->type = type;
 
+	usbi_dbg("submit transfer");
 	r = libusb_submit_transfer(transfer);
 	if (r < 0) {
+		usbi_dbg("errored, try to free, returning original error %d", r);
 		libusb_free_transfer(transfer);
 		return r;
 	}
 
+	usbi_dbg("wait for completion");
 	sync_transfer_wait_for_completion(transfer);
 
 	if (transferred)
@@ -195,22 +203,31 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_COMPLETED:
+		usbi_dbg("completed");
 		r = 0;
 		break;
 	case LIBUSB_TRANSFER_TIMED_OUT:
+		usbi_dbg("timed out");
 		r = LIBUSB_ERROR_TIMEOUT;
 		break;
 	case LIBUSB_TRANSFER_STALL:
+		usbi_dbg("stall / pipe");
 		r = LIBUSB_ERROR_PIPE;
 		break;
 	case LIBUSB_TRANSFER_OVERFLOW:
+		usbi_dbg("overflow");
 		r = LIBUSB_ERROR_OVERFLOW;
 		break;
 	case LIBUSB_TRANSFER_NO_DEVICE:
+		usbi_dbg("no device");
 		r = LIBUSB_ERROR_NO_DEVICE;
 		break;
 	case LIBUSB_TRANSFER_ERROR:
+		usbi_dbg("transfer error");
+		r = LIBUSB_ERROR_IO;
+		break;
 	case LIBUSB_TRANSFER_CANCELLED:
+		usbi_dbg("cancelled");
 		r = LIBUSB_ERROR_IO;
 		break;
 	default:
@@ -219,6 +236,7 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 		r = LIBUSB_ERROR_OTHER;
 	}
 
+	usbi_dbg("regular freeing");
 	libusb_free_transfer(transfer);
 	return r;
 }
