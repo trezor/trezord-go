@@ -163,6 +163,75 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 	return r;
 }
 
+// ============= TREZORD LIBUSB CODE ============
+
+// libusb does not have the option to cancel transfers, made through sync API
+// however, we did not want to rewrite everything into async API and
+// basically re-implement sync.c in go
+// -> so I added a function that kills running transfers on a device
+//
+// It works because I know there is always only 1 transfer running on 1 device,
+// because of mutexes in the golang code
+
+#define MAX_SAVED_TRANSFERS 50
+struct running_transfer {
+	struct libusb_device_handle *dev_handle;
+	struct libusb_transfer *transfer;
+};
+static struct running_transfer running_transfers[MAX_SAVED_TRANSFERS];
+// it will fail with >50 transfers, but since we limit 1 trezor to 1 transfer,
+// that would mean 50 concurrent connected trezors
+// - and also it doesn't fail that terribly, it just doesn't cancel the transfers
+
+static usbi_mutex_static_t running_transfers_lock = USBI_MUTEX_INITIALIZER;
+
+static void save_running_transfer(struct libusb_device_handle *dev_handle, struct libusb_transfer *transfer) {
+	usbi_dbg("wait for lock");
+	usbi_mutex_static_lock(&running_transfers_lock);
+	usbi_dbg("wait for lock finished");
+	int i = 0;
+	for (i = 0; i < MAX_SAVED_TRANSFERS; i++) {
+		if (running_transfers[i].dev_handle == NULL) {
+			usbi_dbg("saved at %d", i);
+			running_transfers[i].dev_handle = dev_handle;
+			running_transfers[i].transfer = transfer;
+			usbi_mutex_static_unlock(&running_transfers_lock);
+			return;
+		}
+	}
+	usbi_dbg("not saved");
+	usbi_mutex_static_unlock(&running_transfers_lock);
+}
+
+static struct libusb_transfer* get_and_remove_running_transfer(struct libusb_device_handle *dev_handle) {
+	usbi_dbg("wait for lock");
+	usbi_mutex_static_lock(&running_transfers_lock);
+	usbi_dbg("wait for lock finished");
+	int i = 0;
+	for (i = 0; i < MAX_SAVED_TRANSFERS; i++) {
+		if (running_transfers[i].dev_handle == dev_handle) {
+			usbi_dbg("got at %d", i);
+			struct libusb_transfer* res = running_transfers[i].transfer;
+			running_transfers[i].dev_handle = NULL;
+			running_transfers[i].transfer = NULL;
+			usbi_mutex_static_unlock(&running_transfers_lock);
+			return res;
+		}
+	}
+	usbi_dbg("did not get any");
+	usbi_mutex_static_unlock(&running_transfers_lock);
+	return NULL;
+}
+
+void API_EXPORTED libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
+	struct libusb_transfer* t = get_and_remove_running_transfer(dev_handle);
+	if (t != NULL){
+		libusb_cancel_transfer(t);
+	}
+}
+
+// ============= TREZORD LIBUSB CODE END ========
+
 static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 	unsigned char endpoint, unsigned char *buffer, int length,
 	int *transferred, unsigned int timeout, unsigned char type)
@@ -195,8 +264,15 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 		return r;
 	}
 
-	usbi_dbg("wait for completion");
+	usbi_dbg("save_running_transfer");
+	save_running_transfer(dev_handle, transfer);
+
+	usbi_dbg("sync_transfer_wait_for_completion");
 	sync_transfer_wait_for_completion(transfer);
+
+	// removing the transfer from the saved structure
+	usbi_dbg("get_and_remove_running_transfer");
+	get_and_remove_running_transfer(dev_handle);
 
 	if (transferred)
 		*transferred = transfer->actual_length;

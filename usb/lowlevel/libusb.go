@@ -1370,4 +1370,9 @@ func Interrupt_Transfer(hdl Device_Handle, endpoint uint8, data []byte, timeout 
 	return data[:int(transferred)], nil
 }
 
+// libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
+func Cancel_Sync_Transfers_On_Device(hdl Device_Handle) {
+	C.libusb_cancel_sync_transfers_on_device(hdl)
+}
+
 //-----------------------------------------------------------------------------

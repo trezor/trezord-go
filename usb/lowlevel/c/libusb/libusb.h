@@ -1745,6 +1745,9 @@ static inline unsigned char *libusb_get_iso_packet_buffer_simple(
 
 /* sync I/O */
 
+
+void LIBUSB_CALL libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle);
+
 int LIBUSB_CALL libusb_control_transfer(libusb_device_handle *dev_handle,
 	uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	unsigned char *data, uint16_t wLength, unsigned int timeout);
