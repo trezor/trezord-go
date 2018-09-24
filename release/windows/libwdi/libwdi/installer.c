@@ -43,7 +43,7 @@
 #pragma warning(disable:28719)
 #endif
 
-#define REQUEST_TIMEOUT 5000
+#define REQUEST_TIMEOUT 60000
 #define PF_ERR          plog
 
 // UpdateDriverForPlugAndPlayDevices.InstallFlags constants
