@@ -1868,7 +1868,10 @@ static int darwin_abort_transfers (struct usbi_transfer *itransfer) {
   usbi_dbg ("calling clear pipe stall to clear the data toggle bit");
 
   /* newer versions of darwin support clearing additional bits on the device's endpoint */
-  kresult = (*(cInterface->interface))->ClearPipeStallBothEnds(cInterface->interface, pipeRef);
+  // commented out in trezord fork, since it caused strange hangs on Trezor 1
+  // however, if we also comment out AbortPipe few lines earlier, it causes strange hangs on Trezor T
+  // kresult = (*(cInterface->interface))->ClearPipeStallBothEnds(cInterface->interface, pipeRef);
+  kresult = kIOReturnSuccess;
 
   return darwin_to_libusb (kresult);
 }
