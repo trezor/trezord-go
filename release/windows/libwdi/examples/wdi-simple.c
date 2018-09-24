@@ -201,34 +201,9 @@ int __cdecl main(int argc, char** argv)
 
 	wdi_dbg("Installing driver(s)...");
 
-	// Try to match against a plugged device to avoid device manager prompts
-	matching_device_found = FALSE;
-	if (wdi_create_list(&ldev, &ocl) == WDI_SUCCESS) {
-		wdi_dbg("Going through devices.");
-		r = WDI_SUCCESS;
-		int i = 0;
-		for (; (ldev != NULL) && (r == WDI_SUCCESS); ldev = ldev->next) {
-			i++;
-			wdi_dbg("See a device! %d - vid %x, pid %x", i, ldev->vid, ldev->pid);
-			if ( (ldev->vid == dev.vid) && (ldev->pid == dev.pid) && (ldev->mi == dev.mi) &&(ldev->is_composite == dev.is_composite) ) {
-				wdi_dbg("Device matching, let's install.");
-				
-				dev.hardware_id = ldev->hardware_id;
-				dev.device_id = ldev->device_id;
-				matching_device_found = TRUE;
-				wdi_dbg("  %s: ", dev.hardware_id);
-				r = wdi_install_driver(&dev, ext_dir, inf_name, &oid);
-				wdi_dbg("%s", wdi_strerror(r));
-			}
-		}
-	}
-
-	// No plugged USB device matches this one -> install driver
-	if (!matching_device_found) {
-		wdi_dbg("Did not match a device, installing driver for all");
-		r = wdi_install_driver(&dev, ext_dir, inf_name, &oid);
-		wdi_dbg("  %s", wdi_strerror(r));
-	}
+	wdi_dbg("Installing driver for all");
+	r = wdi_install_driver(&dev, ext_dir, inf_name, &oid);
+	wdi_dbg("  %s", wdi_strerror(r));
 
 	return r;
 }
