@@ -1449,6 +1449,7 @@ static int process_message(char* buffer, DWORD size)
 static int install_driver_internal(void* arglist)
 {
 	PF_DECL_LIBRARY(SetupAPI);
+	PF_TYPE_DECL(WINAPI, DWORD, CMP_WaitNoPendingInstallEvents, (DWORD));
 	struct install_driver_params* params = (struct install_driver_params*)arglist;
 	SHELLEXECUTEINFOA shExecInfo;
 	STARTUPINFOA si;
@@ -1475,6 +1476,7 @@ static int install_driver_internal(void* arglist)
 
 	PF_LOAD_LIBRARY(SetupAPI);
 	r = WDI_ERROR_RESOURCE;
+	PF_INIT_OR_OUT(CMP_WaitNoPendingInstallEvents, SetupAPI);
 
 	current_device = params->device_info;
 	filter_driver = FALSE;
@@ -1495,6 +1497,17 @@ static int install_driver_internal(void* arglist)
 		wdi_err("one of the required parameter is NULL");
 		r = WDI_ERROR_INVALID_PARAM;
 		goto out;
+	}
+
+	// Detect if another installation is in process
+	if ((params->options != NULL) && (pfCMP_WaitNoPendingInstallEvents != NULL)) {
+		if (pfCMP_WaitNoPendingInstallEvents(params->options->pending_install_timeout) == WAIT_TIMEOUT) {
+			wdi_warn("timeout expired while waiting for another pending installation - aborting");
+			r = WDI_ERROR_PENDING_INSTALLATION;
+			goto out;
+		}
+	} else {
+		wdi_dbg("CMP_WaitNoPendingInstallEvents not available");
 	}
 
 	// Detect whether if we should run the 64 bit installer, without
