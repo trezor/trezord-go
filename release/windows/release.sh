@@ -13,7 +13,6 @@ cd /release/build
 
 cp /release/trezord.nsis trezord.nsis
 cp /release/trezord.ico trezord.ico
-cp /release/reinstall-drivers.bat reinstall-drivers.bat
 
 SIGNKEY=/release/authenticode
 
