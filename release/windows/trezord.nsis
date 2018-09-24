@@ -171,8 +171,9 @@ SectionEnd
 Section "Install drivers"
   ${If} ${IsWin7}
   DetailPrint "Installing drivers"
-  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT --timeout 120000 > "%AppData%\TREZOR Bridge\wdi-log.txt" 2>&1"'
-  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT --timeout 120000 >> "%AppData%\TREZOR Bridge\wdi-log.txt" 2>&1"'
+  ; 900 000 milliseconds is 15 minutes
+  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT --timeout 900000 > "%AppData%\TREZOR Bridge\wdi-log.txt" 2>&1"'
+  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT --timeout 900000 >> "%AppData%\TREZOR Bridge\wdi-log.txt" 2>&1"'
   ${EndIf}
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 SectionEnd
