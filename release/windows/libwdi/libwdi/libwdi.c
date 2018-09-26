@@ -1060,18 +1060,21 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 
 	MUTEX_START;
 
+	wdi_info("check 1");
 	GET_WINDOWS_VERSION;
 	if (nWindowsVersion < WINDOWS_7) {
 		wdi_err("this version of Windows is no longer supported");
 		r = WDI_ERROR_NOT_SUPPORTED;
 		goto out;
 	}
+	wdi_info("check 2");
 
 	if ((device_info == NULL) || (inf_name == NULL)) {
 		wdi_err("one of the required parameter is NULL");
 		r = WDI_ERROR_INVALID_PARAM;
 		goto out;
 	}
+	wdi_info("check 3");
 
 	// Check the inf file provided and create the cat file name
 	if (strcmp(inf_name+safe_strlen(inf_name)-4, inf_ext) != 0) {
@@ -1079,6 +1082,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		r = WDI_ERROR_INVALID_PARAM;
 		goto out;
 	}
+	wdi_info("check 4");
 
 	if (path != NULL) {
 		static_strcpy(drv_path, path);
@@ -1095,16 +1099,19 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 			wdi_info("no path provided - extracting to '%s'", drv_path);
 		}
 	}
+	wdi_info("check 5");
 
 	// Try to create directory if it doesn't exist
 	r = check_dir(drv_path, TRUE);
 	if (r != WDI_SUCCESS) {
 		goto out;
 	}
+	wdi_info("check 6");
 
 	if (options != NULL) {
 		driver_type = options->driver_type;
 	}
+	wdi_info("check 7");
 
 	// Ensure driver_type is what we expect
 	if ( (driver_type < 0) || (driver_type > WDI_USER) ) {
@@ -1112,6 +1119,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		r = WDI_ERROR_INVALID_PARAM;
 		goto out;
 	}
+	wdi_info("check 8");
 
 	if (!wdi_is_driver_supported(driver_type, &driver_version[driver_type])) {
 		for (driver_type=0; driver_type<WDI_NB_DRIVERS; driver_type++) {
@@ -1127,6 +1135,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 			goto out;
 		}
 	}
+	wdi_info("check 9");
 
 	// If the target is libusb-win32 and we have the K DLLs, add them to the inf
 	if ((driver_type == WDI_LIBUSB0) && (wdi_is_driver_supported(WDI_LIBUSBK, NULL))) {
@@ -1137,6 +1146,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		static_strcpy(inf_entities[LK_EQ_X86].replace, "= 1,x86");
 		static_strcpy(inf_entities[LK_EQ_X64].replace, "= 1,amd64");
 	}
+	wdi_info("check 10");
 
 	// For custom drivers, as we cannot autogenerate the inf, simply extract binaries
 	if (driver_type == WDI_USER) {
@@ -1144,17 +1154,20 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		r = extract_binaries(drv_path);
 		goto out;
 	}
+	wdi_info("check 11");
 
 	if (device_info->desc == NULL) {
 		wdi_err("no device ID was given for the device - aborting");
 		r = WDI_ERROR_INVALID_PARAM;
 		goto out;
 	}
+	wdi_info("check 12");
 
 	r = extract_binaries(drv_path);
 	if (r != WDI_SUCCESS) {
 		goto out;
 	}
+	wdi_info("check 13");
 
 	// Populate the inf and cat names & paths
 	if ( (strlen(drv_path) >= MAX_PATH) || (strlen(inf_name) >= MAX_PATH) ||
@@ -1163,6 +1176,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		r = WDI_ERROR_RESOURCE;
 		goto out;
 	}
+	wdi_info("check 14");
 	safe_strcpy(inf_path, sizeof(inf_path), drv_path);
 	safe_strcat(inf_path, sizeof(inf_path), "\\");
 	safe_strcat(inf_path, sizeof(inf_path), inf_name);
@@ -1175,6 +1189,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 	cat_path[safe_strlen(cat_path)-3] = 'c';
 	cat_path[safe_strlen(cat_path)-2] = 'a';
 	cat_path[safe_strlen(cat_path)-1] = 't';
+	wdi_info("check 15");
 
 	static_strcpy(inf_entities[INF_FILENAME].replace, inf_name);
 	cat_name = safe_strdup(inf_name);
@@ -1187,6 +1202,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 	cat_name[safe_strlen(inf_name)-1] = 't';
 	static_strcpy(inf_entities[CAT_FILENAME].replace, cat_name);
 	safe_free(cat_name);
+	wdi_info("check 16");
 
 	// Populate the Device Description and Hardware ID
 	static_strcpy(inf_entities[DEVICE_DESCRIPTION].replace, device_info->desc);
@@ -1203,6 +1219,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		}
 		static_strcpy(inf_entities[USE_DEVICE_INTERFACE_GUID].replace, "AddDeviceInterfaceGUID");
 	}
+	wdi_info("check 17");
 
 	// Find out if we have an Android device
 	for (i=0; i<ARRAYSIZE(android_device); i++) {
@@ -1211,6 +1228,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 			break;
 		}
 	}
+	wdi_info("check 18");
 
 	// Populate the Device Interface GUID
 	if ((options != NULL) && (options->use_wcid_driver)) {
@@ -1225,6 +1243,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		strguid = guid_to_string(guid);
 	}
 	static_sprintf(inf_entities[DEVICE_INTERFACE_GUID].replace, "%s", strguid);
+	wdi_info("check 19");
 
 	// Resolve the Manufacturer (Vendor Name)
 	if ((options != NULL) && (options->vendor_name != NULL)) {
@@ -1236,6 +1255,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		}
 		static_strcpy(inf_entities[DEVICE_MANUFACTURER].replace, vendor_name);
 	}
+	wdi_info("check 20");
 
 	// Set the WDF and KMDF versions for WinUSB and libusbK
 	static_sprintf(inf_entities[WDF_VERSION].replace, "%05d", WDF_VER);
@@ -1261,6 +1281,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 	static_sprintf(inf_entities[DRIVER_VERSION].replace, "%d.%d.%d.%d",
 		(int)driver_version[driver_type].dwFileVersionMS>>16, (int)driver_version[driver_type].dwFileVersionMS&0xFFFF,
 		(int)driver_version[driver_type].dwFileVersionLS>>16, (int)driver_version[driver_type].dwFileVersionLS&0xFFFF);
+	wdi_info("check 22");
 
 	// Tokenize the file
 	if ((inf_file_size = tokenize_internal(inf_template[driver_type],
@@ -1291,6 +1312,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		goto out;
 	}
 	wdi_info("successfully created '%s'", inf_path);
+	wdi_info("check 23");
 
 	if (IsUserAnAdmin()) {
 		// Try to create and self-sign the cat file to remove security prompts
@@ -1300,6 +1322,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 			goto out;
 		}
 		wdi_info("Creating and self-signing a .cat file...");
+		wdi_info("check 24");
 
 		// Tokenize the cat file (for WDF version)
 		if ((cat_file_size = tokenize_internal(cat_template[driver_type],
@@ -1308,6 +1331,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 			r = WDI_ERROR_ACCESS;
 			goto out;
 		}
+		wdi_info("check 25");
 
 		// Build the filename list
 		nb_entries = 0;
@@ -1332,6 +1356,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		sprintf(hw_id, "USB\\%s", ((options != NULL) && (options->use_wcid_driver))?
 			ms_compat_id[driver_type]:inf_entities[DEVICE_HARDWARE_ID].replace);
 		sprintf(cert_subject, "CN=%s (libwdi autogenerated)", hw_id);
+		wdi_info("check 26");
 
 		// Failures on the following aren't fatal errors
 		if (!CreateCat(cat_path, hw_id, drv_path, cat_list, nb_entries)) {
@@ -1342,6 +1367,7 @@ int LIBWDI_API wdi_prepare_driver(struct wdi_device_info* device_info, const cha
 		}
 		safe_free(cat_in_copy);
 		safe_free(dst);
+		wdi_info("check 27 (last)");
 	} else {
 		wdi_info("No .cat file generated (missing elevated privileges)");
 	}
