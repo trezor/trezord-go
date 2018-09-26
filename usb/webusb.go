@@ -21,7 +21,7 @@ const (
 	webAltSetting = 0
 	webEpIn       = 0x81
 	webEpOut      = 0x01
-	usbTimeout    = 5000
+	isFreeBSD     = runtime.GOOS == "freebsd"
 )
 
 type WebUSB struct {
@@ -240,7 +240,7 @@ func (b *WebUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	}
 
 	var is bool
-	if runtime.GOOS == "freebsd" {
+	if isFreeBSD {
 
 		// freebsd also lists HID devices, not just webusb devices
 		// and it seems to be working
@@ -265,7 +265,7 @@ func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
 	// Note: Trezor1 webusb will actually have the T2 vid/pid
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
 
-	if runtime.GOOS == "freebsd" {
+	if isFreeBSD {
 		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 		return trezor1 || trezor2
 	}
@@ -288,8 +288,7 @@ type WUD struct {
 
 	closed        int32 // atomic
 	transferMutex sync.Mutex
-	// closing cannot happen while interrupt_transfer is hapenning,
-	// otherwise interrupt_transfer hangs forever
+	// two interrupt_transfers should not happen at the same time
 
 	mw *memorywriter.MemoryWriter
 }
@@ -298,6 +297,13 @@ func (d *WUD) Close(disconnected bool) error {
 	d.mw.Println("webusb - close - storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
+	// libusb close does NOT cancel transfers on close
+	// => we are using our own function that we added to libusb/sync.c
+	// this "unblocks" Interrupt_Transfer in readWrite
+	// (noop on freebsd)
+	d.mw.Println("webusb - close - canceling previous transfers")
+	lowlevel.Cancel_Sync_Transfers_On_Device(d.dev)
+
 	// reading recently disconnected device sometimes causes weird issues
 	// => if we *know* it is disconnected, don't finish read queue
 	if !disconnected {
@@ -305,13 +311,17 @@ func (d *WUD) Close(disconnected bool) error {
 		d.finishReadQueue()
 	}
 
-	d.mw.Println("webusb - close - wait for transferMutex lock")
-	d.transferMutex.Lock()
+	// we need to add mutexes on freebsd so the timeout in readWrite doesn't hang
+	if isFreeBSD {
+		d.transferMutex.Lock()
+	}
 	d.mw.Println("webusb - close - low level close")
 	lowlevel.Close(d.dev)
-	d.transferMutex.Unlock()
-
 	d.mw.Println("webusb - close - done")
+
+	if isFreeBSD {
+		d.transferMutex.Unlock()
+	}
 
 	return nil
 }
@@ -323,6 +333,8 @@ func (d *WUD) finishReadQueue() {
 	var buf [64]byte
 
 	for err == nil {
+		// these transfers have timeouts => should not interfer with
+		// cancel_sync_transfers_on_device
 		d.mw.Println("webusb - close - rq - transfer")
 		_, err = lowlevel.Interrupt_Transfer(d.dev, webEpIn, buf[:], 50)
 	}
@@ -343,18 +355,15 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		d.mw.Println("webusb - rw - lock transfer mutex")
 		d.transferMutex.Lock()
 		d.mw.Println("webusb - rw - actual interrupt transport")
-		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, usbTimeout)
+		// This has no timeout, but is stopped by Cancel_Sync_Transfers_On_Device
+		timeout := uint(0)
+		if isFreeBSD {
+			// freebsd doesn't have our added API -> let's use timeouts
+			timeout = uint(5000)
+		}
+		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, timeout)
 		d.transferMutex.Unlock()
 		d.mw.Println("webusb - rw - single transfer done")
-
-		if err == nil {
-			// sometimes, empty report is read, skip it
-			if len(p) > 0 {
-				d.mw.Println("webusb - rw - single transfer succesful")
-				return len(p), err
-			}
-			d.mw.Println("webusb - rw - skipping empty transfer - go again")
-		}
 
 		if err != nil {
 			d.mw.Println(fmt.Sprintf("webusb - rw - error seen - %s", err.Error()))
@@ -363,14 +372,24 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 				return 0, errDisconnect
 			}
 
-			if err.Error() != lowlevel.Error_Name(int(lowlevel.ERROR_TIMEOUT)) {
+			if isFreeBSD && err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_TIMEOUT)) {
+				d.mw.Println("webusb - rw - timeout")
+			} else {
 				d.mw.Println("webusb - rw - other error")
 				return 0, err
 			}
-			d.mw.Println("webusb - rw - timeout - go again")
+		} else {
+
+			// sometimes, empty report is read, skip it
+			if len(p) > 0 {
+				d.mw.Println("webusb - rw - single transfer succesful")
+				return len(p), err
+			}
+			d.mw.Println("webusb - rw - skipping empty transfer")
 		}
 
-		// continue the for cycle
+		d.mw.Println("webusb - rw - go again")
+		// continue the for cycle if empty transfer or freebsd timeout
 	}
 }
 

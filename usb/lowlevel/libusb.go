@@ -20,6 +20,10 @@ package lowlevel
 #include "./c/libusb/libusb.h"
 #else
 #include <libusb.h>
+
+// "fake" function so freebsd builds
+void libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
+}
 #endif
 
 // When a C struct ends with a zero-sized field, but the struct itself is not zero-sized,
@@ -1368,6 +1372,11 @@ func Interrupt_Transfer(hdl Device_Handle, endpoint uint8, data []byte, timeout 
 		return nil, &libusb_error{rc}
 	}
 	return data[:int(transferred)], nil
+}
+
+// libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
+func Cancel_Sync_Transfers_On_Device(hdl Device_Handle) {
+	C.libusb_cancel_sync_transfers_on_device(hdl)
 }
 
 //-----------------------------------------------------------------------------
