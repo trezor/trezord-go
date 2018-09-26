@@ -173,14 +173,14 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 // It works because I know there is always only 1 transfer running on 1 device,
 // because of mutexes in the golang code
 
-#define MAX_SAVED_TRANSFERS 50
+#define MAX_SAVED_TRANSFERS 256
 struct running_transfer {
 	struct libusb_device_handle *dev_handle;
 	struct libusb_transfer *transfer;
 };
 static struct running_transfer running_transfers[MAX_SAVED_TRANSFERS];
-// it will fail with >50 transfers, but since we limit 1 trezor to 1 transfer,
-// that would mean 50 concurrent connected trezors
+// it will fail with >256 transfers, but since we limit 1 trezor to 1 transfer,
+// that would mean 256 concurrent connected trezors
 // - and also it doesn't fail that terribly, it just doesn't cancel the transfers
 
 static usbi_mutex_static_t running_transfers_lock = USBI_MUTEX_INITIALIZER;
