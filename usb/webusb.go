@@ -3,7 +3,6 @@ package usb
 import (
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,15 +20,16 @@ const (
 	webAltSetting = 0
 	webEpIn       = 0x81
 	webEpOut      = 0x01
-	isFreeBSD     = runtime.GOOS == "freebsd"
 )
 
 type WebUSB struct {
-	usb lowlevel.Context
-	mw  *memorywriter.MemoryWriter
+	usb    lowlevel.Context
+	mw     *memorywriter.MemoryWriter
+	only   bool
+	cancel bool
 }
 
-func InitWebUSB(mw *memorywriter.MemoryWriter) (*WebUSB, error) {
+func InitWebUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel bool) (*WebUSB, error) {
 	var usb lowlevel.Context
 	mw.Println("webusb - init")
 	lowlevel.SetLogWriter(mw)
@@ -42,8 +42,10 @@ func InitWebUSB(mw *memorywriter.MemoryWriter) (*WebUSB, error) {
 	mw.Println("webusb - init done")
 
 	return &WebUSB{
-		usb: usb,
-		mw:  mw,
+		usb:    usb,
+		mw:     mw,
+		only:   onlyLibusb,
+		cancel: allowCancel,
 	}, nil
 }
 
@@ -196,13 +198,14 @@ func (b *WebUSB) connect(dev lowlevel.Device) (*WUD, error) {
 		dev:    d,
 		closed: 0,
 
-		mw: b.mw,
+		mw:     b.mw,
+		cancel: b.cancel,
 	}, nil
 }
 
 func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
 	if dd.IdProduct == core.ProductT1Firmware {
-		// this is HID, in FreeBSD (uses WebUSB layer in go)
+		// this is HID, in platforms where we don't use hidapi (linux, bsd)
 		return core.TypeT1Hid
 	}
 
@@ -240,10 +243,9 @@ func (b *WebUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	}
 
 	var is bool
-	if isFreeBSD {
+	if b.only {
 
-		// freebsd also lists HID devices, not just webusb devices
-		// and it seems to be working
+		// if we don't use hidapi at all, keep HID devices
 		is = (c.BNumInterfaces > webIfaceNum &&
 			c.Interface[webIfaceNum].Num_altsetting > webAltSetting)
 
@@ -265,7 +267,7 @@ func (b *WebUSB) matchVidPid(vid uint16, pid uint16) bool {
 	// Note: Trezor1 webusb will actually have the T2 vid/pid
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
 
-	if isFreeBSD {
+	if b.only {
 		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 		return trezor1 || trezor2
 	}
@@ -290,6 +292,8 @@ type WUD struct {
 	transferMutex sync.Mutex
 	// two interrupt_transfers should not happen at the same time
 
+	cancel bool
+
 	mw *memorywriter.MemoryWriter
 }
 
@@ -297,31 +301,28 @@ func (d *WUD) Close(disconnected bool) error {
 	d.mw.Println("webusb - close - storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
-	// libusb close does NOT cancel transfers on close
-	// => we are using our own function that we added to libusb/sync.c
-	// this "unblocks" Interrupt_Transfer in readWrite
-	// (noop on freebsd)
-	d.mw.Println("webusb - close - canceling previous transfers")
-	lowlevel.Cancel_Sync_Transfers_On_Device(d.dev)
+	if d.cancel {
+		// libusb close does NOT cancel transfers on close
+		// => we are using our own function that we added to libusb/sync.c
+		// this "unblocks" Interrupt_Transfer in readWrite
 
-	// reading recently disconnected device sometimes causes weird issues
-	// => if we *know* it is disconnected, don't finish read queue
-	if !disconnected {
-		d.mw.Println("webusb - close - finishing read queue")
-		d.finishReadQueue()
+		d.mw.Println("webusb - close - canceling previous transfers")
+		lowlevel.Cancel_Sync_Transfers_On_Device(d.dev)
+
+		// reading recently disconnected device sometimes causes weird issues
+		// => if we *know* it is disconnected, don't finish read queue
+		//
+		// Finishing read queue is not necessary when we don't allow cancelling
+		// (since when we don't allow cancelling, we don't allow session stealing)
+		if !disconnected {
+			d.mw.Println("webusb - close - finishing read queue")
+			d.finishReadQueue()
+		}
 	}
 
-	// we need to add mutexes on freebsd so the timeout in readWrite doesn't hang
-	if isFreeBSD {
-		d.transferMutex.Lock()
-	}
 	d.mw.Println("webusb - close - low level close")
 	lowlevel.Close(d.dev)
 	d.mw.Println("webusb - close - done")
-
-	if isFreeBSD {
-		d.transferMutex.Unlock()
-	}
 
 	return nil
 }
@@ -356,12 +357,7 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		d.transferMutex.Lock()
 		d.mw.Println("webusb - rw - actual interrupt transport")
 		// This has no timeout, but is stopped by Cancel_Sync_Transfers_On_Device
-		timeout := uint(0)
-		if isFreeBSD {
-			// freebsd doesn't have our added API -> let's use timeouts
-			timeout = uint(5000)
-		}
-		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, timeout)
+		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, 0)
 		d.transferMutex.Unlock()
 		d.mw.Println("webusb - rw - single transfer done")
 
@@ -372,24 +368,18 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 				return 0, errDisconnect
 			}
 
-			if isFreeBSD && err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_TIMEOUT)) {
-				d.mw.Println("webusb - rw - timeout")
-			} else {
-				d.mw.Println("webusb - rw - other error")
-				return 0, err
-			}
-		} else {
-
-			// sometimes, empty report is read, skip it
-			if len(p) > 0 {
-				d.mw.Println("webusb - rw - single transfer succesful")
-				return len(p), err
-			}
-			d.mw.Println("webusb - rw - skipping empty transfer")
+			d.mw.Println("webusb - rw - other error")
+			return 0, err
 		}
 
-		d.mw.Println("webusb - rw - go again")
-		// continue the for cycle if empty transfer or freebsd timeout
+		// sometimes, empty report is read, skip it
+		// TODO: is this still needed with 0 timeouts?
+		if len(p) > 0 {
+			d.mw.Println("webusb - rw - single transfer succesful")
+			return len(p), err
+		}
+		d.mw.Println("webusb - rw - skipping empty transfer, go again")
+		// continue the for cycle if empty transfer
 	}
 }
 

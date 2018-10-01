@@ -90,6 +90,8 @@ type Core struct {
 	sessions      map[string]*session
 	sessionsMutex sync.Mutex // for atomic access to sessions
 
+	allowStealing bool
+
 	callInProgress bool       // we cannot make calls and enumeration at the same time
 	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
 	lastInfos      []USBInfo  // when call is in progress, use saved info for enumerating
@@ -112,11 +114,12 @@ const (
 	ProductT2Firmware   = 0x53C1
 )
 
-func New(bus USBBus, log *memorywriter.MemoryWriter) *Core {
+func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing bool) *Core {
 	c := &Core{
-		bus:      bus,
-		sessions: make(map[string]*session),
-		log:      log,
+		bus:           bus,
+		sessions:      make(map[string]*session),
+		log:           log,
+		allowStealing: allowStealing,
 	}
 	return c
 }
@@ -284,6 +287,10 @@ func (c *Core) Acquire(path, prev string) (string, error) {
 
 	if acquired.id != prev {
 		return "", ErrWrongPrevSession
+	}
+
+	if (!c.allowStealing) && acquired.id != "" {
+		return "", ErrOtherCall
 	}
 
 	if prev != "" {
