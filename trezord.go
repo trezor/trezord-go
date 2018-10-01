@@ -44,7 +44,7 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 	if init {
 		wr.Println("Initing libusb")
 
-		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel())
+		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel(), detachKernelDriver())
 		if err != nil {
 			sl.Fatalf("libusb: %s", err)
 		}
@@ -137,4 +137,9 @@ func allowCancel() bool {
 // Does OS use libusb for HID devices?
 func useOnlyLibusb() bool {
 	return runtime.GOOS == "freebsd" || runtime.GOOS == "linux"
+}
+
+// Does OS detach kernel driver in libusb?
+func detachKernelDriver() bool {
+	return runtime.GOOS == "linux"
 }

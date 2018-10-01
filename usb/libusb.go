@@ -27,9 +27,10 @@ type LibUSB struct {
 	mw     *memorywriter.MemoryWriter
 	only   bool
 	cancel bool
+	detach bool
 }
 
-func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel bool) (*LibUSB, error) {
+func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach bool) (*LibUSB, error) {
 	var usb lowlevel.Context
 	mw.Println("libusb - init")
 	lowlevel.SetLogWriter(mw)
@@ -46,6 +47,7 @@ func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel bool) (*L
 		mw:     mw,
 		only:   onlyLibusb,
 		cancel: allowCancel,
+		detach: detach,
 	}, nil
 }
 
@@ -184,6 +186,24 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration %d", currConf))
 	}
 
+	if b.detach {
+		b.mw.Println("libusb - connect - detecting kernel driver")
+		kernel, errD := lowlevel.Kernel_Driver_Active(d, usbIfaceNum)
+		if errD != nil {
+			b.mw.Println("libusb - connect - detecting kernel driver failed")
+			lowlevel.Close(d)
+			return nil, err
+		}
+		if kernel {
+			b.mw.Println("libusb - connect - kernel driver active, detach")
+			errD = lowlevel.Detach_Kernel_Driver(d, usbIfaceNum)
+			if errD != nil {
+				b.mw.Println("libusb - connect - detaching kernel driver failed")
+				lowlevel.Close(d)
+				return nil, err
+			}
+		}
+	}
 	b.mw.Println("libusb - connect - claiming interface")
 	err = lowlevel.Claim_Interface(d, usbIfaceNum)
 	if err != nil {
