@@ -173,22 +173,24 @@ func (b *LibUSB) setConfiguration(d lowlevel.Device_Handle) {
 	}
 }
 
-func (b *LibUSB) setInterface(d lowlevel.Device_Handle) error {
+func (b *LibUSB) setInterface(d lowlevel.Device_Handle) (bool, error) {
+	attach := false
 	if b.detach {
 		b.mw.Println("libusb - connect - detecting kernel driver")
 		kernel, errD := lowlevel.Kernel_Driver_Active(d, usbIfaceNum)
 		if errD != nil {
 			b.mw.Println("libusb - connect - detecting kernel driver failed")
 			lowlevel.Close(d)
-			return errD
+			return false, errD
 		}
 		if kernel {
+			attach = true
 			b.mw.Println("libusb - connect - kernel driver active, detach")
 			errD = lowlevel.Detach_Kernel_Driver(d, usbIfaceNum)
 			if errD != nil {
 				b.mw.Println("libusb - connect - detaching kernel driver failed")
 				lowlevel.Close(d)
-				return errD
+				return false, errD
 			}
 		}
 	}
@@ -197,12 +199,12 @@ func (b *LibUSB) setInterface(d lowlevel.Device_Handle) error {
 	if err != nil {
 		b.mw.Println("libusb - connect - claiming interface failed")
 		lowlevel.Close(d)
-		return err
+		return false, err
 	}
 
 	b.mw.Println("libusb - connect - claiming interface done")
 
-	return nil
+	return attach, nil
 }
 
 func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
@@ -221,7 +223,7 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	}
 
 	b.setConfiguration(d)
-	err = b.setInterface(d)
+	attach, err := b.setInterface(d)
 	if err != nil {
 		return nil, err
 	}
@@ -232,6 +234,7 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 
 		mw:     b.mw,
 		cancel: b.cancel,
+		attach: attach,
 	}, nil
 }
 
@@ -325,6 +328,7 @@ type WUD struct {
 	// two interrupt_transfers should not happen at the same time
 
 	cancel bool
+	attach bool
 
 	mw *memorywriter.MemoryWriter
 }
@@ -349,6 +353,14 @@ func (d *WUD) Close(disconnected bool) error {
 		if !disconnected {
 			d.mw.Println("libusb - close - finishing read queue")
 			d.finishReadQueue()
+		}
+	}
+
+	if d.attach {
+		err := lowlevel.Attach_Kernel_Driver(d.dev, usbIfaceNum)
+		if err != nil {
+			d.mw.Println("libusb - close - re-attaching kernel driver failed")
+			return err
 		}
 	}
 
