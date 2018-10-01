@@ -42,11 +42,11 @@ func (i *udpPorts) Set(value string) error {
 
 func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.USBBus {
 	if init {
-		wr.Println("Initing webusb")
+		wr.Println("Initing libusb")
 
-		w, err := usb.InitWebUSB(wr, useOnlyLibusb(), allowCancel())
+		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel())
 		if err != nil {
-			sl.Fatalf("webusb: %s", err)
+			sl.Fatalf("libusb: %s", err)
 		}
 		// defer w.Close()
 		// not defering - originally in main, now here, here makes no sense
