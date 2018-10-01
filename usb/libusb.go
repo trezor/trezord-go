@@ -148,21 +148,7 @@ func (b *LibUSB) Connect(path string) (core.USBDevice, error) {
 	return nil, err
 }
 
-func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
-	b.mw.Println("libusb - connect - low level")
-	d, err := lowlevel.Open(dev)
-	if err != nil {
-		return nil, err
-	}
-	b.mw.Println("libusb - connect - reset")
-	err = lowlevel.Reset_Device(d)
-	if err != nil {
-		// don't abort if reset fails
-		// lowlevel.Close(d)
-		// return nil, err
-		b.mw.Println(fmt.Sprintf("Warning: error at device reset: %s", err))
-	}
-
+func (b *LibUSB) setConfiguration(d lowlevel.Device_Handle) {
 	currConf, err := lowlevel.Get_Configuration(d)
 	if err != nil {
 		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration err %s", err.Error()))
@@ -185,14 +171,16 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	} else {
 		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration %d", currConf))
 	}
+}
 
+func (b *LibUSB) setInterface(d lowlevel.Device_Handle) error {
 	if b.detach {
 		b.mw.Println("libusb - connect - detecting kernel driver")
 		kernel, errD := lowlevel.Kernel_Driver_Active(d, usbIfaceNum)
 		if errD != nil {
 			b.mw.Println("libusb - connect - detecting kernel driver failed")
 			lowlevel.Close(d)
-			return nil, err
+			return errD
 		}
 		if kernel {
 			b.mw.Println("libusb - connect - kernel driver active, detach")
@@ -200,19 +188,43 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 			if errD != nil {
 				b.mw.Println("libusb - connect - detaching kernel driver failed")
 				lowlevel.Close(d)
-				return nil, err
+				return errD
 			}
 		}
 	}
 	b.mw.Println("libusb - connect - claiming interface")
-	err = lowlevel.Claim_Interface(d, usbIfaceNum)
+	err := lowlevel.Claim_Interface(d, usbIfaceNum)
 	if err != nil {
 		b.mw.Println("libusb - connect - claiming interface failed")
 		lowlevel.Close(d)
-		return nil, err
+		return err
 	}
 
 	b.mw.Println("libusb - connect - claiming interface done")
+
+	return nil
+}
+
+func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
+	b.mw.Println("libusb - connect - low level")
+	d, err := lowlevel.Open(dev)
+	if err != nil {
+		return nil, err
+	}
+	b.mw.Println("libusb - connect - reset")
+	err = lowlevel.Reset_Device(d)
+	if err != nil {
+		// don't abort if reset fails
+		// lowlevel.Close(d)
+		// return nil, err
+		b.mw.Println(fmt.Sprintf("Warning: error at device reset: %s", err))
+	}
+
+	b.setConfiguration(d)
+	err = b.setInterface(d)
+	if err != nil {
+		return nil, err
+	}
 
 	return &WUD{
 		dev:    d,
