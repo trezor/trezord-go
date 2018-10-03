@@ -42,16 +42,16 @@ func (i *udpPorts) Set(value string) error {
 
 func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.USBBus {
 	if init {
-		wr.Println("Initing webusb")
+		wr.Println("Initing libusb")
 
-		w, err := usb.InitWebUSB(wr)
+		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel(), detachKernelDriver())
 		if err != nil {
-			sl.Fatalf("webusb: %s", err)
+			sl.Fatalf("libusb: %s", err)
 		}
 		// defer w.Close()
-    // not defering - originally in main, now here, here makes no sense
+		// not defering - originally in main, now here, here makes no sense
 
-		if runtime.GOOS == "freebsd" {
+		if useOnlyLibusb() {
 			return []core.USBBus{w}
 		}
 
@@ -60,7 +60,7 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 		if err != nil {
 			sl.Fatalf("hidapi: %s", err)
 		}
-	  return []core.USBBus{w, h}
+		return []core.USBBus{w, h}
 	}
 	return nil
 }
@@ -111,8 +111,10 @@ func main() {
 	}
 
 	b := usb.Init(bus...)
+	longMemoryWriter.Println("Creating core")
+	c := core.New(b, longMemoryWriter, allowCancel())
 	longMemoryWriter.Println("Creating HTTP server")
-	s, err := server.New(b, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
+	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
@@ -125,4 +127,19 @@ func main() {
 	}
 
 	longMemoryWriter.Println("Main ended successfully")
+}
+
+// Does OS allow sync canceling via our custom libusb patches?
+func allowCancel() bool {
+	return runtime.GOOS != "freebsd"
+}
+
+// Does OS use libusb for HID devices?
+func useOnlyLibusb() bool {
+	return runtime.GOOS == "freebsd" || runtime.GOOS == "linux"
+}
+
+// Does OS detach kernel driver in libusb?
+func detachKernelDriver() bool {
+	return runtime.GOOS == "linux"
 }

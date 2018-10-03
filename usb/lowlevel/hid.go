@@ -65,6 +65,8 @@ extern void goLog(const char *s);
 	#include <libusb.h>
 #endif
 
+// linux and freebsd are including hid only that it builds;
+// it actually does not use it for listing, see trezord.go
 #ifdef OS_LINUX
 	#include "linux/hid.c"
 #elif OS_FREEBSD

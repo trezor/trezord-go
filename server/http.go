@@ -25,15 +25,12 @@ type Server struct {
 }
 
 func New(
-	bus core.USBBus,
+	c *core.Core,
 	stderrWriter io.Writer,
 	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
 	version string,
 ) (*Server, error) {
-
-	c := core.New(bus, longWriter)
-
 	longWriter.Println("http - starting")
 
 	https := &http.Server{

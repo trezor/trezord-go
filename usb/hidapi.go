@@ -17,7 +17,6 @@ import (
 
 const (
 	hidapiPrefix = "hid"
-	hidIfaceNum  = 0
 	hidUsagePage = 0xFF00
 	hidTimeout   = 50
 )
@@ -90,7 +89,7 @@ func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	pid := d.ProductID
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return (trezor1 || trezor2) && (d.Interface == hidIfaceNum || d.UsagePage == hidUsagePage)
+	return (trezor1 || trezor2) && (d.Interface == usbIfaceNum || d.UsagePage == hidUsagePage)
 }
 
 func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {
