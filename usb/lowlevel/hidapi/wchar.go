@@ -9,7 +9,7 @@
 // +build !ios
 // +build linux freebsd darwin windows
 
-package lowlevel
+package hidapi
 
 /*
 #include <wchar.h>

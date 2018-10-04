@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/trezor/trezord-go/usb/lowlevel"
+	lowlevel "github.com/trezor/trezord-go/usb/lowlevel/libusb"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"

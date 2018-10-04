@@ -2308,7 +2308,7 @@ static void usbi_log_str(struct libusb_context *ctx,
 {
 	UNUSED(ctx);
 	UNUSED(level);
-	goLog(str);
+	goLibusbLog(str);
 }
 
 void usbi_log_v(struct libusb_context *ctx, enum libusb_log_level level,

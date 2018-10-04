@@ -6,78 +6,25 @@
 
 // Package hid provides an interface for USB HID devices.
 
-// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
+// +build darwin,!ios,cgo windows,cgo
 
-package lowlevel
+package hidapi
 
 /*
-extern void goLog(const char *s);
+extern void goHidLog(const char *s);
 
-#define ENABLE_LOGGING 1
-#define ENABLE_DEBUG_LOGGING 1
-#define ENUM_DEBUG
+#cgo CFLAGS: -I./c
 
-#cgo CFLAGS: -I./c/hidapi -I./c/libusb
-
-#cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
-#cgo linux,!android LDFLAGS: -lrt
-#cgo freebsd CFLAGS: -DOS_FREEBSD
-#cgo freebsd LDFLAGS: -lusb
-#cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
-#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
-#cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+#cgo darwin CFLAGS: -DOS_DARWIN
+#cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit
+#cgo windows CFLAGS: -DOS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
 
-
-#ifdef OS_LINUX
-	#include <sys/poll.h>
-
-	#include "os/threads_posix.c"
-	#include "os/poll_posix.c"
-	#include "os/linux_usbfs.c"
-	#include "os/linux_netlink.c"
-#elif OS_FREEBSD
-	#include <stdlib.h>
-#elif OS_DARWIN
-	#include <sys/poll.h>
-
-	#include "os/threads_posix.c"
-	#include "os/poll_posix.c"
-	#include "os/darwin_usb.c"
-#elif OS_WINDOWS
-	#define HARDCODED_HIDAPI_DEVICE_FILTER "vid_534c"
-	#define HARDCODED_LIBUSB_DEVICE_FILTER "VID_1209"
-
-	#include <oledlg.h>
-
-	#include "os/poll_windows.c"
-	#include "os/threads_windows.c"
-#endif
-
-#ifndef OS_FREEBSD
-	#include "core.c"
-	#include "descriptor.c"
-	#include "hotplug.c"
-	#include "io.c"
-	#include "strerror.c"
-	#include "sync.c"
-#else
-	#include <libusb.h>
-#endif
-
-// linux and freebsd are including hid only that it builds;
-// it actually does not use it for listing, see trezord.go
-#ifdef OS_LINUX
-	#include "linux/hid.c"
-#elif OS_FREEBSD
-	#include "linux/hid.c"
-#elif OS_DARWIN
+#ifdef OS_DARWIN
 	#include "mac/hid.c"
 #elif OS_WINDOWS
+	#define HARDCODED_HIDAPI_DEVICE_FILTER "vid_534c"
 	#include "windows/hid.c"
-
-	#include "os/windows_nt_common.c"
-	#include "os/windows_winusb.c"
 #endif
 
 */
