@@ -356,11 +356,18 @@ func (d *WUD) Close(disconnected bool) error {
 		}
 	}
 
+	d.mw.Println("libusb - close - releasing interface")
+	err := lowlevel.Release_Interface(d.dev, usbIfaceNum)
+	if err != nil {
+		// do not throw error, it is just release anyway
+		d.mw.Println(fmt.Sprintf("Warning: error at releasing interface: %s", err))
+	}
+
 	if d.attach {
-		err := lowlevel.Attach_Kernel_Driver(d.dev, usbIfaceNum)
+		err = lowlevel.Attach_Kernel_Driver(d.dev, usbIfaceNum)
 		if err != nil {
-			d.mw.Println("libusb - close - re-attaching kernel driver failed")
-			return err
+			// do not throw error, it is just re-attach anyway
+			d.mw.Println(fmt.Sprintf("Warning: error at re-attaching driver: %s", err))
 		}
 	}
 
