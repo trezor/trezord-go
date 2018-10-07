@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.24] - unreleased
+## [2.0.25] - unreleased
+
+- Use interrupt reads without timeouts even on FreeBSD and linux
+- Stop using hidapi for t1 on linux
+- Lowlevel code cleanup
+
+## [2.0.24] - 2018-10-04
 
 - Use interrupt reads without timeouts
 - Remove wait for other pending driver installation on Windows
