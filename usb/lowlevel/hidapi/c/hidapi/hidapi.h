@@ -392,7 +392,7 @@ extern "C" {
 static void hid_log(const char * str) {
 	char nstr[1000];
 	snprintf(nstr, 1000, "hidapi: %s\n", str);
-	goLog(nstr);
+	goHidLog(nstr);
 }
 
 #endif

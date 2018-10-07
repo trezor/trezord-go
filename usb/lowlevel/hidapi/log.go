@@ -1,4 +1,4 @@
-package lowlevel
+package hidapi
 
 import (
 	"io"
@@ -12,8 +12,8 @@ func SetLogWriter(l io.Writer) {
 	writer = l
 }
 
-//export goLog
-func goLog(s *C.char) {
+//export goHidLog
+func goHidLog(s *C.char) {
 	if writer != nil {
 		writer.Write([]byte(C.GoString(s)))
 	}

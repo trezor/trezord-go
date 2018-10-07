@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/trezor/trezord-go/usb/lowlevel"
+	lowlevel "github.com/trezor/trezord-go/usb/lowlevel/hidapi"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
@@ -26,6 +26,7 @@ type HIDAPI struct {
 }
 
 func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
+	lowlevel.SetLogWriter(mw)
 	return &HIDAPI{
 		mw: mw,
 	}, nil
