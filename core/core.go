@@ -459,18 +459,17 @@ func (c *Core) readWriteDev(
 	device io.ReadWriter,
 	mode CallMode,
 ) ([]byte, error) {
-	if (mode != CallModeWrite) && (len(body) != 0) {
-		return nil, errors.New("Non-empty body on read")
-	}
 
 	if mode == CallModeRead {
+		if len(body) != 0 {
+			return nil, errors.New("Non-empty body on read mode")
+		}
 		c.Log("readWrite - skipping write")
 	} else {
 		err := c.writeDev(body, device)
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	if mode == CallModeWrite {
