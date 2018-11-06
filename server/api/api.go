@@ -39,6 +39,7 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 	r.HandleFunc("/release/{session}", api.Release)
 	r.HandleFunc("/call/{session}", api.Call)
 	r.HandleFunc("/post/{session}", api.Post)
+	r.HandleFunc("/read/{session}", api.Read)
 
 	corsv, err := corsValidator()
 	if err != nil {
@@ -156,14 +157,18 @@ func (a *api) Release(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) Call(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, false)
+	a.call(w, r, core.CallModeReadWrite)
 }
 
 func (a *api) Post(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, true)
+	a.call(w, r, core.CallModeWrite)
 }
 
-func (a *api) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
+func (a *api) Read(w http.ResponseWriter, r *http.Request) {
+	a.call(w, r, core.CallModeRead)
+}
+
+func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode) {
 	a.log("call - start")
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
@@ -175,29 +180,33 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, skipRead bool) {
 	vars := mux.Vars(r)
 	session := vars["session"]
 
-	hexbody, err := ioutil.ReadAll(r.Body)
+	var binbody []byte
+	if mode != core.CallModeRead {
+		hexbody, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			a.respondError(w, err)
+			return
+		}
+		binbody, err = hex.DecodeString(string(hexbody))
+		if err != nil {
+			a.respondError(w, err)
+			return
+		}
+	}
+
+	binres, err := a.core.Call(binbody, session, mode, cnn)
 	if err != nil {
 		a.respondError(w, err)
 		return
 	}
 
-	binbody, err := hex.DecodeString(string(hexbody))
-	if err != nil {
-		a.respondError(w, err)
-		return
-	}
+	if mode != core.CallModeWrite {
+		hexres := hex.EncodeToString(binres)
+		_, err = w.Write([]byte(hexres))
 
-	binres, err := a.core.Call(binbody, session, skipRead, cnn)
-	if err != nil {
-		a.respondError(w, err)
-		return
-	}
-
-	hexres := hex.EncodeToString(binres)
-	_, err = w.Write([]byte(hexres))
-
-	if err != nil {
-		a.respondError(w, err)
+		if err != nil {
+			a.respondError(w, err)
+		}
 	}
 }
 

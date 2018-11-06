@@ -347,7 +347,20 @@ func (c *Core) newSession() string {
 	return strconv.Itoa(latestSessionID)
 }
 
-func (c *Core) Call(body []byte, session string, skipRead bool, closeNotify <-chan bool) ([]byte, error) {
+type CallMode int
+
+const (
+	CallModeRead      CallMode = 0
+	CallModeWrite     CallMode = 1
+	CallModeReadWrite CallMode = 2
+)
+
+func (c *Core) Call(
+	body []byte,
+	session string,
+	mode CallMode,
+	closeNotify <-chan bool,
+) ([]byte, error) {
 	c.Log("call - start")
 
 	c.Log("call - callMutex lock")
@@ -412,37 +425,59 @@ func (c *Core) Call(body []byte, session string, skipRead bool, closeNotify <-ch
 	}()
 
 	c.Log("call - before actual logic")
-	bytes, err := c.readWriteDev(body, acquired.dev, skipRead)
+	bytes, err := c.readWriteDev(body, acquired.dev, mode)
 	c.Log("call - after actual logic")
 
 	return bytes, err
 }
 
-func (c *Core) readWriteDev(body []byte, device io.ReadWriter, skipRead bool) ([]byte, error) {
+func (c *Core) writeDev(body []byte, device io.Writer) error {
 	c.Log("readWrite - decodeRaw")
 	msg, err := c.decodeRaw(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	c.Log("readWrite - writeTo")
 	_, err = msg.WriteTo(device)
-	if err != nil {
-		return nil, err
-	}
-	if skipRead {
-		c.Log("readWrite - skipping read")
-		return []byte{0}, nil
-	}
+	return err
+}
 
+func (c *Core) readDev(device io.Reader) ([]byte, error) {
 	c.Log("readWrite - readFrom")
-	_, err = msg.ReadFrom(device)
+	msg, err := wire.ReadFrom(device, c.log)
 	if err != nil {
 		return nil, err
 	}
 
 	c.Log("readWrite - encoding back")
 	return c.encodeRaw(msg)
+}
+
+func (c *Core) readWriteDev(
+	body []byte,
+	device io.ReadWriter,
+	mode CallMode,
+) ([]byte, error) {
+	if (mode != CallModeWrite) && (len(body) != 0) {
+		return nil, errors.New("Non-empty body on read")
+	}
+
+	if mode == CallModeRead {
+		c.Log("readWrite - skipping write")
+	} else {
+		err := c.writeDev(body, device)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	if mode == CallModeWrite {
+		c.Log("readWrite - skipping read")
+		return []byte{0}, nil
+	}
+	return c.readDev(device)
 }
 
 func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {
