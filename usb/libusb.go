@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	libusbPrefix = "lib"
-	usbConfigNum = 1
+	libusbPrefix   = "lib"
+	usbConfigNum   = 1
+	usbConfigIndex = 0
 )
 
 type libusbIfaceData struct {
@@ -74,7 +75,7 @@ func (b *LibUSB) Close() {
 }
 
 func detectDebug(dev lowlevel.Device) (bool, error) {
-	config, err := lowlevel.Get_Config_Descriptor(dev, usbConfigNum)
+	config, err := lowlevel.Get_Config_Descriptor(dev, usbConfigIndex)
 	if err != nil {
 		return false, err
 	}
