@@ -14,13 +14,30 @@ import (
 )
 
 const (
-	libusbPrefix  = "lib"
-	usbConfigNum  = 1
-	usbIfaceNum   = 0
-	usbAltSetting = 0
-	usbEpIn       = 0x81
-	usbEpOut      = 0x01
+	libusbPrefix = "lib"
+	usbConfigNum = 1
 )
+
+type libusbIfaceData struct {
+	number     uint8
+	altSetting uint8
+	epIn       uint8
+	epOut      uint8
+}
+
+var normalIface = libusbIfaceData{
+	number:     0,
+	altSetting: 0,
+	epIn:       0x81,
+	epOut:      0x01,
+}
+
+var debugIface = libusbIfaceData{
+	number:     1,
+	altSetting: 0,
+	epIn:       0x82,
+	epOut:      0x02,
+}
 
 type LibUSB struct {
 	usb    lowlevel.Context
@@ -54,6 +71,28 @@ func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach b
 func (b *LibUSB) Close() {
 	b.mw.Println("libusb - all close (should happen only on exit)")
 	lowlevel.Exit(b.usb)
+}
+
+func detectDebug(dev lowlevel.Device) (bool, error) {
+	config, err := lowlevel.Get_Config_Descriptor(dev, usbConfigNum)
+	if err != nil {
+		return false, err
+	}
+
+	ifaces := config.Interface
+	for _, iface := range ifaces {
+		for _, alt := range iface.Altsetting {
+			if alt.BInterfaceNumber == debugIface.number &&
+				alt.BAlternateSetting == debugIface.altSetting &&
+				alt.BNumEndpoints == 2 &&
+				alt.BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC &&
+				alt.Endpoint[0].BEndpointAddress == debugIface.epIn &&
+				alt.Endpoint[1].BEndpointAddress == debugIface.epOut {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
@@ -92,11 +131,17 @@ func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 			path := b.identify(dev)
 			inset := paths[path]
 			if !inset {
+				debug, err := detectDebug(dev)
+				if err != nil {
+					b.mw.Println("libusb - enum - error detecting debug " + err.Error())
+					continue
+				}
 				infos = append(infos, core.USBInfo{
 					Path:      path,
 					VendorID:  int(dd.IdVendor),
 					ProductID: int(dd.IdProduct),
 					Type:      t,
+					Debug:     debug,
 				})
 				paths[path] = true
 			}
@@ -109,7 +154,7 @@ func (b *LibUSB) Has(path string) bool {
 	return strings.HasPrefix(path, libusbPrefix)
 }
 
-func (b *LibUSB) Connect(path string) (core.USBDevice, error) {
+func (b *LibUSB) Connect(path string, debug bool) (core.USBDevice, error) {
 	b.mw.Println("libusb - connect - low level enumerating")
 	list, err := lowlevel.Get_Device_List(b.usb)
 
@@ -139,7 +184,7 @@ func (b *LibUSB) Connect(path string) (core.USBDevice, error) {
 
 	err = ErrNotFound
 	for _, dev := range mydevs {
-		res, errConn := b.connect(dev)
+		res, errConn := b.connect(dev, debug)
 		if errConn == nil {
 			return res, nil
 		}
@@ -173,8 +218,12 @@ func (b *LibUSB) setConfiguration(d lowlevel.Device_Handle) {
 	}
 }
 
-func (b *LibUSB) setInterface(d lowlevel.Device_Handle) (bool, error) {
+func (b *LibUSB) claimInterface(d lowlevel.Device_Handle, debug bool) (bool, error) {
 	attach := false
+	usbIfaceNum := int(normalIface.number)
+	if debug {
+		usbIfaceNum = int(debugIface.number)
+	}
 	if b.detach {
 		b.mw.Println("libusb - connect - detecting kernel driver")
 		kernel, errD := lowlevel.Kernel_Driver_Active(d, usbIfaceNum)
@@ -207,7 +256,7 @@ func (b *LibUSB) setInterface(d lowlevel.Device_Handle) (bool, error) {
 	return attach, nil
 }
 
-func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
+func (b *LibUSB) connect(dev lowlevel.Device, debug bool) (*WUD, error) {
 	b.mw.Println("libusb - connect - low level")
 	d, err := lowlevel.Open(dev)
 	if err != nil {
@@ -223,11 +272,10 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 	}
 
 	b.setConfiguration(d)
-	attach, err := b.setInterface(d)
+	attach, err := b.claimInterface(d, debug)
 	if err != nil {
 		return nil, err
 	}
-
 	return &WUD{
 		dev:    d,
 		closed: 0,
@@ -235,6 +283,7 @@ func (b *LibUSB) connect(dev lowlevel.Device) (*WUD, error) {
 		mw:     b.mw,
 		cancel: b.cancel,
 		attach: attach,
+		debug:  debug,
 	}, nil
 }
 
@@ -278,16 +327,18 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	}
 
 	var is bool
+	usbIfaceNum := normalIface.number
+	usbAltSetting := normalIface.altSetting
 	if b.only {
 
 		// if we don't use hidapi at all, keep HID devices
 		is = (c.BNumInterfaces > usbIfaceNum &&
-			c.Interface[usbIfaceNum].Num_altsetting > usbAltSetting)
+			c.Interface[usbIfaceNum].Num_altsetting > int(usbAltSetting))
 
 	} else {
 
 		is = (c.BNumInterfaces > usbIfaceNum &&
-			c.Interface[usbIfaceNum].Num_altsetting > usbAltSetting &&
+			c.Interface[usbIfaceNum].Num_altsetting > int(usbAltSetting) &&
 			c.Interface[usbIfaceNum].Altsetting[usbAltSetting].BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC)
 	}
 
@@ -323,12 +374,14 @@ func (b *LibUSB) identify(dev lowlevel.Device) string {
 type WUD struct {
 	dev lowlevel.Device_Handle
 
-	closed        int32 // atomic
-	transferMutex sync.Mutex
+	closed              int32 // atomic
+	normalTransferMutex sync.Mutex
+	debugTransferMutex  sync.Mutex
 	// two interrupt_transfers should not happen at the same time
 
 	cancel bool
 	attach bool
+	debug  bool
 
 	mw *memorywriter.MemoryWriter
 }
@@ -352,19 +405,23 @@ func (d *WUD) Close(disconnected bool) error {
 		// (since when we don't allow cancelling, we don't allow session stealing)
 		if !disconnected {
 			d.mw.Println("libusb - close - finishing read queue")
-			d.finishReadQueue()
+			d.finishReadQueue(d.debug)
 		}
 	}
 
 	d.mw.Println("libusb - close - releasing interface")
-	err := lowlevel.Release_Interface(d.dev, usbIfaceNum)
+	iface := int(normalIface.number)
+	if d.debug {
+		iface = int(debugIface.number)
+	}
+	err := lowlevel.Release_Interface(d.dev, iface)
 	if err != nil {
 		// do not throw error, it is just release anyway
 		d.mw.Println(fmt.Sprintf("Warning: error at releasing interface: %s", err))
 	}
 
 	if d.attach {
-		err = lowlevel.Attach_Kernel_Driver(d.dev, usbIfaceNum)
+		err = lowlevel.Attach_Kernel_Driver(d.dev, iface)
 		if err != nil {
 			// do not throw error, it is just re-attach anyway
 			d.mw.Println(fmt.Sprintf("Warning: error at re-attaching driver: %s", err))
@@ -378,9 +435,29 @@ func (d *WUD) Close(disconnected bool) error {
 	return nil
 }
 
-func (d *WUD) finishReadQueue() {
+func (d *WUD) transferMutexLock(debug bool) {
+	if debug {
+		d.debugTransferMutex.Lock()
+	} else {
+		d.normalTransferMutex.Lock()
+	}
+}
+
+func (d *WUD) transferMutexUnlock(debug bool) {
+	if debug {
+		d.debugTransferMutex.Unlock()
+	} else {
+		d.normalTransferMutex.Unlock()
+	}
+}
+
+func (d *WUD) finishReadQueue(debug bool) {
 	d.mw.Println("libusb - close - rq - wait for transfermutex lock")
-	d.transferMutex.Lock()
+	usbEpIn := normalIface.epIn
+	if debug {
+		usbEpIn = debugIface.epIn
+	}
+	d.transferMutexLock(debug)
 	var err error
 	var buf [64]byte
 
@@ -390,7 +467,7 @@ func (d *WUD) finishReadQueue() {
 		d.mw.Println("libusb - close - rq - transfer")
 		_, err = lowlevel.Interrupt_Transfer(d.dev, usbEpIn, buf[:], 50)
 	}
-	d.transferMutex.Unlock()
+	d.transferMutexUnlock(debug)
 	d.mw.Println("libusb - close - rq - done")
 }
 
@@ -405,11 +482,11 @@ func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
 		}
 
 		d.mw.Println("libusb - rw - lock transfer mutex")
-		d.transferMutex.Lock()
+		d.transferMutexLock(d.debug)
 		d.mw.Println("libusb - rw - actual interrupt transport")
 		// This has no timeout, but is stopped by Cancel_Sync_Transfers_On_Device
 		p, err := lowlevel.Interrupt_Transfer(d.dev, endpoint, buf, 0)
-		d.transferMutex.Unlock()
+		d.transferMutexUnlock(d.debug)
 		d.mw.Println("libusb - rw - single transfer done")
 
 		if err != nil {
@@ -447,10 +524,18 @@ func isErrorDisconnect(err error) bool {
 
 func (d *WUD) Write(buf []byte) (int, error) {
 	d.mw.Println("libusb - rw - write start")
+	usbEpOut := normalIface.epOut
+	if d.debug {
+		usbEpOut = debugIface.epOut
+	}
 	return d.readWrite(buf, usbEpOut)
 }
 
 func (d *WUD) Read(buf []byte) (int, error) {
 	d.mw.Println("libusb - rw - read start")
+	usbEpIn := normalIface.epIn
+	if d.debug {
+		usbEpIn = debugIface.epIn
+	}
 	return d.readWrite(buf, usbEpIn)
 }

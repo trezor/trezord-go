@@ -30,7 +30,7 @@ import (
 
 type USBBus interface {
 	Enumerate() ([]USBInfo, error)
-	Connect(path string) (USBDevice, error)
+	Connect(path string, debug bool) (USBDevice, error)
 	Has(path string) bool
 }
 
@@ -50,6 +50,7 @@ type USBInfo struct {
 	VendorID  int
 	ProductID int
 	Type      DeviceType
+	Debug     bool // has debug enabled?
 }
 
 type USBDevice interface {
@@ -68,8 +69,11 @@ type EnumerateEntry struct {
 	Path    string     `json:"path"`
 	Vendor  int        `json:"vendor"`
 	Product int        `json:"product"`
-	Session *string    `json:"session"`
-	Type    DeviceType `json:"-"` // used only in status page, not in JSON
+	Type    DeviceType `json:"-"`     // used only in status page, not in JSON
+	Debug   bool       `json:"debug"` // has debug enabled?
+
+	Session      *string `json:"session"`
+	DebugSession *string `json:"debugSession"`
 }
 
 type EnumerateEntries []EnumerateEntry
@@ -87,14 +91,15 @@ func (entries EnumerateEntries) Swap(i, j int) {
 type Core struct {
 	bus USBBus
 
-	sessions      map[string]*session
-	sessionsMutex sync.Mutex // for atomic access to sessions
+	normalSessions map[string]*session
+	debugSessions  map[string]*session
+	sessionsMutex  sync.Mutex // for atomic access to sessions
 
 	allowStealing bool
 
-	callInProgress bool       // we cannot make calls and enumeration at the same time
-	callMutex      sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
-	lastInfos      []USBInfo  // when call is in progress, use saved info for enumerating
+	callsInProgress int        // we cannot make calls and enumeration at the same time
+	callMutex       sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
+	lastInfos       []USBInfo  // when call is in progress, use saved info for enumerating
 
 	log *memorywriter.MemoryWriter
 }
@@ -116,10 +121,11 @@ const (
 
 func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing bool) *Core {
 	c := &Core{
-		bus:           bus,
-		sessions:      make(map[string]*session),
-		log:           log,
-		allowStealing: allowStealing,
+		bus:            bus,
+		normalSessions: make(map[string]*session),
+		debugSessions:  make(map[string]*session),
+		log:            log,
+		allowStealing:  allowStealing,
 	}
 	return c
 }
@@ -144,8 +150,8 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// Use saved info if call is in progress, otherwise enumerate.
 	infos := c.lastInfos
 
-	c.Log(fmt.Sprintf("enumerate callInProgress %t", c.callInProgress))
-	if !c.callInProgress {
+	c.Log(fmt.Sprintf("enumerate callsInProgress %d", c.callsInProgress))
+	if c.callsInProgress == 0 {
 		c.Log("enumerate bus")
 		busInfos, err := c.bus.Enumerate()
 		if err != nil {
@@ -157,27 +163,43 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 
 	entries := c.createEnumerateEntries(infos)
 	c.Log("enumerate release disconnected")
-	c.releaseDisconnected(infos)
+	c.releaseDisconnected(infos, false)
+	c.releaseDisconnected(infos, true)
 	return entries, nil
+}
+
+func (c *Core) findSession(e *EnumerateEntry, path string, debug bool) {
+	for _, ss := range c.sessions(debug) {
+		if ss.path == path {
+			// Copying to prevent overwriting on Acquire and
+			// wrong comparison in Listen.
+			ssidCopy := ss.id
+			if debug {
+				e.DebugSession = &ssidCopy
+			} else {
+				e.Session = &ssidCopy
+			}
+		}
+	}
+}
+
+func (c *Core) createEnumerateEntry(info USBInfo) EnumerateEntry {
+	e := EnumerateEntry{
+		Path:    info.Path,
+		Vendor:  info.VendorID,
+		Product: info.ProductID,
+		Type:    info.Type,
+		Debug:   info.Debug,
+	}
+	c.findSession(&e, info.Path, false)
+	c.findSession(&e, info.Path, true)
+	return e
 }
 
 func (c *Core) createEnumerateEntries(infos []USBInfo) EnumerateEntries {
 	entries := make(EnumerateEntries, 0, len(infos))
 	for _, info := range infos {
-		e := EnumerateEntry{
-			Path:    info.Path,
-			Vendor:  info.VendorID,
-			Product: info.ProductID,
-			Type:    info.Type,
-		}
-		for _, ss := range c.sessions {
-			if ss.path == info.Path {
-				// Copying to prevent overwriting on Acquire and
-				// wrong comparison in Listen.
-				ssidCopy := ss.id
-				e.Session = &ssidCopy
-			}
-		}
+		e := c.createEnumerateEntry(info)
 		entries = append(entries, e)
 	}
 	entries.Sort()
@@ -188,8 +210,17 @@ func (entries EnumerateEntries) Sort() {
 	sort.Sort(entries)
 }
 
-func (c *Core) releaseDisconnected(infos []USBInfo) {
-	for ssid, ss := range c.sessions {
+func (c *Core) sessions(debug bool) map[string]*session {
+	sessions := c.normalSessions
+	if debug {
+		sessions = c.debugSessions
+	}
+	return sessions
+}
+
+func (c *Core) releaseDisconnected(infos []USBInfo, debug bool) {
+
+	for ssid, ss := range c.sessions(debug) {
 		connected := false
 		for _, info := range infos {
 			if ss.path == info.Path {
@@ -198,7 +229,7 @@ func (c *Core) releaseDisconnected(infos []USBInfo) {
 		}
 		if !connected {
 			c.Log(fmt.Sprintf("releasing disconnected device %s", ssid))
-			err := c.release(ssid, true)
+			err := c.release(ssid, true, debug)
 			// just log if there is an error
 			// they are disconnected anyway
 			if err != nil {
@@ -208,18 +239,22 @@ func (c *Core) releaseDisconnected(infos []USBInfo) {
 	}
 }
 
-func (c *Core) Release(session string) error {
-	return c.release(session, false)
+func (c *Core) Release(session string, debug bool) error {
+	return c.release(session, false, debug)
 }
 
-func (c *Core) release(session string, disconnected bool) error {
+func (c *Core) release(
+	session string,
+	disconnected bool,
+	debug bool,
+) error {
 	c.Log(fmt.Sprintf("inner release - session %s", session))
-	acquired := c.sessions[session]
+	acquired := (c.sessions(debug))[session]
 	if acquired == nil {
 		c.Log("inner release - session not found")
 		return ErrSessionNotFound
 	}
-	delete(c.sessions, session)
+	delete(c.sessions(debug), session)
 
 	c.Log("inner release - bus close")
 	err := acquired.dev.Close(disconnected)
@@ -264,67 +299,81 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]Enum
 	return entries, nil
 }
 
-func (c *Core) Acquire(path, prev string) (string, error) {
+func (c *Core) findPrevSession(path string, debug bool) string {
+	// note - sessionsMutex must be locked before entering this
+	for _, ss := range c.sessions(debug) {
+		if ss.path == path {
+			return ss.id
+		}
+	}
+
+	return ""
+}
+
+func (c *Core) Acquire(
+	path, prev string,
+	debug bool,
+) (string, error) {
+
 	c.Log("acquire - locking sessionsMutex")
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
 	c.Log(fmt.Sprintf("acquire - input path %s prev %s", path, prev))
 
-	var acquired *session
-	for _, ss := range c.sessions {
-		if ss.path == path {
-			acquired = ss
-			break
-		}
-	}
+	prevSession := c.findPrevSession(path, debug)
 
-	if acquired == nil {
-		acquired = &session{path: path, call: 0}
-	}
+	c.Log(fmt.Sprintf("acquire - actually previous %s", prevSession))
 
-	c.Log(fmt.Sprintf("acquire - actually previous %s", acquired.id))
-
-	if acquired.id != prev {
+	if prevSession != prev {
 		return "", ErrWrongPrevSession
 	}
 
-	if (!c.allowStealing) && acquired.id != "" {
+	if (!c.allowStealing) && prevSession != "" {
 		return "", ErrOtherCall
 	}
 
 	if prev != "" {
 		c.Log("acquire - releasing previous")
-		err := c.release(prev, false)
+		err := c.release(prev, false, debug)
 		if err != nil {
 			return "", err
 		}
 	}
 
 	c.Log("acquire - trying to connect")
-	dev, err := c.tryConnect(path)
+	dev, err := c.tryConnect(path, debug)
 	if err != nil {
 		return "", err
 	}
 
-	acquired.dev = dev
-	acquired.id = c.newSession()
+	id := c.newSession()
+	if debug {
+		id = "debug" + id
+	}
 
-	c.Log(fmt.Sprintf("acquire - new session is %s", acquired.id))
+	sess := &session{
+		path: path,
+		dev:  dev,
+		call: 0,
+		id:   id,
+	}
 
-	c.sessions[acquired.id] = acquired
+	c.Log(fmt.Sprintf("acquire - new session is %s", id))
 
-	return acquired.id, nil
+	(c.sessions(debug))[id] = sess
+
+	return id, nil
 }
 
 // Chrome tries to read from trezor immediately after connecting,
 // ans so do we.  Bad timing can produce error on s.bus.Connect.
 // Try 3 times with a 100ms delay.
-func (c *Core) tryConnect(path string) (USBDevice, error) {
+func (c *Core) tryConnect(path string, debug bool) (USBDevice, error) {
 	tries := 0
 	for {
 		c.Log(fmt.Sprintf("tryConnect - try number %d", tries))
-		dev, err := c.bus.Connect(path)
+		dev, err := c.bus.Connect(path, debug)
 		if err != nil {
 			if tries < 3 {
 				c.Log("tryConnect - sleeping")
@@ -359,6 +408,7 @@ func (c *Core) Call(
 	body []byte,
 	session string,
 	mode CallMode,
+	debug bool,
 	closeNotify <-chan bool,
 ) ([]byte, error) {
 	c.Log("call - start")
@@ -367,7 +417,7 @@ func (c *Core) Call(
 	c.callMutex.Lock()
 
 	c.Log("call - callMutex set callInProgress true, unlock")
-	c.callInProgress = true
+	c.callsInProgress++
 
 	c.callMutex.Unlock()
 	c.Log("call - callMutex unlock done")
@@ -377,7 +427,7 @@ func (c *Core) Call(
 		c.callMutex.Lock()
 
 		c.Log("call - callMutex set callInProgress false, unlock")
-		c.callInProgress = false
+		c.callsInProgress--
 
 		c.callMutex.Unlock()
 		c.Log("call - callMutex closing unlock")
@@ -385,8 +435,7 @@ func (c *Core) Call(
 
 	c.Log("call - sessionsMutex lock")
 	c.sessionsMutex.Lock()
-	acquired := c.sessions[session]
-
+	acquired := (c.sessions(debug))[session]
 	c.sessionsMutex.Unlock()
 	c.Log("call - sessionsMutex unlock done")
 
@@ -416,7 +465,7 @@ func (c *Core) Call(
 			return
 		case <-closeNotify:
 			c.Log("call - detected request close, auto-release")
-			errRelease := c.release(session, false)
+			errRelease := c.release(session, false, debug)
 			if errRelease != nil {
 				// just log, since request is already closed
 				c.Log(fmt.Sprintf("Error while releasing: %s", errRelease.Error()))

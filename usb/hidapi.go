@@ -47,6 +47,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 				VendorID:  int(dev.VendorID),
 				ProductID: int(dev.ProductID),
 				Type:      core.TypeT1Hid,
+				Debug:     false,
 			})
 		}
 	}
@@ -57,7 +58,10 @@ func (b *HIDAPI) Has(path string) bool {
 	return strings.HasPrefix(path, hidapiPrefix)
 }
 
-func (b *HIDAPI) Connect(path string) (core.USBDevice, error) {
+func (b *HIDAPI) Connect(path string, debug bool) (core.USBDevice, error) {
+	if debug {
+		return nil, errNotDebug
+	}
 	b.mw.Println("hidapi - connect - enumerate to find")
 	devs := lowlevel.HidEnumerate(0, 0)
 	b.mw.Println("hidapi - connect - enumerate done")
@@ -90,7 +94,7 @@ func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	pid := d.ProductID
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return (trezor1 || trezor2) && (d.Interface == usbIfaceNum || d.UsagePage == hidUsagePage)
+	return (trezor1 || trezor2) && (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
 }
 
 func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {

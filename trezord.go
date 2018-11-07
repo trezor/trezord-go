@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
@@ -17,6 +18,36 @@ import (
 )
 
 const version = "2.0.24"
+
+type udpTouples []usb.PortTouple
+
+func (i *udpTouples) String() string {
+	res := ""
+	for i, p := range *i {
+		if i > 0 {
+			res = res + ","
+		}
+		res = res + strconv.Itoa(p.Normal) + ":" + strconv.Itoa(p.Debug)
+	}
+	return res
+}
+
+func (i *udpTouples) Set(value string) error {
+	split := strings.Split(value, ":")
+	n, err := strconv.Atoi(split[0])
+	if err != nil {
+		return err
+	}
+	d, err := strconv.Atoi(split[1])
+	if err != nil {
+		return err
+	}
+	*i = append(*i, usb.PortTouple{
+		Normal: n,
+		Debug:  d,
+	})
+	return nil
+}
 
 type udpPorts []int
 
@@ -68,10 +99,12 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 func main() {
 	var logfile string
 	var ports udpPorts
+	var touples udpTouples
 	var withusb bool
 
 	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 5MB")
 	flag.Var(&ports, "e", "Use UDP port for emulator. Can be repeated for more ports. Example: trezord-go -e 21324 -e 21326")
+	flag.Var(&ports, "ed", "Use UDP port for emulator with debug link. Can be repeated for more ports. Example: trezord-go -ed 21324:21326")
 	flag.BoolVar(&withusb, "u", true, "Use USB devices. Can be disabled for testing environments. Example: trezord-go -e 21324 -u=false")
 	flag.Parse()
 
@@ -98,8 +131,14 @@ func main() {
 
 	longMemoryWriter.Println(fmt.Sprintf("UDP port count - %d", len(ports)))
 
-	if len(ports) > 0 {
-		e, errUDP := usb.InitUDP(ports)
+	if len(ports)+len(touples) > 0 {
+		for _, t := range ports {
+			touples = append(touples, usb.PortTouple{
+				Normal: t,
+				Debug:  0,
+			})
+		}
+		e, errUDP := usb.InitUDP(touples)
 		if errUDP != nil {
 			panic(errUDP)
 		}

@@ -40,7 +40,12 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 	r.HandleFunc("/call/{session}", api.Call)
 	r.HandleFunc("/post/{session}", api.Post)
 	r.HandleFunc("/read/{session}", api.Read)
-
+	r.HandleFunc("/debug/acquire/{path}", api.AcquireDebug)
+	r.HandleFunc("/debug/acquire/{path}/{session}", api.AcquireDebug)
+	r.HandleFunc("/debug/release/{session}", api.ReleaseDebug)
+	r.HandleFunc("/debug/call/{session}", api.CallDebug)
+	r.HandleFunc("/debug/post/{session}", api.PostDebug)
+	r.HandleFunc("/debug/read/{session}", api.ReadDebug)
 	corsv, err := corsValidator()
 	if err != nil {
 		return err
@@ -115,13 +120,21 @@ func (a *api) Enumerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) Acquire(w http.ResponseWriter, r *http.Request) {
+	a.acquire(w, r, false)
+}
+
+func (a *api) AcquireDebug(w http.ResponseWriter, r *http.Request) {
+	a.acquire(w, r, true)
+}
+
+func (a *api) acquire(w http.ResponseWriter, r *http.Request, debug bool) {
 	vars := mux.Vars(r)
 	path := vars["path"]
 	prev := vars["session"]
 	if prev == "null" {
 		prev = ""
 	}
-	res, err := a.core.Acquire(path, prev)
+	res, err := a.core.Acquire(path, prev, debug)
 
 	if err != nil {
 		a.respondError(w, err)
@@ -139,12 +152,20 @@ func (a *api) Acquire(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) Release(w http.ResponseWriter, r *http.Request) {
+	a.release(w, r, false)
+}
+
+func (a *api) ReleaseDebug(w http.ResponseWriter, r *http.Request) {
+	a.release(w, r, true)
+}
+
+func (a *api) release(w http.ResponseWriter, r *http.Request, debug bool) {
 	a.log("release - locking sessionsMutex")
 
 	vars := mux.Vars(r)
 	session := vars["session"]
 
-	err := a.core.Release(session)
+	err := a.core.Release(session, debug)
 
 	if err != nil {
 		a.respondError(w, err)
@@ -157,18 +178,30 @@ func (a *api) Release(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) Call(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeReadWrite)
+	a.call(w, r, core.CallModeReadWrite, false)
 }
 
 func (a *api) Post(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeWrite)
+	a.call(w, r, core.CallModeWrite, false)
 }
 
 func (a *api) Read(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeRead)
+	a.call(w, r, core.CallModeRead, false)
 }
 
-func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode) {
+func (a *api) CallDebug(w http.ResponseWriter, r *http.Request) {
+	a.call(w, r, core.CallModeReadWrite, true)
+}
+
+func (a *api) PostDebug(w http.ResponseWriter, r *http.Request) {
+	a.call(w, r, core.CallModeWrite, true)
+}
+
+func (a *api) ReadDebug(w http.ResponseWriter, r *http.Request) {
+	a.call(w, r, core.CallModeRead, true)
+}
+
+func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, debug bool) {
 	a.log("call - start")
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
@@ -194,7 +227,7 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode) {
 		}
 	}
 
-	binres, err := a.core.Call(binbody, session, mode, cnn)
+	binres, err := a.core.Call(binbody, session, mode, debug, cnn)
 	if err != nil {
 		a.respondError(w, err)
 		return
