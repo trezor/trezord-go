@@ -140,7 +140,7 @@ func main() {
 				Debug:  0,
 			})
 		}
-		e, errUDP := usb.InitUDP(touples)
+		e, errUDP := usb.InitUDP(touples, longMemoryWriter)
 		if errUDP != nil {
 			panic(errUDP)
 		}

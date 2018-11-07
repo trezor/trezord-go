@@ -2,6 +2,7 @@ package usb
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/trezor/trezord-go/core"
+	"github.com/trezor/trezord-go/memorywriter"
 )
 
 var emulatorPing = []byte("PINGPING")
@@ -28,9 +30,10 @@ type udpLowlevel struct {
 }
 
 type UDP struct {
-	ports []PortTouple
-
+	ports     []PortTouple
 	lowlevels map[int]*udpLowlevel
+
+	mw *memorywriter.MemoryWriter
 }
 
 func listen(conn io.Reader) (chan []byte, chan []byte) {
@@ -78,10 +81,11 @@ func (udp *UDP) makeLowlevel(port int) error {
 	return nil
 }
 
-func InitUDP(ports []PortTouple) (*UDP, error) {
+func InitUDP(ports []PortTouple, mw *memorywriter.MemoryWriter) (*UDP, error) {
 	udp := UDP{
 		ports:     ports,
 		lowlevels: make(map[int](*udpLowlevel)),
+		mw:        mw,
 	}
 	for _, port := range ports {
 		err := udp.makeLowlevel(port.Normal)
@@ -114,9 +118,12 @@ func checkPort(ping chan []byte, w io.Writer) (bool, error) {
 func (udp *UDP) Enumerate() ([]core.USBInfo, error) {
 	var infos []core.USBInfo
 
+	udp.mw.Println("udp - checking ports")
 	for _, port := range udp.ports {
+		udp.mw.Println(fmt.Sprintf("udp - check normal port %d", port.Normal))
 		normal := udp.lowlevels[port.Normal]
 		presentN, err := checkPort(normal.ping, normal.writer)
+		udp.mw.Println(fmt.Sprintf("udp - check normal port res %t", presentN))
 		if err != nil {
 			return nil, err
 		}
