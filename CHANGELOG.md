@@ -7,8 +7,12 @@ All notable changes to this project will be documented in this file.
 - Use interrupt reads without timeouts even on FreeBSD and linux
 - Stop using hidapi for t1 on linux
 - Lowlevel code cleanup
+- Add debuglink support (UDP + libusb)
+- Add support for one-directional calls (read, write)
+- Fix windows 7 driver installer when run first time
 
-## [2.0.24] - 2018-10-04
+
+## [2.0.24] - 2018-10-15
 
 - Use interrupt reads without timeouts
 - Remove wait for other pending driver installation on Windows
