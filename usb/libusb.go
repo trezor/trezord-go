@@ -155,7 +155,7 @@ func (b *LibUSB) Has(path string) bool {
 	return strings.HasPrefix(path, libusbPrefix)
 }
 
-func (b *LibUSB) Connect(path string, debug bool) (core.USBDevice, error) {
+func (b *LibUSB) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
 	b.mw.Println("libusb - connect - low level enumerating")
 	list, err := lowlevel.Get_Device_List(b.usb)
 
@@ -185,7 +185,7 @@ func (b *LibUSB) Connect(path string, debug bool) (core.USBDevice, error) {
 
 	err = ErrNotFound
 	for _, dev := range mydevs {
-		res, errConn := b.connect(dev, debug)
+		res, errConn := b.connect(dev, debug, reset)
 		if errConn == nil {
 			return res, nil
 		}
@@ -201,21 +201,24 @@ func (b *LibUSB) setConfiguration(d lowlevel.Device_Handle) {
 	} else {
 		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration %d", currConf))
 	}
-
-	b.mw.Println("libusb - connect - set_configuration")
-	err = lowlevel.Set_Configuration(d, usbConfigNum)
-	if err != nil {
-		// don't abort if set configuration fails
-		// lowlevel.Close(d)
-		// return nil, err
-		b.mw.Println(fmt.Sprintf("Warning: error at configuration set: %s", err))
-	}
-
-	currConf, err = lowlevel.Get_Configuration(d)
-	if err != nil {
-		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration err %s", err.Error()))
+	if currConf == usbConfigNum {
+		b.mw.Println("libusb - connect - not setting config, same")
 	} else {
-		b.mw.Println(fmt.Sprintf("libusb - connect - current configuration %d", currConf))
+		b.mw.Println("libusb - connect - set_configuration")
+		err = lowlevel.Set_Configuration(d, usbConfigNum)
+		if err != nil {
+			// don't abort if set configuration fails
+			// lowlevel.Close(d)
+			// return nil, err
+			b.mw.Println(fmt.Sprintf("Warning: error at configuration set: %s", err))
+		}
+
+		currConf, err = lowlevel.Get_Configuration(d)
+		if err != nil {
+			b.mw.Println(fmt.Sprintf("libusb - connect - current configuration err %s", err.Error()))
+		} else {
+			b.mw.Println(fmt.Sprintf("libusb - connect - current configuration %d", currConf))
+		}
 	}
 }
 
@@ -257,19 +260,21 @@ func (b *LibUSB) claimInterface(d lowlevel.Device_Handle, debug bool) (bool, err
 	return attach, nil
 }
 
-func (b *LibUSB) connect(dev lowlevel.Device, debug bool) (*WUD, error) {
+func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*WUD, error) {
 	b.mw.Println("libusb - connect - low level")
 	d, err := lowlevel.Open(dev)
 	if err != nil {
 		return nil, err
 	}
 	b.mw.Println("libusb - connect - reset")
-	err = lowlevel.Reset_Device(d)
-	if err != nil {
-		// don't abort if reset fails
-		// lowlevel.Close(d)
-		// return nil, err
-		b.mw.Println(fmt.Sprintf("Warning: error at device reset: %s", err))
+	if reset {
+		err = lowlevel.Reset_Device(d)
+		if err != nil {
+			// don't abort if reset fails
+			// lowlevel.Close(d)
+			// return nil, err
+			b.mw.Println(fmt.Sprintf("Warning: error at device reset: %s", err))
+		}
 	}
 
 	b.setConfiguration(d)

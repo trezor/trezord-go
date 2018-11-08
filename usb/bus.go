@@ -43,10 +43,10 @@ func (b *USB) Enumerate() ([]core.USBInfo, error) {
 	return infos, nil
 }
 
-func (b *USB) Connect(path string, debug bool) (core.USBDevice, error) {
+func (b *USB) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
 	for _, b := range b.buses {
 		if b.Has(path) {
-			return b.Connect(path, debug)
+			return b.Connect(path, debug, reset)
 		}
 	}
 	return nil, ErrNotFound

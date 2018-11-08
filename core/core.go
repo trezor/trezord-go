@@ -30,7 +30,11 @@ import (
 
 type USBBus interface {
 	Enumerate() ([]USBInfo, error)
-	Connect(path string, debug bool) (USBDevice, error)
+	Connect(
+		path string,
+		debug bool, // debug link
+		reset bool, // reset is optional, to prevent reseting calls
+	) (USBDevice, error)
 	Has(path string) bool
 }
 
@@ -341,8 +345,13 @@ func (c *Core) Acquire(
 		}
 	}
 
+	// reset device ONLY if no call on the other port
+	// otherwise, USB reset stops other call
+	otherSession := c.findPrevSession(path, !debug)
+	reset := otherSession == ""
+
 	c.Log("acquire - trying to connect")
-	dev, err := c.tryConnect(path, debug)
+	dev, err := c.tryConnect(path, debug, reset)
 	if err != nil {
 		return "", err
 	}
@@ -369,11 +378,11 @@ func (c *Core) Acquire(
 // Chrome tries to read from trezor immediately after connecting,
 // ans so do we.  Bad timing can produce error on s.bus.Connect.
 // Try 3 times with a 100ms delay.
-func (c *Core) tryConnect(path string, debug bool) (USBDevice, error) {
+func (c *Core) tryConnect(path string, debug bool, reset bool) (USBDevice, error) {
 	tries := 0
 	for {
 		c.Log(fmt.Sprintf("tryConnect - try number %d", tries))
-		dev, err := c.bus.Connect(path, debug)
+		dev, err := c.bus.Connect(path, debug, reset)
 		if err != nil {
 			if tries < 3 {
 				c.Log("tryConnect - sleeping")

@@ -155,7 +155,7 @@ func (udp *UDP) Has(path string) bool {
 	return strings.HasPrefix(path, emulatorPrefix)
 }
 
-func (udp *UDP) Connect(path string, debug bool) (core.USBDevice, error) {
+func (udp *UDP) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
 	ports := strings.Split(strings.TrimPrefix(path, emulatorPrefix), "D")
 
 	var port int

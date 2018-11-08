@@ -58,7 +58,7 @@ func (b *HIDAPI) Has(path string) bool {
 	return strings.HasPrefix(path, hidapiPrefix)
 }
 
-func (b *HIDAPI) Connect(path string, debug bool) (core.USBDevice, error) {
+func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
 	if debug {
 		return nil, errNotDebug
 	}
