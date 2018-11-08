@@ -105,7 +105,7 @@ func main() {
 
 	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 5MB")
 	flag.Var(&ports, "e", "Use UDP port for emulator. Can be repeated for more ports. Example: trezord-go -e 21324 -e 21326")
-	flag.Var(&ports, "ed", "Use UDP port for emulator with debug link. Can be repeated for more ports. Example: trezord-go -ed 21324:21326")
+	flag.Var(&touples, "ed", "Use UDP port for emulator with debug link. Can be repeated for more ports. Example: trezord-go -ed 21324:21326")
 	flag.BoolVar(&withusb, "u", true, "Use USB devices. Can be disabled for testing environments. Example: trezord-go -e 21324 -u=false")
 	flag.BoolVar(&verbose, "v", false, "Write verbose logs to stdout")
 	flag.Parse()
