@@ -43,10 +43,10 @@ func (b *USB) Enumerate() ([]core.USBInfo, error) {
 	return infos, nil
 }
 
-func (b *USB) Connect(path string) (core.USBDevice, error) {
+func (b *USB) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
 	for _, b := range b.buses {
 		if b.Has(path) {
-			return b.Connect(path)
+			return b.Connect(path, debug, reset)
 		}
 	}
 	return nil, ErrNotFound
@@ -54,3 +54,4 @@ func (b *USB) Connect(path string) (core.USBDevice, error) {
 
 var errDisconnect = errors.New("device disconnected during action")
 var errClosedDevice = errors.New("closed device")
+var errNotDebug = errors.New("not debug link")

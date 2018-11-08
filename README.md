@@ -79,6 +79,30 @@ Server supports following API calls:
 | `/post/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | 0 | Similar to `call`, just doesn't read response back. Usable mainly for debug link. |
 | `/read/SESSION`<br>POST | `SESSION`: session to call | 0 | Similar to `call`, just doesn't post, only reads. Usable mainly for debug link. |
 
+## Debug link support
+
+Trezord has support for debug link.
+
+To support an emulator with debug link, run
+
+`./trezord -ed 21324:21325 -u=false`
+
+this will detect emulator debug link on port 21325, with regular device on 21324. 
+
+To support WebUSB devices with debug link, no option is needed, just run trezord-go.
+
+In the `enumerate` and `listen` results, there are now two new fields: `debug` and `debugSession`. `debug` signals that device can receive debug link messages.
+
+Session management is separate for debug link and normal interface, so you can have two applications - one controlling trezor and one "normal".
+
+There are new calls:
+
+* `/debug/acquire/PATH`, which has the same path as normal `acquire`, and returns a `SESSION`
+* `/debug/release/SESSION` releases session
+* `/debug/call/SESSION`, `/debug/post/SESSION`, `/debug/read/SESSION` work as with normal interface
+
+The session IDs for debug link start with the string "debug".
+
 ## Copyright
 
 * (C) 2018 Karel Bilek, Jan Pochyla
