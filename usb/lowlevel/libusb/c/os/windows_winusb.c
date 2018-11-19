@@ -1691,6 +1691,7 @@ static int windows_get_config_descriptor(struct libusb_device *dev, uint8_t conf
 static int windows_get_config_descriptor_by_value(struct libusb_device *dev, uint8_t bConfigurationValue,
 	unsigned char **buffer, int *host_endian)
 {
+	usbi_dbg("start");
 	struct windows_device_priv *priv = _device_priv(dev);
 	PUSB_CONFIGURATION_DESCRIPTOR config_header;
 	uint8_t index;
@@ -1698,16 +1699,33 @@ static int windows_get_config_descriptor_by_value(struct libusb_device *dev, uin
 	*buffer = NULL;
 	*host_endian = 0;
 
-	if (priv->config_descriptor == NULL)
+	if (priv->config_descriptor == NULL) {
+		usbi_dbg("err_not_found");
 		return LIBUSB_ERROR_NOT_FOUND;
+	}
 
-	for (index = 0; index < dev->num_configurations; index++) {
+	usbi_dbg("before loop");
+	for (index = 0; usbi_dbg("loop try"), index < dev->num_configurations; usbi_dbg("loop step"), index++) {
+		usbi_dbg("loop");
 		config_header = (PUSB_CONFIGURATION_DESCRIPTOR)priv->config_descriptor[index];
-		if (config_header->bConfigurationValue == bConfigurationValue) {
+		bool isNull = config_header == NULL;
+		if (isNull) {
+			usbi_dbg("!!! is null !!!");
+		}
+		usbi_dbg("is config value");
+		bool is = config_header->bConfigurationValue == bConfigurationValue;
+		usbi_dbg("is done");
+		if (is) {
+		usbi_dbg("write to buffer");
 			*buffer = priv->config_descriptor[index];
+			usbi_dbg("return");
 			return (int)config_header->wTotalLength;
+		} else {
+			usbi_dbg("is not, next");
 		}
 	}
+
+	usbi_dbg("err_not_found");
 
 	return LIBUSB_ERROR_NOT_FOUND;
 }
@@ -1717,19 +1735,29 @@ static int windows_get_config_descriptor_by_value(struct libusb_device *dev, uin
  */
 static int windows_get_active_config_descriptor(struct libusb_device *dev, unsigned char *buffer, size_t len, int *host_endian)
 {
+	usbi_dbg("start, get device priv");
 	struct windows_device_priv *priv = _device_priv(dev);
+	usbi_dbg("device priv done");
 	unsigned char *config_desc;
 	int r;
-
-	if (priv->active_config == 0)
+	if (priv->active_config == 0) {
+		usbi_dbg("err not found");
 		return LIBUSB_ERROR_NOT_FOUND;
+	}
 
+	usbi_dbg("get_config_descriptor_by_value");
 	r = windows_get_config_descriptor_by_value(dev, priv->active_config, &config_desc, host_endian);
-	if (r < 0)
+	if (r < 0) {
+		usbi_dbg("return err %d", r);
 		return r;
+	}
+
+	usbi_dbg("MIN %d %d", r, len);
 
 	len = MIN((size_t)r, len);
+	usbi_dbg("Mempcpy %d", len);
 	memcpy(buffer, config_desc, len);
+	usbi_dbg("return %d", len);
 	return (int)len;
 }
 

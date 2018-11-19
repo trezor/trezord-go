@@ -314,6 +314,7 @@ func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
 }
 
 func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
+	b.mw.Println("libusb - match - start")
 	dd, err := lowlevel.Get_Device_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("libusb - match - error getting descriptor -" + err.Error())
@@ -323,14 +324,18 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	vid := dd.IdVendor
 	pid := dd.IdProduct
 	if !b.matchVidPid(vid, pid) {
+		b.mw.Println("libusb - match - unmatched")
 		return false, 0
 	}
 
+	b.mw.Println("libusb - match - matched, get active config")
 	c, err := lowlevel.Get_Active_Config_Descriptor(dev)
 	if err != nil {
 		b.mw.Println("libusb - match - error getting config descriptor " + err.Error())
 		return false, 0
 	}
+
+	b.mw.Println("libusb - match - let's test")
 
 	var is bool
 	usbIfaceNum := normalIface.number
@@ -349,8 +354,10 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 	}
 
 	if !is {
+		b.mw.Println("libusb - match - not matched")
 		return false, 0
 	}
+	b.mw.Println("libusb - match - matched")
 	return true, matchType(dd)
 
 }
