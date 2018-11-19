@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.26] - unreleased
+
+- Add verbose logs from previous run on windows to better debug win7 crashes
+
 ## [2.0.25] - unreleased
 
 - Use interrupt reads without timeouts even on FreeBSD and linux
