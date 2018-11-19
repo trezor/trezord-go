@@ -103,18 +103,18 @@ func main() {
 	var withusb bool
 	var verbose bool
 
-	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 5MB")
+	flag.StringVar(&logfile, "l", "", "Log into a file, rotating after 20MB")
 	flag.Var(&ports, "e", "Use UDP port for emulator. Can be repeated for more ports. Example: trezord-go -e 21324 -e 21326")
 	flag.Var(&touples, "ed", "Use UDP port for emulator with debug link. Can be repeated for more ports. Example: trezord-go -ed 21324:21326")
 	flag.BoolVar(&withusb, "u", true, "Use USB devices. Can be disabled for testing environments. Example: trezord-go -e 21324 -u=false")
-	flag.BoolVar(&verbose, "v", false, "Write verbose logs to stdout")
+	flag.BoolVar(&verbose, "v", false, "Write verbose logs to either stderr or logfile")
 	flag.Parse()
 
 	var stderrWriter io.Writer
 	if logfile != "" {
 		stderrWriter = &lumberjack.Logger{
 			Filename:   logfile,
-			MaxSize:    5, // megabytes
+			MaxSize:    20, // megabytes
 			MaxBackups: 3,
 		}
 	} else {
@@ -123,9 +123,14 @@ func main() {
 
 	stderrLogger := log.New(stderrWriter, "", log.LstdFlags)
 
-	shortMemoryWriter := memorywriter.New(2000, 200, false, false)
+	shortMemoryWriter := memorywriter.New(2000, 200, false, nil)
 
-	longMemoryWriter := memorywriter.New(90000, 200, true, verbose)
+	verboseWriter := stderrWriter
+	if !verbose {
+		verboseWriter = nil
+	}
+
+	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
 
 	stderrLogger.Print("trezord is starting.")
 

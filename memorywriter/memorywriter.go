@@ -24,7 +24,7 @@ type MemoryWriter struct {
 	startTime    time.Time
 	printTime    bool
 
-	out bool
+	outWriter io.Writer
 }
 
 func (m *MemoryWriter) Println(s string) {
@@ -67,8 +67,12 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 
 		m.lines = append(m.lines, newline)
 	}
-	if m.out {
-		fmt.Print(string(newline))
+	if m.outWriter != nil {
+		_, wrErr := m.outWriter.Write(newline)
+		if wrErr != nil {
+			// give up, just print on stdout
+			fmt.Println(wrErr)
+		}
 	}
 	return len(p), nil
 }
@@ -140,7 +144,7 @@ func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func New(size int, startSize int, printTime bool, out bool) *MemoryWriter {
+func New(size int, startSize int, printTime bool, out io.Writer) *MemoryWriter {
 	return &MemoryWriter{
 		maxLineCount: size,
 		lines:        make([][]byte, 0, size),
@@ -148,6 +152,6 @@ func New(size int, startSize int, printTime bool, out bool) *MemoryWriter {
 		startLines:   make([][]byte, 0, startSize),
 		startTime:    time.Now(),
 		printTime:    printTime,
-		out:          out,
+		outWriter:    out,
 	}
 }
