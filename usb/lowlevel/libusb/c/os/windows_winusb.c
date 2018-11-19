@@ -864,12 +864,11 @@ static int force_hcd_device_descriptor(struct libusb_device *dev)
 /*
  * fetch and cache all the config descriptors through I/O
  */
-static int cache_config_descriptors(struct libusb_device *dev, HANDLE hub_handle, char *device_id)
+static void cache_config_descriptors(struct libusb_device *dev, HANDLE hub_handle, char *device_id)
 {
 	DWORD size, ret_size;
 	struct libusb_context *ctx = DEVICE_CTX(dev);
 	struct windows_device_priv *priv = _device_priv(dev);
-	int r;
 	uint8_t i;
 
 	USB_CONFIGURATION_DESCRIPTOR_SHORT cd_buf_short; // dummy request
@@ -877,21 +876,20 @@ static int cache_config_descriptors(struct libusb_device *dev, HANDLE hub_handle
 	PUSB_CONFIGURATION_DESCRIPTOR cd_data = NULL;
 
 	if (dev->num_configurations == 0)
-		return LIBUSB_ERROR_INVALID_PARAM;
+		return;
 
 	priv->config_descriptor = calloc(dev->num_configurations, sizeof(unsigned char *));
-	if (priv->config_descriptor == NULL)
-		return LIBUSB_ERROR_NO_MEM;
+	if (priv->config_descriptor == NULL) {
+		usbi_err(ctx, "could not allocate configuration descriptor array for '%s'", device_id);
+	}
 
 	for (i = 0; i < dev->num_configurations; i++)
 		priv->config_descriptor[i] = NULL;
 
-	for (i = 0, r = LIBUSB_SUCCESS; ; i++) {
-		// safe loop: release all dynamic resources
+	for (i = 0; i <= dev->num_configurations; i++) {
 		safe_free(cd_buf_actual);
 
-		// safe loop: end of loop condition
-		if ((i >= dev->num_configurations) || (r != LIBUSB_SUCCESS))
+		if (i == dev->num_configurations)
 			break;
 
 		size = sizeof(USB_CONFIGURATION_DESCRIPTOR_SHORT);
@@ -909,20 +907,20 @@ static int cache_config_descriptors(struct libusb_device *dev, HANDLE hub_handle
 		// coverity[tainted_data_argument]
 		if (!DeviceIoControl(hub_handle, IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION, &cd_buf_short, size,
 			&cd_buf_short, size, &ret_size, NULL)) {
-			usbi_info(ctx, "could not access configuration descriptor (dummy) for '%s': %s", device_id, windows_error_str(0));
-			LOOP_BREAK(LIBUSB_ERROR_IO);
+			usbi_info(ctx, "could not access configuration descriptor %u (dummy) for '%s': %s", i, device_id, windows_error_str(0));
+			continue;
 		}
 
 		if ((ret_size != size) || (cd_buf_short.data.wTotalLength < sizeof(USB_CONFIGURATION_DESCRIPTOR))) {
-			usbi_info(ctx, "unexpected configuration descriptor size (dummy) for '%s'.", device_id);
-			LOOP_BREAK(LIBUSB_ERROR_IO);
+			usbi_info(ctx, "unexpected configuration descriptor %u size (dummy) for '%s'.", i, device_id);
+			continue;
 		}
 
 		size = sizeof(USB_DESCRIPTOR_REQUEST) + cd_buf_short.data.wTotalLength;
 		cd_buf_actual = calloc(1, size);
 		if (cd_buf_actual == NULL) {
-			usbi_err(ctx, "could not allocate configuration descriptor buffer for '%s'.", device_id);
-			LOOP_BREAK(LIBUSB_ERROR_NO_MEM);
+			usbi_err(ctx, "could not allocate configuration descriptor %u buffer for '%s'.", i, device_id);
+			continue;
 		}
 
 		// Actual call
@@ -935,32 +933,33 @@ static int cache_config_descriptors(struct libusb_device *dev, HANDLE hub_handle
 
 		if (!DeviceIoControl(hub_handle, IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION, cd_buf_actual, size,
 			cd_buf_actual, size, &ret_size, NULL)) {
-			usbi_err(ctx, "could not access configuration descriptor (actual) for '%s': %s", device_id, windows_error_str(0));
-			LOOP_BREAK(LIBUSB_ERROR_IO);
+			usbi_err(ctx, "could not access configuration descriptor %u (actual) for '%s': %s", i, device_id, windows_error_str(0));
+			continue;
 		}
 
 		cd_data = (PUSB_CONFIGURATION_DESCRIPTOR)((UCHAR *)cd_buf_actual + sizeof(USB_DESCRIPTOR_REQUEST));
 
 		if ((size != ret_size) || (cd_data->wTotalLength != cd_buf_short.data.wTotalLength)) {
-			usbi_err(ctx, "unexpected configuration descriptor size (actual) for '%s'.", device_id);
-			LOOP_BREAK(LIBUSB_ERROR_IO);
+			usbi_err(ctx, "unexpected configuration descriptor %u size (actual) for '%s'.", i, device_id);
+			continue;
 		}
 
 		if (cd_data->bDescriptorType != USB_CONFIGURATION_DESCRIPTOR_TYPE) {
-			usbi_err(ctx, "not a configuration descriptor for '%s'", device_id);
-			LOOP_BREAK(LIBUSB_ERROR_IO);
+			usbi_err(ctx, "not a configuration descriptor %u for '%s'", i, device_id);
+			continue;
 		}
 
-		usbi_dbg("cached config descriptor %d (bConfigurationValue=%u, %u bytes)",
+		usbi_dbg("cached config descriptor %u (bConfigurationValue=%u, %u bytes)",
 			i, cd_data->bConfigurationValue, cd_data->wTotalLength);
 
 		// Cache the descriptor
 		priv->config_descriptor[i] = malloc(cd_data->wTotalLength);
-		if (priv->config_descriptor[i] == NULL)
-			LOOP_BREAK(LIBUSB_ERROR_NO_MEM);
-		memcpy(priv->config_descriptor[i], cd_data, cd_data->wTotalLength);
+		if (priv->config_descriptor[i] != NULL) {
+			memcpy(priv->config_descriptor[i], cd_data, cd_data->wTotalLength);
+		} else {
+			usbi_err(ctx, "could not allocate configuration descriptor %u buffer for '%s'", i, device_id);
+		}
 	}
-	return LIBUSB_SUCCESS;
 }
 
 /*
@@ -1060,10 +1059,7 @@ static int init_device(struct libusb_device *dev, struct libusb_device *parent_d
 		usbi_dbg("found %u configurations (active conf: %u)", dev->num_configurations, priv->active_config);
 
 		// If we can't read the config descriptors, just set the number of confs to zero
-		if (cache_config_descriptors(dev, handle, device_id) != LIBUSB_SUCCESS) {
-			dev->num_configurations = 0;
-			priv->dev_descriptor.bNumConfigurations = 0;
-		}
+		cache_config_descriptors(dev, handle, device_id);
 
 		// In their great wisdom, Microsoft decided to BREAK the USB speed report between Windows 7 and Windows 8
 		if (windows_version >= WINDOWS_8) {
@@ -1710,7 +1706,8 @@ static int windows_get_config_descriptor_by_value(struct libusb_device *dev, uin
 		config_header = (PUSB_CONFIGURATION_DESCRIPTOR)priv->config_descriptor[index];
 		bool isNull = config_header == NULL;
 		if (isNull) {
-			usbi_dbg("!!! is null !!!");
+			usbi_dbg("is null, next");
+			continue;
 		}
 		usbi_dbg("is config value");
 		bool is = config_header->bConfigurationValue == bConfigurationValue;
