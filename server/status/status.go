@@ -85,6 +85,14 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.Log("getting old log")
+	old, err := oldLog()
+	if err != nil {
+		s.Log("old log err " + err.Error())
+		respondError(w, err)
+		return
+	}
+
 	s.Log("getting setupapi")
 	setupapi, err := setupAPIDevLog()
 	if err != nil {
@@ -93,7 +101,7 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + libwdi + setupapi
+	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + old + libwdi + setupapi + "\nCurrent log:\n"
 
 	gzip, err := s.longMemoryWriter.Gzip(start)
 	if err != nil {

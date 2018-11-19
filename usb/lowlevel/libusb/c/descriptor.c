@@ -543,19 +543,22 @@ int usbi_device_cache_descriptor(libusb_device *dev)
 int API_EXPORTED libusb_get_device_descriptor(libusb_device *dev,
 	struct libusb_device_descriptor *desc)
 {
-	usbi_dbg("");
+	usbi_dbg("before memcpy");
 	memcpy((unsigned char *) desc, (unsigned char *) &dev->device_descriptor,
 	       sizeof (dev->device_descriptor));
+	usbi_dbg("after memcpy");
 
 	#ifdef OS_WINDOWS
 	// hack for filtering out non-winusb devices in trezord
 	// (note that in trezord layer, throwing error here does NOT throw error up the chain,
 	//  it just ignores the device)
+	usbi_dbg("windows -> ask driver");
 	if (!dev->has_winusb_driver) {
 		usbi_dbg("winUSB not detected, return error");
 		return LIBUSB_ERROR_OTHER;
 	}
 	#endif
+	usbi_dbg("return");
 	return 0;
 }
 

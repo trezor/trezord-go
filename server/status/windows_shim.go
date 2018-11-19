@@ -25,6 +25,10 @@ func isWindows() bool {
 	return false
 }
 
+func oldLog() (string, error) {
+	return "", nil
+}
+
 func libwdiReinstallLog() (string, error) {
 	return "", nil
 }

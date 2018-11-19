@@ -331,10 +331,10 @@ func isWindows() bool {
 	return true
 }
 
-func libwdiReinstallLog() (string, error) {
-	appdata := os.Getenv("AppData")
-	folder := appdata + "\\TREZOR Bridge"
-	file := folder + "\\wdi-log.txt"
+func readFile(header, envDirName, subDirName, fileName string) (string, error) {
+	envDir := os.Getenv(envDirName)
+	subDir := envDir + "\\" + subDirName
+	file := subDir + "\\" + fileName
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -344,23 +344,33 @@ func libwdiReinstallLog() (string, error) {
 	}
 
 	contentStr := strings.Replace(string(content), "\r\n", "\n", -1)
-	all := "libwdi reinstall log:\n" + contentStr + "\n"
+	all := header + ":\n" + contentStr + "\n"
 	return all, nil
 }
 
-func setupAPIDevLog() (string, error) {
-	sysroot := os.Getenv("SystemRoot")
-	folder := sysroot + "\\inf"
-	file := folder + "\\SetupAPI.dev.log"
-	content, err := ioutil.ReadFile(file)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
-	}
+func oldLog() (string, error) {
+	return readFile(
+		"previous log",
+		"AppData",
+		"TREZOR Bridge",
+		"trezord.log",
+	)
+}
 
-	contentStr := strings.Replace(string(content), "\r\n", "\n", -1)
-	all := "setupapi device log:\n" + contentStr + "\n"
-	return all, nil
+func libwdiReinstallLog() (string, error) {
+	return readFile(
+		"libwdi reinstall log",
+		"AppData",
+		"TREZOR Bridge",
+		"wdi-log.txt",
+	)
+}
+
+func setupAPIDevLog() (string, error) {
+	return readFile(
+		"setupapi device log",
+		"SystemRoot",
+		"inf",
+		"SetupAPI.dev.log",
+	)
 }
