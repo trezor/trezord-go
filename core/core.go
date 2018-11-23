@@ -100,6 +100,7 @@ type Core struct {
 	sessionsMutex  sync.Mutex // for atomic access to sessions
 
 	allowStealing bool
+	reset         bool
 
 	callsInProgress int        // we cannot make calls and enumeration at the same time
 	callMutex       sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
@@ -123,13 +124,14 @@ const (
 	ProductT2Firmware   = 0x53C1
 )
 
-func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing bool) *Core {
+func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) *Core {
 	c := &Core{
 		bus:            bus,
 		normalSessions: make(map[string]*session),
 		debugSessions:  make(map[string]*session),
 		log:            log,
 		allowStealing:  allowStealing,
+		reset:          reset,
 	}
 	return c
 }
@@ -348,7 +350,7 @@ func (c *Core) Acquire(
 	// reset device ONLY if no call on the other port
 	// otherwise, USB reset stops other call
 	otherSession := c.findPrevSession(path, !debug)
-	reset := otherSession == ""
+	reset := otherSession == "" && c.reset
 
 	c.Log("acquire - trying to connect")
 	dev, err := c.tryConnect(path, debug, reset)
