@@ -3,6 +3,7 @@ package usb
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,12 +41,93 @@ var debugIface = libusbIfaceData{
 	epOut:      0x02,
 }
 
+type device struct {
+	vendorID  int
+	productID int
+	dtype     core.DeviceType
+	debug     bool // has debug enabled?
+
+	// There is a bug in libusb that makes
+	// device appear twice with the same path.
+	// That's why we have an array; one of them will work
+	// but we don't know which one
+	devices []lowlevel.Device // c pointers
+}
+
+func (a *device) equals(b *device) bool {
+	for _, adev := range a.devices {
+		for _, bdev := range b.devices {
+			if adev == bdev {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type LibUSBDeviceList struct {
+	biggestDeviceID int
+	lastDevices     map[int](*device) // id => info
+}
+
+func (l *LibUSBDeviceList) add(devs map[string](*device)) {
+	for _, ndev := range devs {
+		add := true
+		for _, ldev := range l.lastDevices {
+			if ldev.equals(ndev) {
+				add = false
+			}
+		}
+		if add {
+			newID := l.biggestDeviceID + 1
+			l.biggestDeviceID = newID
+			l.lastDevices[newID] = ndev
+			for _, lldev := range ndev.devices {
+				lowlevel.Ref_Device(lldev)
+			}
+		}
+	}
+}
+
+func (l *LibUSBDeviceList) cleanup(devs map[string](*device)) {
+	for id, ldev := range l.lastDevices {
+		discard := true
+		for _, ndev := range devs {
+			if ldev.equals(ndev) {
+				discard = false
+			}
+		}
+		if discard {
+			delete(l.lastDevices, id)
+			for _, lldev := range ldev.devices {
+				lowlevel.Unref_Device(lldev)
+			}
+		}
+	}
+}
+
+func (l *LibUSBDeviceList) infos() (res []core.USBInfo) {
+	for id, ldev := range l.lastDevices {
+		info := core.USBInfo{
+			Path:      libusbPrefix + strconv.Itoa(id),
+			VendorID:  ldev.vendorID,
+			ProductID: ldev.productID,
+			Type:      ldev.dtype,
+			Debug:     ldev.debug,
+		}
+		res = append(res, info)
+	}
+	return
+}
+
 type LibUSB struct {
 	usb    lowlevel.Context
 	mw     *memorywriter.MemoryWriter
 	only   bool
 	cancel bool
 	detach bool
+
+	list *LibUSBDeviceList
 }
 
 func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach bool) (*LibUSB, error) {
@@ -66,6 +148,9 @@ func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach b
 		only:   onlyLibusb,
 		cancel: allowCancel,
 		detach: detach,
+		list: &LibUSBDeviceList{
+			lastDevices: make(map[int](*device)),
+		},
 	}, nil
 }
 
@@ -96,6 +181,44 @@ func detectDebug(dev lowlevel.Device) (bool, error) {
 	return false, nil
 }
 
+func (b *LibUSB) devicesByPorts(list []lowlevel.Device) (
+	devices map[string]*device,
+) {
+	devices = make(map[string]*device)
+
+	for _, dev := range list {
+		m, t := b.match(dev)
+		if m {
+			b.mw.Log("getting device descriptor")
+			dd, err := lowlevel.Get_Device_Descriptor(dev)
+			if err != nil {
+				b.mw.Log("error getting device descriptor " + err.Error())
+				continue
+			}
+			ports := b.getPortsPath(dev)
+			deviceInfo := devices[ports]
+			if deviceInfo == nil {
+				debug, err := detectDebug(dev)
+				if err != nil {
+					b.mw.Log("error detecting debug " + err.Error())
+					continue
+				}
+				newDevice := device{
+					vendorID:  int(dd.IdVendor),
+					productID: int(dd.IdProduct),
+					dtype:     t,
+					debug:     debug,
+					devices:   []lowlevel.Device{dev},
+				}
+				devices[ports] = &newDevice
+			} else {
+				deviceInfo.devices = append(deviceInfo.devices, dev)
+			}
+		}
+	}
+	return
+}
+
 func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 	b.mw.Log("low level enumerating")
 	list, err := lowlevel.Get_Device_List(b.usb)
@@ -111,44 +234,10 @@ func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 		b.mw.Log("freeing device list done")
 	}()
 
-	var infos []core.USBInfo
-
-	// There is a bug in libusb that makes
-	// device appear twice with the same path.
-	// This is already fixed in libusb 2.0.12;
-	// however, 2.0.12 has other problems with windows, so we
-	// patchfix it here
-	paths := make(map[string]bool)
-
-	for _, dev := range list {
-		m, t := b.match(dev)
-		if m {
-			b.mw.Log("getting device descriptor")
-			dd, err := lowlevel.Get_Device_Descriptor(dev)
-			if err != nil {
-				b.mw.Log("error getting device descriptor " + err.Error())
-				continue
-			}
-			path := b.identify(dev)
-			inset := paths[path]
-			if !inset {
-				debug, err := detectDebug(dev)
-				if err != nil {
-					b.mw.Log("error detecting debug " + err.Error())
-					continue
-				}
-				infos = append(infos, core.USBInfo{
-					Path:      path,
-					VendorID:  int(dd.IdVendor),
-					ProductID: int(dd.IdProduct),
-					Type:      t,
-					Debug:     debug,
-				})
-				paths[path] = true
-			}
-		}
-	}
-	return infos, nil
+	devs := b.devicesByPorts(list)
+	b.list.add(devs)
+	b.list.cleanup(devs)
+	return b.list.infos(), nil
 }
 
 func (b *LibUSB) Has(path string) bool {
@@ -156,32 +245,27 @@ func (b *LibUSB) Has(path string) bool {
 }
 
 func (b *LibUSB) Connect(path string, debug bool, reset bool) (core.USBDevice, error) {
-	b.mw.Log("low level enumerating")
-	list, err := lowlevel.Get_Device_List(b.usb)
+	b.mw.Log("reenumerating")
+	_, err := b.Enumerate()
 
 	if err != nil {
 		return nil, err
 	}
 	b.mw.Log("low level enumerating done")
 
-	defer func() {
-		b.mw.Log("freeing device list")
-		lowlevel.Free_Device_List(list, 1) // unlink devices
-		b.mw.Log("freeing device list done")
-	}()
+	id, err := strconv.Atoi(strings.TrimPrefix(path, libusbPrefix))
+	if err != nil {
+		return nil, err
+	}
 
-	// There is a bug in libusb that makes
-	// device appear twice with the same path.
+	if b.list.lastDevices[id] == nil {
+		return nil, ErrNotFound
+	}
+
 	// This is already fixed in libusb 2.0.12;
 	// however, 2.0.12 has other problems with windows, so we
 	// patchfix it here
-	mydevs := make([]lowlevel.Device, 0)
-	for _, dev := range list {
-		m, _ := b.match(dev)
-		if m && b.identify(dev) == path {
-			mydevs = append(mydevs, dev)
-		}
-	}
+	mydevs := b.list.lastDevices[id].devices
 
 	err = ErrNotFound
 	for _, dev := range mydevs {
@@ -374,14 +458,14 @@ func (b *LibUSB) matchVidPid(vid uint16, pid uint16) bool {
 	return trezor2
 }
 
-func (b *LibUSB) identify(dev lowlevel.Device) string {
+func (b *LibUSB) getPortsPath(dev lowlevel.Device) string {
 	var ports [8]byte
 	p, err := lowlevel.Get_Port_Numbers(dev, ports[:])
 	if err != nil {
 		b.mw.Log(fmt.Sprintf("error getting port numbers %s", err.Error()))
 		return ""
 	}
-	return libusbPrefix + hex.EncodeToString(p)
+	return hex.EncodeToString(p)
 }
 
 type LibUSBDevice struct {
