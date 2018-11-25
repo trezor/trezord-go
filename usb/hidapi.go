@@ -1,3 +1,5 @@
+// +build darwin,!ios,cgo windows,cgo
+
 package usb
 
 import (
@@ -19,6 +21,7 @@ const (
 	hidapiPrefix = "hid"
 	hidUsagePage = 0xFF00
 	hidTimeout   = 50
+	HIDUse       = true
 )
 
 type HIDAPI struct {

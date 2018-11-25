@@ -75,14 +75,14 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 	if init {
 		wr.Println("Initing libusb")
 
-		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel(), detachKernelDriver())
+		w, err := usb.InitLibUSB(wr, !usb.HIDUse, allowCancel(), detachKernelDriver())
 		if err != nil {
 			sl.Fatalf("libusb: %s", err)
 		}
 		// defer w.Close()
 		// not defering - originally in main, now here, here makes no sense
 
-		if useOnlyLibusb() {
+		if !usb.HIDUse {
 			return []core.USBBus{w}
 		}
 
@@ -180,11 +180,6 @@ func main() {
 // Does OS allow sync canceling via our custom libusb patches?
 func allowCancel() bool {
 	return runtime.GOOS != "freebsd"
-}
-
-// Does OS use libusb for HID devices?
-func useOnlyLibusb() bool {
-	return runtime.GOOS == "freebsd" || runtime.GOOS == "linux"
 }
 
 // Does OS detach kernel driver in libusb?
