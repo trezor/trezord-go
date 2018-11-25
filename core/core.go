@@ -136,17 +136,13 @@ func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) 
 	return c
 }
 
-func (c *Core) Log(s string) {
-	c.log.Println("core - " + s)
-}
-
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// Lock for atomic access to s.sessions.
-	c.Log("enumerate locking sessionsMutex")
+	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
-	c.Log("enumerate locking callMutex")
+	c.log.Log("locking callMutex")
 	// Lock for atomic access to s.callInProgress.  It needs to be over
 	// whole function, so that call does not actually start while
 	// enumerating.
@@ -156,9 +152,9 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// Use saved info if call is in progress, otherwise enumerate.
 	infos := c.lastInfos
 
-	c.Log(fmt.Sprintf("enumerate callsInProgress %d", c.callsInProgress))
+	c.log.Log(fmt.Sprintf("callsInProgress %d", c.callsInProgress))
 	if c.callsInProgress == 0 {
-		c.Log("enumerate bus")
+		c.log.Log("bus")
 		busInfos, err := c.bus.Enumerate()
 		if err != nil {
 			return nil, err
@@ -168,7 +164,7 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	}
 
 	entries := c.createEnumerateEntries(infos)
-	c.Log("enumerate release disconnected")
+	c.log.Log("release disconnected")
 	c.releaseDisconnected(infos, false)
 	c.releaseDisconnected(infos, true)
 	return entries, nil
@@ -234,12 +230,12 @@ func (c *Core) releaseDisconnected(infos []USBInfo, debug bool) {
 			}
 		}
 		if !connected {
-			c.Log(fmt.Sprintf("releasing disconnected device %s", ssid))
+			c.log.Log(fmt.Sprintf("disconnected device %s", ssid))
 			err := c.release(ssid, true, debug)
 			// just log if there is an error
 			// they are disconnected anyway
 			if err != nil {
-				c.Log(fmt.Sprintf("Error on releasing disconnected device: %s", err))
+				c.log.Log(fmt.Sprintf("Error on releasing disconnected device: %s", err))
 			}
 		}
 	}
@@ -254,21 +250,21 @@ func (c *Core) release(
 	disconnected bool,
 	debug bool,
 ) error {
-	c.Log(fmt.Sprintf("inner release - session %s", session))
+	c.log.Log(fmt.Sprintf("session %s", session))
 	acquired := (c.sessions(debug))[session]
 	if acquired == nil {
-		c.Log("inner release - session not found")
+		c.log.Log("session not found")
 		return ErrSessionNotFound
 	}
 	delete(c.sessions(debug), session)
 
-	c.Log("inner release - bus close")
+	c.log.Log("bus close")
 	err := acquired.dev.Close(disconnected)
 	return err
 }
 
 func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]EnumerateEntry, error) {
-	c.Log("listen starting")
+	c.log.Log("start")
 
 	const (
 		iterMax   = 600
@@ -278,7 +274,7 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]Enum
 	EnumerateEntries(entries).Sort()
 
 	for i := 0; i < iterMax; i++ {
-		c.Log("listen before enumerating")
+		c.log.Log("before enumerating")
 		e, enumErr := c.Enumerate()
 		if enumErr != nil {
 			return nil, enumErr
@@ -287,21 +283,21 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]Enum
 			e[i].Type = 0 // type is not exported/imported to json
 		}
 		if reflect.DeepEqual(entries, e) {
-			c.Log("listen equal, waiting")
+			c.log.Log("equal, waiting")
 			select {
 			case <-closeNotify:
-				c.Log("listen request closed")
+				c.log.Log("request closed")
 				return nil, nil
 			default:
 				time.Sleep(iterDelay * time.Millisecond)
 			}
 		} else {
-			c.Log("listen different")
+			c.log.Log("different")
 			entries = e
 			break
 		}
 	}
-	c.Log("listen encoding and exiting")
+	c.log.Log("encoding and exiting")
 	return entries, nil
 }
 
@@ -321,15 +317,15 @@ func (c *Core) Acquire(
 	debug bool,
 ) (string, error) {
 
-	c.Log("acquire - locking sessionsMutex")
+	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
-	c.Log(fmt.Sprintf("acquire - input path %s prev %s", path, prev))
+	c.log.Log(fmt.Sprintf("input path %s prev %s", path, prev))
 
 	prevSession := c.findPrevSession(path, debug)
 
-	c.Log(fmt.Sprintf("acquire - actually previous %s", prevSession))
+	c.log.Log(fmt.Sprintf("actually previous %s", prevSession))
 
 	if prevSession != prev {
 		return "", ErrWrongPrevSession
@@ -340,7 +336,7 @@ func (c *Core) Acquire(
 	}
 
 	if prev != "" {
-		c.Log("acquire - releasing previous")
+		c.log.Log("releasing previous")
 		err := c.release(prev, false, debug)
 		if err != nil {
 			return "", err
@@ -352,7 +348,7 @@ func (c *Core) Acquire(
 	otherSession := c.findPrevSession(path, !debug)
 	reset := otherSession == "" && c.reset
 
-	c.Log("acquire - trying to connect")
+	c.log.Log("trying to connect")
 	dev, err := c.tryConnect(path, debug, reset)
 	if err != nil {
 		return "", err
@@ -370,7 +366,7 @@ func (c *Core) Acquire(
 		id:   id,
 	}
 
-	c.Log(fmt.Sprintf("acquire - new session is %s", id))
+	c.log.Log(fmt.Sprintf("new session is %s", id))
 
 	(c.sessions(debug))[id] = sess
 
@@ -383,15 +379,15 @@ func (c *Core) Acquire(
 func (c *Core) tryConnect(path string, debug bool, reset bool) (USBDevice, error) {
 	tries := 0
 	for {
-		c.Log(fmt.Sprintf("tryConnect - try number %d", tries))
+		c.log.Log(fmt.Sprintf("try number %d", tries))
 		dev, err := c.bus.Connect(path, debug, reset)
 		if err != nil {
 			if tries < 3 {
-				c.Log("tryConnect - sleeping")
+				c.log.Log("sleeping")
 				tries++
 				time.Sleep(100 * time.Millisecond)
 			} else {
-				c.Log("tryConnect - too many times, exiting")
+				c.log.Log("tryConnect - too many times, exiting")
 				return nil, err
 			}
 		} else {
@@ -422,45 +418,43 @@ func (c *Core) Call(
 	debug bool,
 	closeNotify <-chan bool,
 ) ([]byte, error) {
-	c.Log("call - start")
-
-	c.Log("call - callMutex lock")
+	c.log.Log("callMutex lock")
 	c.callMutex.Lock()
 
-	c.Log("call - callMutex set callInProgress true, unlock")
+	c.log.Log("callMutex set callInProgress true, unlock")
 	c.callsInProgress++
 
 	c.callMutex.Unlock()
-	c.Log("call - callMutex unlock done")
+	c.log.Log("callMutex unlock done")
 
 	defer func() {
-		c.Log("call - callMutex closing lock")
+		c.log.Log("callMutex closing lock")
 		c.callMutex.Lock()
 
-		c.Log("call - callMutex set callInProgress false, unlock")
+		c.log.Log("callMutex set callInProgress false, unlock")
 		c.callsInProgress--
 
 		c.callMutex.Unlock()
-		c.Log("call - callMutex closing unlock")
+		c.log.Log("callMutex closing unlock")
 	}()
 
-	c.Log("call - sessionsMutex lock")
+	c.log.Log("sessionsMutex lock")
 	c.sessionsMutex.Lock()
 	acquired := (c.sessions(debug))[session]
 	c.sessionsMutex.Unlock()
-	c.Log("call - sessionsMutex unlock done")
+	c.log.Log("sessionsMutex unlock done")
 
 	if acquired == nil {
 		return nil, ErrSessionNotFound
 	}
 
-	c.Log("call - checking other call on same session")
+	c.log.Log("checking other call on same session")
 	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
 	if !freeToCall {
 		return nil, ErrOtherCall
 	}
 
-	c.Log("call - checking other call on same session done")
+	c.log.Log("checking other call on same session done")
 	defer func() {
 		atomic.StoreInt32(&acquired.call, 0)
 	}()
@@ -475,42 +469,42 @@ func (c *Core) Call(
 		case <-finished:
 			return
 		case <-closeNotify:
-			c.Log("call - detected request close, auto-release")
+			c.log.Log("detected request close, auto-release")
 			errRelease := c.release(session, false, debug)
 			if errRelease != nil {
 				// just log, since request is already closed
-				c.Log(fmt.Sprintf("Error while releasing: %s", errRelease.Error()))
+				c.log.Log(fmt.Sprintf("Error while releasing: %s", errRelease.Error()))
 			}
 		}
 	}()
 
-	c.Log("call - before actual logic")
+	c.log.Log("before actual logic")
 	bytes, err := c.readWriteDev(body, acquired.dev, mode)
-	c.Log("call - after actual logic")
+	c.log.Log("after actual logic")
 
 	return bytes, err
 }
 
 func (c *Core) writeDev(body []byte, device io.Writer) error {
-	c.Log("readWrite - decodeRaw")
+	c.log.Log("decodeRaw")
 	msg, err := c.decodeRaw(body)
 	if err != nil {
 		return err
 	}
 
-	c.Log("readWrite - writeTo")
+	c.log.Log("writeTo")
 	_, err = msg.WriteTo(device)
 	return err
 }
 
 func (c *Core) readDev(device io.Reader) ([]byte, error) {
-	c.Log("readWrite - readFrom")
+	c.log.Log("readFrom")
 	msg, err := wire.ReadFrom(device, c.log)
 	if err != nil {
 		return nil, err
 	}
 
-	c.Log("readWrite - encoding back")
+	c.log.Log("encoding back")
 	return c.encodeRaw(msg)
 }
 
@@ -524,7 +518,7 @@ func (c *Core) readWriteDev(
 		if len(body) != 0 {
 			return nil, errors.New("Non-empty body on read mode")
 		}
-		c.Log("readWrite - skipping write")
+		c.log.Log("skipping write")
 	} else {
 		err := c.writeDev(body, device)
 		if err != nil {
@@ -533,19 +527,19 @@ func (c *Core) readWriteDev(
 	}
 
 	if mode == CallModeWrite {
-		c.Log("readWrite - skipping read")
+		c.log.Log("skipping read")
 		return []byte{0}, nil
 	}
 	return c.readDev(device)
 }
 
 func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {
-	c.Log("decode - readAll")
+	c.log.Log("readAll")
 
-	c.Log("decode - decodeString")
+	c.log.Log("decodeString")
 
 	if len(body) < 6 {
-		c.Log("decode - body too short")
+		c.log.Log("body too short")
 		return nil, ErrMalformedData
 	}
 
@@ -553,16 +547,16 @@ func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {
 	size := binary.BigEndian.Uint32(body[2:6])
 	data := body[6:]
 	if uint32(len(data)) != size {
-		c.Log("decode - wrong data length")
+		c.log.Log("wrong data length")
 		return nil, ErrMalformedData
 	}
 
 	if wire.Validate(data) != nil {
-		c.Log("decode - invalid data")
+		c.log.Log("invalid data")
 		return nil, ErrMalformedData
 	}
 
-	c.Log("decode - returning")
+	c.log.Log("returning")
 	return &wire.Message{
 		Kind: kind,
 		Data: data,
@@ -572,7 +566,7 @@ func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {
 }
 
 func (c *Core) encodeRaw(msg *wire.Message) ([]byte, error) {
-	c.Log("encode - start")
+	c.log.Log("start")
 	var header [6]byte
 	data := msg.Data
 	kind := msg.Kind

@@ -22,7 +22,7 @@ type Message struct {
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
-	m.Log.Println("v1 - writeTo - start")
+	m.Log.Log("start")
 
 	var (
 		rep  [packetLen]byte
@@ -36,7 +36,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	binary.BigEndian.PutUint16(rep[3:], kind)
 	binary.BigEndian.PutUint32(rep[5:], size)
 
-	m.Log.Println("v1 - writeTo - actually writing")
+	m.Log.Log("actually writing")
 
 	var (
 		written = 0 // number of written bytes
@@ -73,7 +73,7 @@ var (
 )
 
 func ReadFrom(r io.Reader, mw *memorywriter.MemoryWriter) (*Message, error) {
-	mw.Println("v1 - readFrom - start")
+	mw.Log("start")
 	var (
 		rep  [packetLen]byte
 		read = 0 // number of read bytes
@@ -85,7 +85,7 @@ func ReadFrom(r io.Reader, mw *memorywriter.MemoryWriter) (*Message, error) {
 
 	// skip all the previous messages in the bus
 	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
-		mw.Println("v1 - readFrom - detected previous message, skipping")
+		mw.Log("detected previous message, skipping")
 		n, err = r.Read(rep[:])
 		if err != nil {
 			return nil, err
@@ -93,7 +93,7 @@ func ReadFrom(r io.Reader, mw *memorywriter.MemoryWriter) (*Message, error) {
 	}
 	read += n
 
-	mw.Println("v1 - readFrom - actual reading started")
+	mw.Log("actual reading started")
 
 	// parse header
 	var (
@@ -116,7 +116,7 @@ func ReadFrom(r io.Reader, mw *memorywriter.MemoryWriter) (*Message, error) {
 	}
 	data = data[:size]
 
-	mw.Println("v1 - readFrom - actual reading finished")
+	mw.Log("actual reading finished")
 
 	return &Message{
 		Kind: kind,

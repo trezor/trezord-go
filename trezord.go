@@ -73,7 +73,7 @@ func (i *udpPorts) Set(value string) error {
 
 func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.USBBus {
 	if init {
-		wr.Println("Initing libusb")
+		wr.Log("Initing libusb")
 
 		w, err := usb.InitLibUSB(wr, useOnlyLibusb(), allowCancel(), detachKernelDriver())
 		if err != nil {
@@ -86,7 +86,7 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 			return []core.USBBus{w}
 		}
 
-		wr.Println("Initing hidapi")
+		wr.Log("Initing hidapi")
 		h, err := usb.InitHIDAPI(wr)
 		if err != nil {
 			sl.Fatalf("hidapi: %s", err)
@@ -138,7 +138,7 @@ func main() {
 
 	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
-	longMemoryWriter.Println(fmt.Sprintf("UDP port count - %d", len(ports)))
+	longMemoryWriter.Log(fmt.Sprintf("UDP port count - %d", len(ports)))
 
 	if len(ports)+len(touples) > 0 {
 		for _, t := range ports {
@@ -159,22 +159,22 @@ func main() {
 	}
 
 	b := usb.Init(bus...)
-	longMemoryWriter.Println("Creating core")
+	longMemoryWriter.Log("Creating core")
 	c := core.New(b, longMemoryWriter, allowCancel(), reset)
-	longMemoryWriter.Println("Creating HTTP server")
+	longMemoryWriter.Log("Creating HTTP server")
 	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
 	}
 
-	longMemoryWriter.Println("Running HTTP server")
+	longMemoryWriter.Log("Running HTTP server")
 	err = s.Run()
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
 	}
 
-	longMemoryWriter.Println("Main ended successfully")
+	longMemoryWriter.Log("Main ended successfully")
 }
 
 // Does OS allow sync canceling via our custom libusb patches?

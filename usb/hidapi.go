@@ -35,10 +35,10 @@ func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
 func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 	var infos []core.USBInfo
 
-	b.mw.Println("hidapi - enumerate - low level")
+	b.mw.Log("low level")
 	devs := lowlevel.HidEnumerate(0, 0)
 
-	b.mw.Println("hidapi - enumerate - low level done")
+	b.mw.Log("low level done")
 
 	for _, dev := range devs { // enumerate all devices
 		if b.match(&dev) {
@@ -62,23 +62,23 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 	if debug {
 		return nil, errNotDebug
 	}
-	b.mw.Println("hidapi - connect - enumerate to find")
+	b.mw.Log("enumerate to find")
 	devs := lowlevel.HidEnumerate(0, 0)
-	b.mw.Println("hidapi - connect - enumerate done")
+	b.mw.Log("enumerate done")
 
 	for _, dev := range devs { // enumerate all devices
 		if b.match(&dev) && b.identify(&dev) == path {
-			b.mw.Println("hidapi - connect - low level open")
+			b.mw.Log("low level open")
 			d, err := dev.Open()
 			if err != nil {
 				return nil, err
 			}
-			b.mw.Println("hidapi - connect - detecting prepend")
+			b.mw.Log("detecting prepend")
 			prepend, err := b.detectPrepend(d)
 			if err != nil {
 				return nil, err
 			}
-			b.mw.Println(fmt.Sprintf("hidapi - connect - done (prepend %t)", prepend))
+			b.mw.Log(fmt.Sprintf("done (prepend %t)", prepend))
 			return &HID{
 				dev:     d,
 				prepend: prepend,
@@ -117,16 +117,16 @@ type HID struct {
 
 func (d *HID) Close(disconnected bool) error {
 
-	d.mw.Println("hidapi - close - storing d.closed")
+	d.mw.Log("storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
-	d.mw.Println("hidapi - close - wait for transferMutex lock")
+	d.mw.Log("wait for transferMutex lock")
 	d.transferMutex.Lock()
-	d.mw.Println("hidapi - close - low level close")
+	d.mw.Log("low level close")
 	err := d.dev.Close()
 	d.transferMutex.Unlock()
 
-	d.mw.Println("hidapi - close - done")
+	d.mw.Log("done")
 
 	return err
 }
@@ -150,8 +150,8 @@ func (b *HIDAPI) detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 		return true, nil
 	}
 	if err != nil {
-		b.mw.Println("hidapi - detectPrepend found older version - error")
-		b.mw.Println(err.Error())
+		b.mw.Log("found older version - error")
+		b.mw.Log(err.Error())
 	}
 
 	// then test older version
@@ -168,46 +168,46 @@ func (b *HIDAPI) detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 
 func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 
-	d.mw.Println("hidapi - rw - start")
+	d.mw.Log("start")
 	for {
-		d.mw.Println("hidapi - rw - checking closed")
+		d.mw.Log("checking closed")
 		closed := (atomic.LoadInt32(&d.closed)) == 1
 		if closed {
-			d.mw.Println("hidapi - rw - closed, skip")
+			d.mw.Log("closed, skip")
 			return 0, errClosedDevice
 		}
 
-		d.mw.Println("hidapi - rw - lock transfer mutex")
+		d.mw.Log("lock transfer mutex")
 		d.transferMutex.Lock()
-		d.mw.Println("hidapi - rw - actual interrupt transport")
+		d.mw.Log("actual interrupt transport")
 
 		var w int
 		var err error
 
 		if read {
-			d.mw.Println("hidapi - read - start")
+			d.mw.Log("r start")
 			w, err = d.dev.Read(buf, hidTimeout)
-			d.mw.Println("hidapi - read - end")
+			d.mw.Log("r end")
 		} else {
-			d.mw.Println("hidapi - write - start")
+			d.mw.Log("w start")
 			w, err = d.dev.Write(buf, d.prepend)
-			d.mw.Println("hidapi - write - end")
+			d.mw.Log("w end")
 		}
 
 		d.transferMutex.Unlock()
-		d.mw.Println("hidapi - rw - single transfer done")
+		d.mw.Log("single transfer done")
 
 		if err == nil {
 			// sometimes, empty report is read, skip it
 			if w > 0 {
-				d.mw.Println("hidapi - rw - single transfer succesful")
+				d.mw.Log("single transfer succesful")
 				return w, err
 			}
 			if !read {
 				return 0, errors.New("HID - empty write")
 			}
 
-			d.mw.Println("hidapi - rw - skipping empty transfer - go again")
+			d.mw.Log("skipping empty transfer - go again")
 		} else {
 			if err.Error() == unknownErrorMessage {
 				return 0, errDisconnect
