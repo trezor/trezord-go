@@ -56,7 +56,7 @@ func devconAllStatusInfo() (string, error) {
 }
 
 func devconInfo(mw *memorywriter.MemoryWriter) (string, error) {
-	mw.Println("devconInfo - finding devcon.exe")
+	mw.Log("finding devcon.exe")
 	_, err := os.Stat("devcon.exe")
 	if os.IsNotExist(err) {
 		return "devcon.exe does not exist\n", nil
@@ -65,14 +65,14 @@ func devconInfo(mw *memorywriter.MemoryWriter) (string, error) {
 		return "", err
 	}
 
-	mw.Println("devconInfo - usbStrings")
+	mw.Log("usbStrings")
 	conn, disconn, err := devconTrezorUsbStrings(mw)
 	if err != nil {
 		return "", err
 	}
 
 	res := "Driver log\nConnected devices:\n"
-	mw.Println("devconInfo - finding driver files")
+	mw.Log("finding driver files")
 	cm, err := devconMultipleDriverFiles(conn, mw)
 	if err != nil {
 		return "", err
@@ -178,7 +178,7 @@ func devconMultipleDriverFiles(ids []string, mw *memorywriter.MemoryWriter) (str
 func runDevcon(cmd, par string, mw *memorywriter.MemoryWriter, unicode bool) (string, error) {
 
 	if mw != nil {
-		mw.Println(fmt.Sprintf("devconInfo - runninng %s %s %s", "devcon.exe", cmd, par))
+		mw.Log(fmt.Sprintf("runninng %s %s %s", "devcon.exe", cmd, par))
 	}
 	cmdInstance := exec.Command("devcon.exe", "-u", cmd, par) // nolint: gas
 	if !unicode {
@@ -265,7 +265,7 @@ func filterLinesIncluding(lines []string, needle string) []string {
 }
 
 func devconDriverFiles(id string, mw *memorywriter.MemoryWriter) (string, error) {
-	mw.Println(fmt.Sprintf("devconInfo - finding driver files for %s", id))
+	mw.Log(fmt.Sprintf("finding driver files for %s", id))
 	out, err := runDevcon("driverfiles", "@"+id, mw, false)
 	if err != nil {
 		return "", err

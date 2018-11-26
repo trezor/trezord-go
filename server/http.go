@@ -31,7 +31,7 @@ func New(
 	longWriter *memorywriter.MemoryWriter,
 	version string,
 ) (*Server, error) {
-	longWriter.Println("http - starting")
+	longWriter.Log("starting")
 
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
@@ -67,7 +67,7 @@ func New(
 
 	https.Handler = h
 
-	longWriter.Println("http - server created")
+	longWriter.Log("server created")
 	return s, nil
 }
 

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -27,7 +29,30 @@ type MemoryWriter struct {
 	outWriter io.Writer
 }
 
-func (m *MemoryWriter) Println(s string) {
+func findInternalPrefix() string {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(1, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	file := frame.File
+	return strings.TrimSuffix(file, "memorywriter/memorywriter.go")
+}
+
+var internalPrefix = findInternalPrefix()
+
+func (m *MemoryWriter) Log(s string) {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	file := frame.File
+	file = strings.TrimPrefix(file, internalPrefix)
+	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, frame.Function)
+	m.println(r + " " + s)
+
+}
+
+func (m *MemoryWriter) println(s string) {
 	long := []byte(s + "\n")
 	_, err := m.Write(long)
 	if err != nil {
