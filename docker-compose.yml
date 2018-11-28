@@ -5,4 +5,4 @@ services:
       context: './'
     image: "trezor-bridge"
     ports:
-      - "21325:21325"
+      - "127.0.0.1:21325:11325"
