@@ -2,13 +2,8 @@ package usb
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/trezor/trezord-go/core"
-)
-
-var (
-	ErrNotFound = fmt.Errorf("device not found")
 )
 
 type USB struct {
@@ -58,6 +53,7 @@ func (b *USB) Close() {
 	}
 }
 
+var ErrNotFound = errors.New("device not found")
 var errDisconnect = errors.New("device disconnected during action")
 var errClosedDevice = errors.New("closed device")
 var errNotDebug = errors.New("not debug link")
