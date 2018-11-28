@@ -49,7 +49,9 @@ func (m *MemoryWriter) Log(s string) {
 	frame, _ := frames.Next()
 	file := frame.File
 	file = strings.TrimPrefix(file, internalPrefix)
-	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, frame.Function)
+	function := frame.Function
+	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
+	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
 	m.println(r + " " + s)
 
 }
