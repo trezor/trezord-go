@@ -36,6 +36,8 @@ type USBBus interface {
 		reset bool, // reset is optional, to prevent reseting calls
 	) (USBDevice, error)
 	Has(path string) bool
+
+	Close() // called on program exit
 }
 
 type DeviceType int

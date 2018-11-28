@@ -181,6 +181,10 @@ func (udp *UDP) Connect(path string, debug bool, reset bool) (core.USBDevice, er
 	return d, nil
 }
 
+func (udp *UDP) Close() {
+	// nothing
+}
+
 type UDPDevice struct {
 	lowlevel *udpLowlevel
 
