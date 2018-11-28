@@ -1,0 +1,6 @@
+version: '3'
+services:
+  trezor-bridge:
+    build:
+      context: './'
+    image: "trezor-bridge"
