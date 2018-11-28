@@ -104,9 +104,17 @@ type Core struct {
 	allowStealing bool
 	reset         bool
 
-	callsInProgress int        // we cannot make calls and enumeration at the same time
-	callMutex       sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
-	lastInfos       []USBInfo  // when call is in progress, use saved info for enumerating
+	// We cannot make calls and enumeration at the same time,
+	// because of some libusb/hidapi issues.
+	// However, it is easier to fix it here than in the usb/ packages,
+	// because they don't know about whole messages and just send
+	// small packets by read/write
+	//
+	// Those variables help with that
+	callsInProgress int
+	callMutex       sync.Mutex
+	lastInfosMutex  sync.Mutex
+	lastInfos       []USBInfo // when call is in progress, use saved info for enumerating
 
 	log *memorywriter.MemoryWriter
 }
@@ -135,7 +143,40 @@ func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) 
 		allowStealing:  allowStealing,
 		reset:          reset,
 	}
+	go c.backgroundListen()
 	return c
+}
+
+const (
+	iterMax   = 600
+	iterDelay = 500 // ms
+)
+
+// This is here just to force libusb's enumerate,
+// which recomputes the IDs/frees the disconnected devices
+// Note - this does not do anything when no device is connected
+// or when no enumerate is run first...
+// -> it runs whenever someone calls Enumerate/Listen
+// and there are some devices left
+// It does not spam USB that much more than listen itself
+// and it is better to do it here rather than in the usb/ package
+// to prevent all the read/write issues solved with all the mutexes
+func (c *Core) backgroundListen() {
+	for {
+		time.Sleep(iterDelay * time.Millisecond)
+
+		c.lastInfosMutex.Lock()
+		infos := c.lastInfos
+		c.lastInfosMutex.Unlock()
+		if len(infos) > 0 {
+			c.log.Log("background enum runs")
+			_, err := c.Enumerate()
+			if err != nil {
+				// we dont really care here
+				c.log.Log("error - " + err.Error())
+			}
+		}
+	}
 }
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
@@ -150,6 +191,9 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// enumerating.
 	c.callMutex.Lock()
 	defer c.callMutex.Unlock()
+
+	c.lastInfosMutex.Lock()
+	defer c.lastInfosMutex.Unlock()
 
 	// Use saved info if call is in progress, otherwise enumerate.
 	infos := c.lastInfos
@@ -267,11 +311,6 @@ func (c *Core) release(
 
 func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]EnumerateEntry, error) {
 	c.log.Log("start")
-
-	const (
-		iterMax   = 600
-		iterDelay = 500 // ms
-	)
 
 	EnumerateEntries(entries).Sort()
 
