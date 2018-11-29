@@ -109,6 +109,8 @@ type Core struct {
 	lastInfos       []USBInfo  // when call is in progress, use saved info for enumerating
 
 	log *memorywriter.MemoryWriter
+
+	latestSessionID int
 }
 
 var (
@@ -356,10 +358,7 @@ func (c *Core) Acquire(
 		return "", err
 	}
 
-	id := c.newSession()
-	if debug {
-		id = "debug" + id
-	}
+	id := c.newSession(debug)
 
 	sess := &session{
 		path: path,
@@ -398,11 +397,13 @@ func (c *Core) tryConnect(path string, debug bool, reset bool) (USBDevice, error
 	}
 }
 
-var latestSessionID = 0
-
-func (c *Core) newSession() string {
-	latestSessionID++
-	return strconv.Itoa(latestSessionID)
+func (c *Core) newSession(debug bool) string {
+	c.latestSessionID++
+	res := strconv.Itoa(c.latestSessionID)
+	if debug {
+		res = "debug" + res
+	}
+	return res
 }
 
 type CallMode int
