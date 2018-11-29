@@ -260,7 +260,7 @@ func (b *LibUSB) claimInterface(d lowlevel.Device_Handle, debug bool) (bool, err
 	return attach, nil
 }
 
-func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*WUD, error) {
+func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDevice, error) {
 	b.mw.Log("low level")
 	d, err := lowlevel.Open(dev)
 	if err != nil {
@@ -282,7 +282,7 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*WUD, err
 	if err != nil {
 		return nil, err
 	}
-	return &WUD{
+	return &LibUSBDevice{
 		dev:    d,
 		closed: 0,
 
@@ -384,7 +384,7 @@ func (b *LibUSB) identify(dev lowlevel.Device) string {
 	return libusbPrefix + hex.EncodeToString(p)
 }
 
-type WUD struct {
+type LibUSBDevice struct {
 	dev lowlevel.Device_Handle
 
 	closed              int32 // atomic
@@ -399,7 +399,7 @@ type WUD struct {
 	mw *memorywriter.MemoryWriter
 }
 
-func (d *WUD) Close(disconnected bool) error {
+func (d *LibUSBDevice) Close(disconnected bool) error {
 	d.mw.Log("storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
@@ -448,7 +448,7 @@ func (d *WUD) Close(disconnected bool) error {
 	return nil
 }
 
-func (d *WUD) transferMutexLock(debug bool) {
+func (d *LibUSBDevice) transferMutexLock(debug bool) {
 	if debug {
 		d.debugTransferMutex.Lock()
 	} else {
@@ -456,7 +456,7 @@ func (d *WUD) transferMutexLock(debug bool) {
 	}
 }
 
-func (d *WUD) transferMutexUnlock(debug bool) {
+func (d *LibUSBDevice) transferMutexUnlock(debug bool) {
 	if debug {
 		d.debugTransferMutex.Unlock()
 	} else {
@@ -464,7 +464,7 @@ func (d *WUD) transferMutexUnlock(debug bool) {
 	}
 }
 
-func (d *WUD) finishReadQueue(debug bool) {
+func (d *LibUSBDevice) finishReadQueue(debug bool) {
 	d.mw.Log("wait for transfermutex lock")
 	usbEpIn := normalIface.epIn
 	if debug {
@@ -484,7 +484,7 @@ func (d *WUD) finishReadQueue(debug bool) {
 	d.mw.Log("done")
 }
 
-func (d *WUD) readWrite(buf []byte, endpoint uint8) (int, error) {
+func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8) (int, error) {
 	d.mw.Log("start")
 	for {
 		d.mw.Log("checking closed")
@@ -535,7 +535,7 @@ func isErrorDisconnect(err error) bool {
 		err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_PIPE)))
 }
 
-func (d *WUD) Write(buf []byte) (int, error) {
+func (d *LibUSBDevice) Write(buf []byte) (int, error) {
 	d.mw.Log("write start")
 	usbEpOut := normalIface.epOut
 	if d.debug {
@@ -544,7 +544,7 @@ func (d *WUD) Write(buf []byte) (int, error) {
 	return d.readWrite(buf, usbEpOut)
 }
 
-func (d *WUD) Read(buf []byte) (int, error) {
+func (d *LibUSBDevice) Read(buf []byte) (int, error) {
 	d.mw.Log("read start")
 	usbEpIn := normalIface.epIn
 	if d.debug {

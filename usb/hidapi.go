@@ -106,6 +106,10 @@ func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {
 	return hidapiPrefix + hex.EncodeToString(digest[:])
 }
 
+func (b *HIDAPI) Close() {
+	// nothing
+}
+
 type HID struct {
 	dev     *lowlevel.HidDevice
 	prepend bool // on windows, see detectPrepend

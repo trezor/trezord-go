@@ -79,8 +79,6 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 		if err != nil {
 			sl.Fatalf("libusb: %s", err)
 		}
-		// defer w.Close()
-		// not defering - originally in main, now here, here makes no sense
 
 		if !usb.HIDUse {
 			return []core.USBBus{w}
@@ -159,6 +157,7 @@ func main() {
 	}
 
 	b := usb.Init(bus...)
+	defer b.Close()
 	longMemoryWriter.Log("Creating core")
 	c := core.New(b, longMemoryWriter, allowCancel(), reset)
 	longMemoryWriter.Log("Creating HTTP server")

@@ -36,6 +36,8 @@ type USBBus interface {
 		reset bool, // reset is optional, to prevent reseting calls
 	) (USBDevice, error)
 	Has(path string) bool
+
+	Close() // called on program exit
 }
 
 type DeviceType int
@@ -102,11 +104,31 @@ type Core struct {
 	allowStealing bool
 	reset         bool
 
-	callsInProgress int        // we cannot make calls and enumeration at the same time
-	callMutex       sync.Mutex // for atomic access to callInProgress, plus prevent enumeration
-	lastInfos       []USBInfo  // when call is in progress, use saved info for enumerating
+	// We cannot make calls and enumeration at the same time,
+	// because of some libusb/hidapi issues.
+	// However, it is easier to fix it here than in the usb/ packages,
+	// because they don't know about whole messages and just send
+	// small packets by read/write
+	//
+	// Those variables help with that
+	callsInProgress int
+	callMutex       sync.Mutex
+	lastInfosMutex  sync.Mutex
+	lastInfos       []USBInfo // when call is in progress, use saved info for enumerating
+	// note - both lastInfos and Enumerate result have "paths"
+	// as *fake paths* 2.0.26 onwards; just using device IDs,
+	// unique for the device
+
+	// the paths we present out are not actual paths
+	// from 2.0.26 onwards;
+	// it's just an ID of a device
+	// we keep the IDs here
+	usbPaths  map[int]string // id => path
+	biggestID int
 
 	log *memorywriter.MemoryWriter
+
+	latestSessionID int
 }
 
 var (
@@ -132,8 +154,80 @@ func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) 
 		log:            log,
 		allowStealing:  allowStealing,
 		reset:          reset,
+		usbPaths:       make(map[int]string),
 	}
+	go c.backgroundListen()
 	return c
+}
+
+const (
+	iterMax   = 600
+	iterDelay = 500 // ms
+)
+
+// This is here just to force recomputing the IDs of
+// the disconnected devices (c.usbPaths)
+// Note - this does not do anything when no device is connected
+// or when no enumerate is run first...
+// -> it runs whenever someone calls Enumerate/Listen
+// and there are some devices left
+// It does not spam USB that much more than listen itself
+func (c *Core) backgroundListen() {
+	for {
+		time.Sleep(iterDelay * time.Millisecond)
+
+		c.lastInfosMutex.Lock()
+		linfos := len(c.lastInfos)
+		c.lastInfosMutex.Unlock()
+		if linfos > 0 {
+			c.log.Log("background enum runs")
+			_, err := c.Enumerate()
+			if err != nil {
+				// we dont really care here
+				c.log.Log("error - " + err.Error())
+			}
+		}
+	}
+}
+
+func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
+	for _, dev := range devs {
+		add := true
+		for _, usbPath := range c.usbPaths {
+			if dev.Path == usbPath {
+				add = false
+			}
+		}
+		if add {
+			newID := c.biggestID + 1
+			c.biggestID = newID
+			c.usbPaths[newID] = dev.Path
+		}
+	}
+	reverse := make(map[string]string)
+	for id, usbPath := range c.usbPaths {
+		discard := true
+		for _, dev := range devs {
+			if dev.Path == usbPath {
+				discard = false
+			}
+		}
+		if discard {
+			delete(c.usbPaths, id)
+		} else {
+			reverse[usbPath] = strconv.Itoa(id)
+		}
+	}
+	for _, dev := range devs {
+		res = append(res, USBInfo{
+			Path:      reverse[dev.Path],
+			VendorID:  dev.VendorID,
+			ProductID: dev.ProductID,
+			Type:      dev.Type,
+			Debug:     dev.Debug,
+		})
+	}
+	return
 }
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
@@ -149,6 +243,9 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	c.callMutex.Lock()
 	defer c.callMutex.Unlock()
 
+	c.lastInfosMutex.Lock()
+	defer c.lastInfosMutex.Unlock()
+
 	// Use saved info if call is in progress, otherwise enumerate.
 	infos := c.lastInfos
 
@@ -159,7 +256,7 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		infos = busInfos
+		infos = c.saveUsbPaths(busInfos)
 		c.lastInfos = infos
 	}
 
@@ -266,11 +363,6 @@ func (c *Core) release(
 func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]EnumerateEntry, error) {
 	c.log.Log("start")
 
-	const (
-		iterMax   = 600
-		iterDelay = 500 // ms
-	)
-
 	EnumerateEntries(entries).Sort()
 
 	for i := 0; i < iterMax; i++ {
@@ -316,6 +408,9 @@ func (c *Core) Acquire(
 	path, prev string,
 	debug bool,
 ) (string, error) {
+	// note - path is *fake path*, basically device ID,
+	// because that is what enumerate returns;
+	// we convert it to actual path for USB layer
 
 	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
@@ -348,16 +443,23 @@ func (c *Core) Acquire(
 	otherSession := c.findPrevSession(path, !debug)
 	reset := otherSession == "" && c.reset
 
-	c.log.Log("trying to connect")
-	dev, err := c.tryConnect(path, debug, reset)
+	pathI, err := strconv.Atoi(path)
 	if err != nil {
 		return "", err
 	}
 
-	id := c.newSession()
-	if debug {
-		id = "debug" + id
+	usbPath, exists := c.usbPaths[pathI]
+	if !exists {
+		return "", errors.New("device not found")
 	}
+
+	c.log.Log("trying to connect")
+	dev, err := c.tryConnect(usbPath, debug, reset)
+	if err != nil {
+		return "", err
+	}
+
+	id := c.newSession(debug)
 
 	sess := &session{
 		path: path,
@@ -396,11 +498,13 @@ func (c *Core) tryConnect(path string, debug bool, reset bool) (USBDevice, error
 	}
 }
 
-var latestSessionID = 0
-
-func (c *Core) newSession() string {
-	latestSessionID++
-	return strconv.Itoa(latestSessionID)
+func (c *Core) newSession(debug bool) string {
+	c.latestSessionID++
+	res := strconv.Itoa(c.latestSessionID)
+	if debug {
+		res = "debug" + res
+	}
+	return res
 }
 
 type CallMode int

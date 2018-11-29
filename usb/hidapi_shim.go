@@ -44,3 +44,7 @@ func (d *HID) Write(buf []byte) (int, error) {
 func (d *HID) Read(buf []byte) (int, error) {
 	panic("not implemented for linux and freebsd")
 }
+
+func (b *HIDAPI) Close() {
+	panic("not implemented for linux and freebsd")
+}

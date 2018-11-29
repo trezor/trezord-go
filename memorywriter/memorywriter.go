@@ -8,6 +8,7 @@ import (
 	"io"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type MemoryWriter struct {
 	startLines   [][]byte
 	startTime    time.Time
 	printTime    bool
+	mutex        sync.Mutex
 
 	outWriter io.Writer
 }
@@ -47,7 +49,9 @@ func (m *MemoryWriter) Log(s string) {
 	frame, _ := frames.Next()
 	file := frame.File
 	file = strings.TrimPrefix(file, internalPrefix)
-	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, frame.Function)
+	function := frame.Function
+	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
+	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
 	m.println(r + " " + s)
 
 }
@@ -63,6 +67,10 @@ func (m *MemoryWriter) println(s string) {
 
 // Writer remembers lines in memory
 func (m *MemoryWriter) Write(p []byte) (int, error) {
+	m.mutex.Lock()
+	defer func() {
+		m.mutex.Unlock()
+	}()
 	if len(p) > maxLineLength {
 		return 0, errors.New("input too long")
 	}
@@ -105,6 +113,10 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 // Exports lines to a writer, plus adds additional text on top
 // In our case, additional text is devcon exports and trezord version
 func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
+	m.mutex.Lock()
+	defer func() {
+		m.mutex.Unlock()
+	}()
 	_, err := w.Write([]byte(start))
 	if err != nil {
 		return err
