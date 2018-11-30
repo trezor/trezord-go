@@ -55,7 +55,10 @@ func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach b
 
 	err := lowlevel.Init(&usb)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`Error when initializing LibUSB.
+If you run trezord in an environment without USB (for example, docker or travis), use '-u=false'. For example, './trezord-go -e 21324 -u=false'.
+
+Original error: %v`, err)
 	}
 
 	mw.Log("init done")
