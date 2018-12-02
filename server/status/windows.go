@@ -43,7 +43,7 @@ func devconAllStatusInfo() (string, error) {
 	}
 	res += cm
 
-	res += "\nDisonnected devices:\n"
+	res += "\nDisconnected devices:\n"
 
 	dm, err := devconMultipleStatuses(disconn)
 	if err != nil {
@@ -79,7 +79,7 @@ func devconInfo(mw *memorywriter.MemoryWriter) (string, error) {
 	}
 	res += cm
 
-	res += "\nDisonnected devices:\n"
+	res += "\nDisconnected devices:\n"
 
 	dm, err := devconMultipleDriverFiles(disconn, mw)
 	if err != nil {
