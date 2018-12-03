@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Add verbose logs from previous run on windows to better debug win7 crashes
 
-## [2.0.25] - unreleased
+## [2.0.25] - 2018-11-23
 
 - Use interrupt reads without timeouts even on FreeBSD and linux
 - Stop using hidapi for t1 on linux
