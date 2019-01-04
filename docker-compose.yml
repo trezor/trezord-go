@@ -1,0 +1,8 @@
+version: '3'
+services:
+  trezor-bridge:
+    build:
+      context: './'
+    image: "trezor-bridge"
+    ports:
+      - "127.0.0.1:21325:11325"
