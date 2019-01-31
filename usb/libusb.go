@@ -370,7 +370,7 @@ func (b *LibUSB) matchVidPid(vid uint16, pid uint16) bool {
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
 
 	if b.only {
-		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware || pid == core.ProductT1Bootloader)
 		return trezor1 || trezor2
 	}
 
