@@ -33,6 +33,16 @@ var normalIface = libusbIfaceData{
 	epOut:      0x01,
 }
 
+// Old bootloader has different epOut
+// We need it here, since on Linux,
+// we use libusb instead of hidapi for old BL
+var oldBLIface = libusbIfaceData{
+	number:     0,
+	altSetting: 0,
+	epIn:       0x81,
+	epOut:      0x02,
+}
+
 var debugIface = libusbIfaceData{
 	number:     1,
 	altSetting: 0,
@@ -77,7 +87,7 @@ func (b *LibUSB) Close() {
 	lowlevel.Exit(b.usb)
 }
 
-func detectDebug(dev lowlevel.Device) (bool, error) {
+func hasIface(dev lowlevel.Device, dIface libusbIfaceData, dClass uint8) (bool, error) {
 	config, err := lowlevel.Get_Config_Descriptor(dev, usbConfigIndex)
 	if err != nil {
 		return false, err
@@ -86,17 +96,25 @@ func detectDebug(dev lowlevel.Device) (bool, error) {
 	ifaces := config.Interface
 	for _, iface := range ifaces {
 		for _, alt := range iface.Altsetting {
-			if alt.BInterfaceNumber == debugIface.number &&
-				alt.BAlternateSetting == debugIface.altSetting &&
+			if alt.BInterfaceNumber == dIface.number &&
+				alt.BAlternateSetting == dIface.altSetting &&
 				alt.BNumEndpoints == 2 &&
-				alt.BInterfaceClass == lowlevel.CLASS_VENDOR_SPEC &&
-				alt.Endpoint[0].BEndpointAddress == debugIface.epIn &&
-				alt.Endpoint[1].BEndpointAddress == debugIface.epOut {
+				alt.BInterfaceClass == dClass &&
+				alt.Endpoint[0].BEndpointAddress == dIface.epIn &&
+				alt.Endpoint[1].BEndpointAddress == dIface.epOut {
 				return true, nil
 			}
 		}
 	}
 	return false, nil
+}
+
+func detectDebug(dev lowlevel.Device) (bool, error) {
+	return hasIface(dev, debugIface, uint8(lowlevel.CLASS_VENDOR_SPEC))
+}
+
+func detectOldBL(dev lowlevel.Device) (bool, error) {
+	return hasIface(dev, oldBLIface, uint8(lowlevel.CLASS_HID))
 }
 
 func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
@@ -264,6 +282,13 @@ func (b *LibUSB) claimInterface(d lowlevel.Device_Handle, debug bool) (bool, err
 }
 
 func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDevice, error) {
+
+	b.mw.Log("detect old BL")
+	oldBL, err := detectOldBL(dev)
+	if err != nil {
+		return nil, err
+	}
+
 	b.mw.Log("low level")
 	d, err := lowlevel.Open(dev)
 	if err != nil {
@@ -293,6 +318,7 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDe
 		cancel: b.cancel,
 		attach: attach,
 		debug:  debug,
+		oldBL:  oldBL,
 	}, nil
 }
 
@@ -398,6 +424,8 @@ type LibUSBDevice struct {
 	cancel bool
 	attach bool
 	debug  bool
+
+	oldBL bool
 
 	mw *memorywriter.MemoryWriter
 }
@@ -541,6 +569,9 @@ func isErrorDisconnect(err error) bool {
 func (d *LibUSBDevice) Write(buf []byte) (int, error) {
 	d.mw.Log("write start")
 	usbEpOut := normalIface.epOut
+	if d.oldBL {
+		usbEpOut = oldBLIface.epOut
+	}
 	if d.debug {
 		usbEpOut = debugIface.epOut
 	}
