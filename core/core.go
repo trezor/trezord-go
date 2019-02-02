@@ -620,7 +620,7 @@ func (c *Core) readWriteDev(
 
 	if mode == CallModeRead {
 		if len(body) != 0 {
-			return nil, errors.New("Non-empty body on read mode")
+			return nil, errors.New("non-empty body on read mode")
 		}
 		c.log.Log("skipping write")
 	} else {
