@@ -60,7 +60,7 @@ RequestExecutionLevel admin
 
 SetCompressor bzip2
 
-Name "TREZOR Bridge"
+Name "Trezor Bridge"
 InstallDirRegKey HKLM Software\TREZOR\Bridge InstallDir
 
 ShowInstDetails hide
@@ -73,7 +73,7 @@ Function .onInit
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights on NT4+
-  MessageBox mb_iconstop "You need to be an admin to install TREZOR Bridge. Sorry!"
+  MessageBox mb_iconstop "You need to be an admin to install Trezor Bridge. Sorry!"
   SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
   Quit
 ${EndIf}
@@ -87,7 +87,7 @@ DirText "Please select the installation folder."
 Section "TREZOR Bridge"
   SectionIn RO
 
-  DetailPrint "Stopping previous TREZOR Bridge"
+  DetailPrint "Stopping previous Trezor Bridge"
   nsExec::Exec "taskkill /IM trezord.exe /F"
 
   SetOutPath "$INSTDIR"
@@ -129,7 +129,7 @@ Section "Check for connected devices"
   ${StrContains} $CONTAINS "No matching devices" $CMDRESULT
 
   ${DoWhile} $CONTAINS == ""
-    MessageBox MB_OK "Please disconnect TREZOR"
+    MessageBox MB_OK "Please disconnect Trezor"
 
     nsExec::ExecToStack '"$INSTDIR\devcon.exe" find *vid_1209*'
     Pop $0
@@ -143,7 +143,7 @@ Section "Check for connected devices"
   ${StrContains} $CONTAINS "No matching devices" $CMDRESULT
 
   ${DoWhile} $CONTAINS == ""
-    MessageBox MB_OK "Please disconnect TREZOR"
+    MessageBox MB_OK "Please disconnect Trezor"
 
     nsExec::ExecToStack '"$INSTDIR\devcon.exe" find *vid_534c*'
     Pop $0
@@ -194,7 +194,7 @@ Section -post
 SectionEnd
 
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Start TREZOR Bridge"
+!define MUI_FINISHPAGE_RUN_TEXT "Start Trezor Bridge"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApplication"
 !insertmacro MUI_PAGE_FINISH
 

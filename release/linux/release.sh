@@ -58,7 +58,7 @@ for TYPE in "deb" "rpm"; do
         -d systemd \
         --license "LGPL-3.0" \
         --vendor "SatoshiLabs" \
-        --description "Communication daemon for TREZOR" \
+        --description "Communication daemon for Trezor" \
         --maintainer "SatoshiLabs <stick@satoshilabs.com>" \
         --url "https://trezor.io/" \
         --category "Productivity/Security" \

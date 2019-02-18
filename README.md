@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/trezor/trezord-go.svg?branch=master)](https://travis-ci.org/trezor/trezord-go) [![gitter](https://badges.gitter.im/trezor/community.svg)](https://gitter.im/trezor/community)
 
-TREZOR Communication Daemon aka TREZOR Bridge (written in Go)
+Trezor Communication Daemon aka Trezor Bridge (written in Go)
 
 **Only compatible with Chrome (version 53 or later) and Firefox (version 55 or later).**
 

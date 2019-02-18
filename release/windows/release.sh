@@ -19,7 +19,7 @@ SIGNKEY=/release/authenticode
 if [ -r $SIGNKEY.der ]; then
     for BINARY in {trezord,devcon,wdi-simple}-{32b,64b}.exe ; do
         mv $BINARY $BINARY.unsigned
-        osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "TREZOR Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $BINARY.unsigned -out $BINARY
+        osslsigncode sign -certs $SIGNKEY.p7b -key $SIGNKEY.der -n "Trezor Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $BINARY.unsigned -out $BINARY
         osslsigncode verify -in $BINARY
     done
 fi

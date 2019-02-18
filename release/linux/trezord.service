@@ -1,5 +1,5 @@
 [Unit]
-Description=TREZOR Bridge
+Description=Trezor Bridge
 After=network.target
 
 [Service]
