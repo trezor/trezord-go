@@ -1,0 +1,9 @@
+{
+  "Deadline": "300s",
+  "Exclude": [
+    "should have comment or be unexported",
+    "should have comment \\(or a comment on this block\\) or be unexported",
+    "http\\.CloseNotifier is deprecated"
+  ],
+  "Vendor": true
+}
