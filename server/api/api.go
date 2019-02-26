@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/trezor/trezord-go/core"
+	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/memorywriter"
 
 	"github.com/gorilla/mux"
@@ -19,14 +19,14 @@ import (
 // and then again formatting to the reply
 
 type api struct {
-	core    *core.Core
+	core    *coreapi.API
 	version string
 	logger  *memorywriter.MemoryWriter
 }
 
-func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) {
+func ServeAPI(r *mux.Router, a *coreapi.API, v string, l *memorywriter.MemoryWriter) {
 	api := &api{
-		core:    c,
+		core:    a,
 		version: v,
 		logger:  l,
 	}
@@ -64,7 +64,7 @@ func (a *api) Info(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 	a.logger.Log("starting")
-	var entries []core.EnumerateEntry
+	var entries []coreapi.EnumerateEntry
 
 	a.logger.Log("decoding entries")
 
@@ -162,38 +162,46 @@ func (a *api) release(w http.ResponseWriter, r *http.Request, debug bool) {
 	a.checkJSONError(w, err)
 }
 
+type callMode int
+
+const (
+	callModeRead      callMode = 0
+	callModeWrite     callMode = 1
+	callModeReadWrite callMode = 2
+)
+
 func (a *api) Call(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeReadWrite, false)
+	a.call(w, r, callModeReadWrite, false)
 }
 
 func (a *api) Post(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeWrite, false)
+	a.call(w, r, callModeWrite, false)
 }
 
 func (a *api) Read(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeRead, false)
+	a.call(w, r, callModeRead, false)
 }
 
 func (a *api) CallDebug(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeReadWrite, true)
+	a.call(w, r, callModeReadWrite, true)
 }
 
 func (a *api) PostDebug(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeWrite, true)
+	a.call(w, r, callModeWrite, true)
 }
 
 func (a *api) ReadDebug(w http.ResponseWriter, r *http.Request) {
-	a.call(w, r, core.CallModeRead, true)
+	a.call(w, r, callModeRead, true)
 }
 
-func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, debug bool) {
+func (a *api) call(w http.ResponseWriter, r *http.Request, mode callMode, debug bool) {
 	a.logger.Log("start")
 
 	vars := mux.Vars(r)
 	session := vars["session"]
 
 	var binbody []byte
-	if mode != core.CallModeRead {
+	if mode != callModeRead {
 		hexbody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			a.respondError(w, err)
@@ -206,13 +214,23 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 		}
 	}
 
-	binres, err := a.core.Call(r.Context(), binbody, session, mode, debug)
+	var binres []byte
+	var err error
+	switch mode {
+	case callModeRead:
+		binres, err = a.core.Read(r.Context(), session, debug)
+	case callModeWrite:
+		err = a.core.Post(r.Context(), binbody, session, debug)
+	default:
+		binres, err = a.core.Call(r.Context(), binbody, session, debug)
+	}
+
 	if err != nil {
 		a.respondError(w, err)
 		return
 	}
 
-	if mode != core.CallModeWrite {
+	if mode != callModeWrite {
 		hexres := hex.EncodeToString(binres)
 		_, err = w.Write([]byte(hexres))
 

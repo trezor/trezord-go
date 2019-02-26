@@ -231,6 +231,7 @@ func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
 	return res
 }
 
+// Enumerate never returns nil
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// Lock for atomic access to s.sessions.
 	c.log.Log("locking sessionsMutex")

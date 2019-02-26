@@ -20,15 +20,15 @@ import (
 const maxLineLength = 500
 
 type MemoryWriter struct {
-	maxLineCount int
 	lines        [][]byte // lines include newlines
-	startCount   int
 	startLines   [][]byte
 	startTime    time.Time
-	printTime    bool
+	outWriter    io.Writer
+	maxLineCount int
+	startCount   int
 	mutex        sync.Mutex
-
-	outWriter io.Writer
+	empty        bool
+	printTime    bool
 }
 
 func findInternalPrefix() string {
@@ -53,7 +53,6 @@ func (m *MemoryWriter) Log(s string) {
 	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
 	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
 	m.println(r + " " + s)
-
 }
 
 func (m *MemoryWriter) println(s string) {
@@ -67,6 +66,9 @@ func (m *MemoryWriter) println(s string) {
 
 // Writer remembers lines in memory
 func (m *MemoryWriter) Write(p []byte) (int, error) {
+	if m.empty {
+		return len(p), nil
+	}
 	m.mutex.Lock()
 	defer func() {
 		m.mutex.Unlock()
@@ -122,27 +124,30 @@ func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
 		return err
 	}
 
-	// Write end lines (latest on up)
-	for i := len(m.lines) - 1; i >= 0; i-- {
-		line := m.lines[i]
-		_, err = w.Write(line)
+	if !m.empty {
+
+		// Write end lines (latest on up)
+		for i := len(m.lines) - 1; i >= 0; i-- {
+			line := m.lines[i]
+			_, err = w.Write(line)
+			if err != nil {
+				return err
+			}
+		}
+
+		// ... to make space between start and end
+		_, err = w.Write([]byte("...\n"))
 		if err != nil {
 			return err
 		}
-	}
 
-	// ... to make space between start and end
-	_, err = w.Write([]byte("...\n"))
-	if err != nil {
-		return err
-	}
-
-	// Write start lines
-	for i := len(m.startLines) - 1; i >= 0; i-- {
-		line := m.startLines[i]
-		_, err = w.Write(line)
-		if err != nil {
-			return err
+		// Write start lines
+		for i := len(m.startLines) - 1; i >= 0; i-- {
+			line := m.startLines[i]
+			_, err = w.Write(line)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -181,8 +186,21 @@ func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func New(size int, startSize int, printTime bool, out io.Writer) *MemoryWriter {
+func Empty() *MemoryWriter {
 	return &MemoryWriter{
+		empty: true,
+	}
+}
+
+func New(size int, startSize int, printTime bool, out io.Writer) (*MemoryWriter, error) {
+	if size < 1 {
+		return nil, errors.New("size cannot be <1; use Empty instead")
+	}
+	if startSize < 1 {
+		return nil, errors.New("size cannot be <1; use Empty instead")
+	}
+	return &MemoryWriter{
+		empty:        false,
 		maxLineCount: size,
 		lines:        make([][]byte, 0, size),
 		startCount:   startSize,
@@ -190,5 +208,5 @@ func New(size int, startSize int, printTime bool, out io.Writer) *MemoryWriter {
 		startTime:    time.Now(),
 		printTime:    printTime,
 		outWriter:    out,
-	}
+	}, nil
 }

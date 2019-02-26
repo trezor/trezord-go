@@ -14,7 +14,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/trezor/trezord-go/core"
+	"github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/memorywriter"
 )
 
@@ -109,22 +109,22 @@ func devconAllUsbStrings() ([]string, []string, error) {
 }
 
 func devconTrezorUsbStrings(mw *memorywriter.MemoryWriter) ([]string, []string, error) {
-	allT1, err := devconUsbStringsVid(core.VendorT1, true, mw)
+	allT1, err := devconUsbStringsVid(api.VendorT1, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	allT2, err := devconUsbStringsVid(core.VendorT2, true, mw)
+	allT2, err := devconUsbStringsVid(api.VendorT2, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT1, err := devconUsbStringsVid(core.VendorT1, false, mw)
+	connT1, err := devconUsbStringsVid(api.VendorT1, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT2, err := devconUsbStringsVid(core.VendorT2, false, mw)
+	connT2, err := devconUsbStringsVid(api.VendorT2, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}

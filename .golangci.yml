@@ -74,3 +74,5 @@ linters-settings:
   gofmt:
     # causes errors in old go
     simplify: false
+  maligned:
+    suggest-new: true

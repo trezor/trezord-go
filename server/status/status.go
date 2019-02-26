@@ -3,7 +3,7 @@ package status
 import (
 	"net/http"
 
-	"github.com/trezor/trezord-go/core"
+	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/memorywriter"
 
 	"github.com/gorilla/csrf"
@@ -14,7 +14,7 @@ import (
 // log file at /status/log.gz with the detailed log
 
 type status struct {
-	core                                *core.Core
+	api                                 *coreapi.API
 	version                             string
 	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter
 }
@@ -32,9 +32,9 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.MemoryWriter) {
+func ServeStatus(r *mux.Router, a *coreapi.API, v string, mw, dmw *memorywriter.MemoryWriter) {
 	status := &status{
-		core:              c,
+		api:               a,
 		version:           v,
 		shortMemoryWriter: mw,
 		longMemoryWriter:  dmw,
@@ -176,7 +176,7 @@ func respondError(w http.ResponseWriter, err error) {
 }
 
 func (s *status) statusEnumerate() ([]statusTemplateDevice, error) {
-	e, err := s.core.Enumerate()
+	e, err := s.api.Enumerate()
 	if err != nil {
 		s.longMemoryWriter.Log("enumerate err" + err.Error())
 		return nil, err
@@ -190,7 +190,7 @@ func (s *status) statusEnumerate() ([]statusTemplateDevice, error) {
 	return tdevs, nil
 }
 
-func makeStatusTemplateDevice(dev core.EnumerateEntry) statusTemplateDevice {
+func makeStatusTemplateDevice(dev coreapi.EnumerateEntry) statusTemplateDevice {
 	var session string
 	if dev.Session != nil {
 		session = *dev.Session

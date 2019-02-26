@@ -5,7 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/trezor/trezord-go/core"
+	coreapi "github.com/trezor/trezord-go/api"
+
 	"github.com/trezor/trezord-go/memorywriter"
 	"github.com/trezor/trezord-go/server/api"
 	"github.com/trezor/trezord-go/server/status"
@@ -25,7 +26,7 @@ type Server struct {
 }
 
 func New(
-	c *core.Core,
+	a *coreapi.API,
 	stderrWriter io.Writer,
 	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
@@ -50,8 +51,8 @@ func New(
 	postRouter := r.Methods("POST").Subrouter()
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
-	status.ServeStatus(statusRouter, c, version, shortWriter, longWriter)
-	api.ServeAPI(postRouter, c, version, longWriter)
+	status.ServeStatus(statusRouter, a, version, shortWriter, longWriter)
+	api.ServeAPI(postRouter, a, version, longWriter)
 
 	status.ServeStatusRedirect(redirectRouter)
 
