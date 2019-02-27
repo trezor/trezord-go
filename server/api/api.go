@@ -68,12 +68,7 @@ func (a *api) Info(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 	a.logger.Log("starting")
-	cn, ok := w.(http.CloseNotifier)
-	if !ok {
-		http.Error(w, "cannot stream", http.StatusInternalServerError)
-		return
-	}
-	cnn := cn.CloseNotify()
+	cnn := r.Context().Done()
 
 	var entries []core.EnumerateEntry
 
@@ -199,12 +194,7 @@ func (a *api) ReadDebug(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, debug bool) {
 	a.logger.Log("start")
-	cn, ok := w.(http.CloseNotifier)
-	if !ok {
-		http.Error(w, "cannot stream", http.StatusInternalServerError)
-		return
-	}
-	cnn := cn.CloseNotify()
+	cnn := r.Context().Done()
 
 	vars := mux.Vars(r)
 	session := vars["session"]

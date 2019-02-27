@@ -360,7 +360,7 @@ func (c *Core) release(
 	return err
 }
 
-func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan bool) ([]EnumerateEntry, error) {
+func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan struct{}) ([]EnumerateEntry, error) {
 	c.log.Log("start")
 
 	EnumerateEntries(entries).Sort()
@@ -520,7 +520,7 @@ func (c *Core) Call(
 	session string,
 	mode CallMode,
 	debug bool,
-	closeNotify <-chan bool,
+	closeNotify <-chan struct{},
 ) ([]byte, error) {
 	c.log.Log("callMutex lock")
 	c.callMutex.Lock()
