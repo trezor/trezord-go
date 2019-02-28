@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	coreapi "github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/trezor/trezord-go/internal/memorywriter"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"

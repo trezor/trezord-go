@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/memorywriter"
-	"github.com/trezor/trezord-go/server"
+	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/server"
 )
 
 const version = "2.0.26"

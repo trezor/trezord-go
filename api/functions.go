@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/trezor/trezord-go/core"
+	"github.com/trezor/trezord-go/internal/core"
 )
 
 func (a *API) Listen(ctx context.Context, previousEntries []EnumerateEntry) ([]EnumerateEntry, error) {

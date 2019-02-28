@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/trezor/trezord-go/core"
+	"github.com/trezor/trezord-go/internal/core"
 )
 
 type DeviceType = core.DeviceType

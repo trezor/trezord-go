@@ -5,8 +5,8 @@
 package usb
 
 import (
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/trezor/trezord-go/internal/core"
+	"github.com/trezor/trezord-go/internal/memorywriter"
 )
 
 const HIDUse = false

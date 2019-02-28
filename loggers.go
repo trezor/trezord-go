@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/trezor/trezord-go/internal/memorywriter"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

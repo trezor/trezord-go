@@ -8,7 +8,7 @@ import (
 	"regexp"
 
 	coreapi "github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/trezor/trezord-go/internal/memorywriter"
 
 	"github.com/gorilla/mux"
 )
