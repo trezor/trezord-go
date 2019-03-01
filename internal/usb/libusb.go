@@ -10,7 +10,7 @@ import (
 	lowlevel "github.com/trezor/trezord-go/internal/usb/lowlevel/libusb"
 
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 const (
@@ -52,16 +52,16 @@ var debugIface = libusbIfaceData{
 
 type LibUSB struct {
 	usb    lowlevel.Context
-	mw     *memorywriter.MemoryWriter
+	mw     *logs.Logger
 	only   bool
 	cancel bool
 	detach bool
 }
 
-func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach bool) (*LibUSB, error) {
+func InitLibUSB(mw *logs.Logger, onlyLibusb, allowCancel, detach bool) (*LibUSB, error) {
 	var usb lowlevel.Context
 	mw.Log("init")
-	lowlevel.SetLogWriter(mw)
+	lowlevel.SetLogWriter(mw.Writer)
 
 	err := lowlevel.Init(&usb)
 	if err != nil {
@@ -428,7 +428,7 @@ type LibUSBDevice struct {
 
 	oldBL bool
 
-	mw *memorywriter.MemoryWriter
+	mw *logs.Logger
 }
 
 func (d *LibUSBDevice) Close(disconnected bool) error {

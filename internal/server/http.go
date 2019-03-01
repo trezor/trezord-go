@@ -7,7 +7,7 @@ import (
 
 	coreapi "github.com/trezor/trezord-go/api"
 
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/server/api"
 	"github.com/trezor/trezord-go/internal/server/status"
 
@@ -28,11 +28,12 @@ type Server struct {
 func New(
 	a *coreapi.API,
 	stderrWriter io.Writer,
-	shortWriter *memorywriter.MemoryWriter,
-	longWriter *memorywriter.MemoryWriter,
+	shortWriter *logs.MemoryWriter,
+	longWriter *logs.MemoryWriter,
 	version string,
 ) (*Server, error) {
-	longWriter.Log("starting")
+	logger := &logs.Logger{Writer: longWriter}
+	logger.Log("starting")
 
 	https := &http.Server{
 		Addr: "127.0.0.1:21325",
@@ -52,7 +53,7 @@ func New(
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
 	status.ServeStatus(statusRouter, a, version, shortWriter, longWriter)
-	api.ServeAPI(postRouter, a, version, longWriter)
+	api.ServeAPI(postRouter, a, version, logger)
 
 	status.ServeStatusRedirect(redirectRouter)
 
@@ -65,7 +66,7 @@ func New(
 
 	https.Handler = h
 
-	longWriter.Log("server created")
+	logger.Log("server created")
 	return s, nil
 }
 

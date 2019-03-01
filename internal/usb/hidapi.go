@@ -14,7 +14,7 @@ import (
 	lowlevel "github.com/trezor/trezord-go/internal/usb/lowlevel/hidapi"
 
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 const (
@@ -25,12 +25,12 @@ const (
 )
 
 type HIDAPI struct {
-	mw *memorywriter.MemoryWriter
+	mw *logs.Logger
 }
 
-func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
+func InitHIDAPI(mw *logs.Logger) (*HIDAPI, error) {
 	lowlevel.Init()
-	lowlevel.SetLogWriter(mw)
+	lowlevel.SetLogWriter(mw.Writer)
 	return &HIDAPI{
 		mw: mw,
 	}, nil
@@ -122,7 +122,7 @@ type HID struct {
 	// closing cannot happen while read/write is hapenning,
 	// otherwise it segfaults on windows
 
-	mw *memorywriter.MemoryWriter
+	mw *logs.Logger
 }
 
 func (d *HID) Close(disconnected bool) error {

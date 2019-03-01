@@ -6,7 +6,7 @@ package usb
 
 import (
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 const HIDUse = false
@@ -14,7 +14,7 @@ const HIDUse = false
 type HIDAPI struct {
 }
 
-func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
+func InitHIDAPI(mw *logs.Logger) (*HIDAPI, error) {
 	return &HIDAPI{}, nil
 }
 

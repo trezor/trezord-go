@@ -3,10 +3,12 @@ package api
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"runtime"
 
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/usb"
 )
 
@@ -15,21 +17,22 @@ import (
 // for notes on the initializer design
 
 type API struct {
-	c *core.Core
-	b core.USBBus
-
-	longMemoryWriter *memorywriter.MemoryWriter
+	c      *core.Core
+	b      core.USBBus
+	logger *logs.Logger
 
 	// init options
 	withUSB bool
 	reset   bool
 	touples []usb.PortTouple
+
+	writer io.Writer
 }
 
 var defaultAPI = API{
-	withUSB:          true,
-	reset:            true,
-	longMemoryWriter: memorywriter.Empty(),
+	withUSB: true,
+	reset:   true,
+	writer:  ioutil.Discard,
 }
 
 type InitOption func(*API)
@@ -46,9 +49,9 @@ func ResetDeviceOnAcquire(b bool) InitOption {
 	}
 }
 
-func LongMemoryWriter(m *memorywriter.MemoryWriter) InitOption {
+func LogWriter(w io.Writer) InitOption {
 	return func(a *API) {
-		a.longMemoryWriter = m
+		a.writer = w
 	}
 }
 
@@ -70,7 +73,7 @@ func AddUDPTouple(normal int, debug int) InitOption {
 	}
 }
 
-func initUsb(wr *memorywriter.MemoryWriter) ([]core.USBBus, error) {
+func initUsb(wr *logs.Logger) ([]core.USBBus, error) {
 	wr.Log("Initing libusb")
 
 	w, err := usb.InitLibUSB(wr, !usb.HIDUse, allowCancel(), detachKernelDriver())
@@ -101,20 +104,22 @@ func New(options ...InitOption) (*API, error) {
 		option(&api)
 	}
 
+	api.logger = &logs.Logger{Writer: api.writer}
+
 	bus := []core.USBBus{}
 
 	if api.withUSB {
-		newbus, err := initUsb(api.longMemoryWriter)
+		newbus, err := initUsb(api.logger)
 		if err != nil {
 			return nil, err
 		}
 		bus = newbus
 	}
 
-	api.longMemoryWriter.Log(fmt.Sprintf("UDP port count - %d", len(api.touples)))
+	api.logger.Log(fmt.Sprintf("UDP port count - %d", len(api.touples)))
 
 	if len(api.touples) > 0 {
-		e, errUDP := usb.InitUDP(api.touples, api.longMemoryWriter)
+		e, errUDP := usb.InitUDP(api.touples, api.logger)
 		if errUDP != nil {
 			return nil, errUDP
 		}
@@ -128,8 +133,8 @@ func New(options ...InitOption) (*API, error) {
 	b := usb.Init(bus...)
 	api.b = b
 
-	api.longMemoryWriter.Log("Creating core")
-	c := core.New(b, api.longMemoryWriter, allowCancel(), api.reset)
+	api.logger.Log("Creating core")
+	c := core.New(b, api.logger, allowCancel(), api.reset)
 	api.c = c
 	return &api, nil
 }

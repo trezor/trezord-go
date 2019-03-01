@@ -3,13 +3,13 @@
 package status
 
 import (
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 // Devcon is a tool for listing devices and drivers on windows
 // These are empty functions that get called on *nix systems
 
-func devconInfo(d *memorywriter.MemoryWriter) (string, error) {
+func devconInfo(d *logs.Logger) (string, error) {
 	return "", nil
 }
 

@@ -8,7 +8,7 @@ import (
 	"regexp"
 
 	coreapi "github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 
 	"github.com/gorilla/mux"
 )
@@ -21,10 +21,10 @@ import (
 type api struct {
 	core    *coreapi.API
 	version string
-	logger  *memorywriter.MemoryWriter
+	logger  *logs.Logger
 }
 
-func ServeAPI(r *mux.Router, a *coreapi.API, v string, l *memorywriter.MemoryWriter) {
+func ServeAPI(r *mux.Router, a *coreapi.API, v string, l *logs.Logger) {
 	api := &api{
 		core:    a,
 		version: v,

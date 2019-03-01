@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 var emulatorPing = []byte("PINGPING")
@@ -33,7 +33,7 @@ type UDP struct {
 	ports     []PortTouple
 	lowlevels map[int]*udpLowlevel
 
-	mw *memorywriter.MemoryWriter
+	mw *logs.Logger
 }
 
 func listen(conn io.Reader) (chan []byte, chan []byte) {
@@ -81,7 +81,7 @@ func (udp *UDP) makeLowlevel(port int) error {
 	return nil
 }
 
-func InitUDP(ports []PortTouple, mw *memorywriter.MemoryWriter) (*UDP, error) {
+func InitUDP(ports []PortTouple, mw *logs.Logger) (*UDP, error) {
 	udp := UDP{
 		ports:     ports,
 		lowlevels: make(map[int](*udpLowlevel)),

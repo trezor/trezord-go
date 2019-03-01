@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 // Devcon is a tool for listing devices and drivers on windows
@@ -55,7 +55,7 @@ func devconAllStatusInfo() (string, error) {
 	return res, nil
 }
 
-func devconInfo(mw *memorywriter.MemoryWriter) (string, error) {
+func devconInfo(mw *logs.Logger) (string, error) {
 	mw.Log("finding devcon.exe")
 	_, err := os.Stat("devcon.exe")
 	if os.IsNotExist(err) {
@@ -108,7 +108,7 @@ func devconAllUsbStrings() ([]string, []string, error) {
 	return conn, disconn, nil
 }
 
-func devconTrezorUsbStrings(mw *memorywriter.MemoryWriter) ([]string, []string, error) {
+func devconTrezorUsbStrings(mw *logs.Logger) ([]string, []string, error) {
 	allT1, err := devconUsbStringsVid(api.VendorT1, true, mw)
 	if err != nil {
 		return nil, nil, err
@@ -163,7 +163,7 @@ func devconMultipleStatuses(ids []string) (string, error) {
 	return res, nil
 }
 
-func devconMultipleDriverFiles(ids []string, mw *memorywriter.MemoryWriter) (string, error) {
+func devconMultipleDriverFiles(ids []string, mw *logs.Logger) (string, error) {
 	res := ""
 	for _, i := range ids {
 		driverFiles, err := devconDriverFiles(i, mw)
@@ -175,7 +175,7 @@ func devconMultipleDriverFiles(ids []string, mw *memorywriter.MemoryWriter) (str
 	return res, nil
 }
 
-func runDevcon(cmd, par string, mw *memorywriter.MemoryWriter, unicode bool) (string, error) {
+func runDevcon(cmd, par string, mw *logs.Logger, unicode bool) (string, error) {
 
 	if mw != nil {
 		mw.Log(fmt.Sprintf("runninng %s %s %s", "devcon.exe", cmd, par))
@@ -264,7 +264,7 @@ func filterLinesIncluding(lines []string, needle string) []string {
 	return res
 }
 
-func devconDriverFiles(id string, mw *memorywriter.MemoryWriter) (string, error) {
+func devconDriverFiles(id string, mw *logs.Logger) (string, error) {
 	mw.Log(fmt.Sprintf("finding driver files for %s", id))
 	out, err := runDevcon("driverfiles", "@"+id, mw, false)
 	if err != nil {
@@ -303,7 +303,7 @@ func devconUsbStringsEvery(with_disconnected bool) ([]string, error) {
 	return devconUsbStrings("*", with_disconnected, nil)
 }
 
-func devconUsbStrings(filter string, with_disconnected bool, mw *memorywriter.MemoryWriter) ([]string, error) {
+func devconUsbStrings(filter string, with_disconnected bool, mw *logs.Logger) ([]string, error) {
 	command := "find"
 	if with_disconnected {
 		command = "findall"
@@ -322,7 +322,7 @@ func devconUsbStrings(filter string, with_disconnected bool, mw *memorywriter.Me
 	return lines, nil
 }
 
-func devconUsbStringsVid(vid int, with_disconnected bool, mw *memorywriter.MemoryWriter) ([]string, error) {
+func devconUsbStringsVid(vid int, with_disconnected bool, mw *logs.Logger) ([]string, error) {
 	v := fmt.Sprintf("*vid_%04x*", vid)
 	return devconUsbStrings(v, with_disconnected, mw)
 }

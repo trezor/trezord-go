@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/wire"
 )
 
@@ -127,7 +127,7 @@ type Core struct {
 	usbPaths  map[int]string // id => path
 	biggestID int
 
-	log *memorywriter.MemoryWriter
+	log *logs.Logger
 
 	latestSessionID int
 }
@@ -147,7 +147,7 @@ const (
 	ProductT2Firmware   = 0x53C1
 )
 
-func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) *Core {
+func New(bus USBBus, log *logs.Logger, allowStealing, reset bool) *Core {
 	c := &Core{
 		bus:            bus,
 		normalSessions: make(map[string]*session),

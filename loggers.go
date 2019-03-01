@@ -5,15 +5,15 @@ import (
 	"log"
 	"os"
 
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func initLoggers(logfile string, verbose bool) (
 	stderrWriter io.Writer, // where we write short messages to stderr (on windows to file)
 	stderrLogger *log.Logger, // logger for stderrWriter
-	shortMemoryWriter *memorywriter.MemoryWriter, // what we write to status page
-	longMemoryWriter *memorywriter.MemoryWriter, // what we write to detailed status file
+	shortMemoryWriter *logs.MemoryWriter, // what we write to status page
+	longMemoryWriter *logs.MemoryWriter, // what we write to detailed status file
 ) {
 	if logfile != "" {
 		stderrWriter = &lumberjack.Logger{
@@ -26,7 +26,7 @@ func initLoggers(logfile string, verbose bool) (
 	}
 
 	stderrLogger = log.New(stderrWriter, "", log.LstdFlags)
-	shortMemoryWriter, err := memorywriter.New(2000, 200, false, nil)
+	shortMemoryWriter, err := logs.NewMemoryWriter(2000, 200, false, nil)
 	if err != nil {
 		stderrLogger.Fatalf("writer: %s", err)
 	}
@@ -36,7 +36,7 @@ func initLoggers(logfile string, verbose bool) (
 		verboseWriter = nil
 	}
 
-	longMemoryWriter, err = memorywriter.New(90000, 200, true, verboseWriter)
+	longMemoryWriter, err = logs.NewMemoryWriter(90000, 200, true, verboseWriter)
 	if err != nil {
 		stderrLogger.Fatalf("writer: %s", err)
 	}

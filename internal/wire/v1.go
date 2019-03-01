@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 )
 
 const (
@@ -18,7 +18,7 @@ type Message struct {
 	Kind uint16
 	Data []byte
 
-	Log *memorywriter.MemoryWriter
+	Log *logs.Logger
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
@@ -72,7 +72,7 @@ var (
 	ErrMalformedMessage = errors.New("malformed wire format")
 )
 
-func ReadFrom(r io.Reader, mw *memorywriter.MemoryWriter) (*Message, error) {
+func ReadFrom(r io.Reader, mw *logs.Logger) (*Message, error) {
 	mw.Log("start")
 	var (
 		rep  [packetLen]byte

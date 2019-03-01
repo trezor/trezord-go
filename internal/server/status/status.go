@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	coreapi "github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
@@ -16,7 +16,8 @@ import (
 type status struct {
 	api                                 *coreapi.API
 	version                             string
-	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter
+	shortMemoryWriter, longMemoryWriter *logs.MemoryWriter
+	logger                              *logs.Logger
 }
 
 const csrfkey = "slk0118h51w2qiw4fhrfyd84f59j81ln"
@@ -32,12 +33,13 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, a *coreapi.API, v string, mw, dmw *memorywriter.MemoryWriter) {
+func ServeStatus(r *mux.Router, a *coreapi.API, v string, mw, dmw *logs.MemoryWriter) {
 	status := &status{
 		api:               a,
 		version:           v,
 		shortMemoryWriter: mw,
 		longMemoryWriter:  dmw,
+		logger:            &logs.Logger{Writer: dmw},
 	}
 	r.Methods("GET").Path("/").HandlerFunc(status.statusPage)
 	r.Methods("POST").Path("/log.gz").HandlerFunc(status.statusGzip)
@@ -50,49 +52,49 @@ func ServeStatus(r *mux.Router, a *coreapi.API, v string, mw, dmw *memorywriter.
 }
 
 func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
-	s.longMemoryWriter.Log("building gzip")
+	s.logger.Log("building gzip")
 
-	devconLog, err := devconInfo(s.longMemoryWriter)
+	devconLog, err := devconInfo(s.logger)
 	if err != nil {
-		s.longMemoryWriter.Log("devcon err " + err.Error())
+		s.logger.Log("devcon err " + err.Error())
 		respondError(w, err)
 		return
 	}
 
 	devconLogD, err := devconAllStatusInfo()
 	if err != nil {
-		s.longMemoryWriter.Log("devcon err " + err.Error())
+		s.logger.Log("devcon err " + err.Error())
 		respondError(w, err)
 		return
 	}
 
 	msinfo, err := runMsinfo()
 	if err != nil {
-		s.longMemoryWriter.Log("msinfo err " + err.Error())
+		s.logger.Log("msinfo err " + err.Error())
 		respondError(w, err)
 		return
 	}
 
-	s.longMemoryWriter.Log("getting libwdi")
+	s.logger.Log("getting libwdi")
 	libwdi, err := libwdiReinstallLog()
 	if err != nil {
-		s.longMemoryWriter.Log("lbwdi err " + err.Error())
+		s.logger.Log("lbwdi err " + err.Error())
 		respondError(w, err)
 		return
 	}
 
-	s.longMemoryWriter.Log("getting old log")
+	s.logger.Log("getting old log")
 	old, err := oldLog()
 	if err != nil {
-		s.longMemoryWriter.Log("old log err " + err.Error())
+		s.logger.Log("old log err " + err.Error())
 		respondError(w, err)
 		return
 	}
 
-	s.longMemoryWriter.Log("getting setupapi")
+	s.logger.Log("getting setupapi")
 	setupapi, err := setupAPIDevLog()
 	if err != nil {
-		s.longMemoryWriter.Log("setupapi err " + err.Error())
+		s.logger.Log("setupapi err " + err.Error())
 		respondError(w, err)
 		return
 	}
@@ -121,18 +123,18 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
-	s.longMemoryWriter.Log("building status page")
+	s.logger.Log("building status page")
 
 	var templateErr error
 	tdevs, err := s.statusEnumerate()
 	if err != nil {
-		s.longMemoryWriter.Log("enumerate err" + err.Error())
+		s.logger.Log("enumerate err" + err.Error())
 		templateErr = err
 	}
 
-	devconLog, err := devconInfo(s.longMemoryWriter)
+	devconLog, err := devconInfo(s.logger)
 	if err != nil {
-		s.longMemoryWriter.Log("devcon err " + err.Error())
+		s.logger.Log("devcon err " + err.Error())
 		respondError(w, err)
 		return
 	}
@@ -145,7 +147,7 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.longMemoryWriter.Log("actually building status data")
+	s.logger.Log("actually building status data")
 
 	isErr := templateErr != nil
 	strErr := ""
@@ -178,7 +180,7 @@ func respondError(w http.ResponseWriter, err error) {
 func (s *status) statusEnumerate() ([]statusTemplateDevice, error) {
 	e, err := s.api.Enumerate()
 	if err != nil {
-		s.longMemoryWriter.Log("enumerate err" + err.Error())
+		s.logger.Log("enumerate err" + err.Error())
 		return nil, err
 	}
 

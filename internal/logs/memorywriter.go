@@ -1,4 +1,4 @@
-package memorywriter
+package logs
 
 import (
 	"bytes"
@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
@@ -20,61 +18,25 @@ import (
 const maxLineLength = 500
 
 type MemoryWriter struct {
+	maxLineCount int
 	lines        [][]byte // lines include newlines
 	startLines   [][]byte
 	startTime    time.Time
 	outWriter    io.Writer
-	maxLineCount int
 	startCount   int
 	mutex        sync.Mutex
-	empty        bool
 	printTime    bool
-}
-
-func findInternalPrefix() string {
-	pc := make([]uintptr, 15)
-	n := runtime.Callers(1, pc)
-	frames := runtime.CallersFrames(pc[:n])
-	frame, _ := frames.Next()
-	file := frame.File
-	return strings.TrimSuffix(file, "memorywriter/memorywriter.go")
-}
-
-var internalPrefix = findInternalPrefix()
-
-func (m *MemoryWriter) Log(s string) {
-	pc := make([]uintptr, 15)
-	n := runtime.Callers(2, pc)
-	frames := runtime.CallersFrames(pc[:n])
-	frame, _ := frames.Next()
-	file := frame.File
-	file = strings.TrimPrefix(file, internalPrefix)
-	function := frame.Function
-	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
-	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
-	m.println(r + " " + s)
-}
-
-func (m *MemoryWriter) println(s string) {
-	long := []byte(s + "\n")
-	_, err := m.Write(long)
-	if err != nil {
-		// give up, just print on stdout
-		fmt.Println(err)
-	}
 }
 
 // Writer remembers lines in memory
 func (m *MemoryWriter) Write(p []byte) (int, error) {
-	if m.empty {
-		return len(p), nil
-	}
 	m.mutex.Lock()
 	defer func() {
 		m.mutex.Unlock()
 	}()
 	if len(p) > maxLineLength {
-		return 0, errors.New("input too long")
+		//return 0, errors.New("input too long")
+		p = p[0:maxLineLength]
 	}
 
 	var newline []byte
@@ -124,30 +86,27 @@ func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
 		return err
 	}
 
-	if !m.empty {
-
-		// Write end lines (latest on up)
-		for i := len(m.lines) - 1; i >= 0; i-- {
-			line := m.lines[i]
-			_, err = w.Write(line)
-			if err != nil {
-				return err
-			}
-		}
-
-		// ... to make space between start and end
-		_, err = w.Write([]byte("...\n"))
+	// Write end lines (latest on up)
+	for i := len(m.lines) - 1; i >= 0; i-- {
+		line := m.lines[i]
+		_, err = w.Write(line)
 		if err != nil {
 			return err
 		}
+	}
 
-		// Write start lines
-		for i := len(m.startLines) - 1; i >= 0; i-- {
-			line := m.startLines[i]
-			_, err = w.Write(line)
-			if err != nil {
-				return err
-			}
+	// ... to make space between start and end
+	_, err = w.Write([]byte("...\n"))
+	if err != nil {
+		return err
+	}
+
+	// Write start lines
+	for i := len(m.startLines) - 1; i >= 0; i-- {
+		line := m.startLines[i]
+		_, err = w.Write(line)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -186,21 +145,14 @@ func (m *MemoryWriter) Gzip(start string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func Empty() *MemoryWriter {
-	return &MemoryWriter{
-		empty: true,
-	}
-}
-
-func New(size int, startSize int, printTime bool, out io.Writer) (*MemoryWriter, error) {
+func NewMemoryWriter(size int, startSize int, printTime bool, out io.Writer) (*MemoryWriter, error) {
 	if size < 1 {
-		return nil, errors.New("size cannot be <1; use Empty instead")
+		return nil, errors.New("size cannot be <1")
 	}
 	if startSize < 1 {
-		return nil, errors.New("size cannot be <1; use Empty instead")
+		return nil, errors.New("size cannot be <1")
 	}
 	return &MemoryWriter{
-		empty:        false,
 		maxLineCount: size,
 		lines:        make([][]byte, 0, size),
 		startCount:   startSize,

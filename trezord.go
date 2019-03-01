@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/trezor/trezord-go/api"
-	"github.com/trezor/trezord-go/internal/memorywriter"
+	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/server"
 )
 
@@ -37,14 +37,14 @@ func main() {
 		stderrLogger.Fatal(err)
 	}
 
-	longMemoryWriter.Log("Main ended successfully")
+	stderrLogger.Print("trezord ended successfully")
 }
 
-func initAPI(myOpts initOptions, mw *memorywriter.MemoryWriter) (*api.API, error) {
+func initAPI(myOpts initOptions, mw io.Writer) (*api.API, error) {
 	apiOpts := make([]api.InitOption, 0, 3+len(myOpts.ports)+len(myOpts.touples))
 	apiOpts = append(apiOpts, api.WithUSB(myOpts.withusb))
 	apiOpts = append(apiOpts, api.ResetDeviceOnAcquire(myOpts.reset))
-	apiOpts = append(apiOpts, api.LongMemoryWriter(mw))
+	apiOpts = append(apiOpts, api.LogWriter(mw))
 	for _, t := range myOpts.ports {
 		apiOpts = append(apiOpts, api.AddUDPPort(t))
 	}
@@ -58,16 +58,17 @@ func initAPI(myOpts initOptions, mw *memorywriter.MemoryWriter) (*api.API, error
 func initServer(
 	a *api.API,
 	stderrWriter io.Writer,
-	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter,
+	shortMemoryWriter, longMemoryWriter *logs.MemoryWriter,
 ) error {
-	longMemoryWriter.Log("Creating HTTP server")
+	logger := &logs.Logger{Writer: longMemoryWriter}
+	logger.Log("Creating HTTP server")
 	s, err := server.New(a, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
 
 	if err != nil {
 		return fmt.Errorf("https: %s", err)
 	}
 
-	longMemoryWriter.Log("Running HTTP server")
+	logger.Log("Running HTTP server")
 	err = s.Run()
 	if err != nil {
 		return fmt.Errorf("https: %s", err)
