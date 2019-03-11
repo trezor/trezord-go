@@ -11,6 +11,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/core"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 )
 
 const (
@@ -323,27 +324,27 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDe
 	}, nil
 }
 
-func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
-	if dd.IDProduct == core.ProductT1Firmware {
+func matchType(dd *lowlevel.Device_Descriptor) types.DeviceType {
+	if dd.IDProduct == types.ProductT1Firmware {
 		// this is HID, in platforms where we don't use hidapi (linux, bsd)
-		return core.TypeT1Hid
+		return types.TypeT1Hid
 	}
 
-	if dd.IDProduct == core.ProductT2Bootloader {
+	if dd.IDProduct == types.ProductT2Bootloader {
 		if int(dd.BcdDevice>>8) == 1 {
-			return core.TypeT1WebusbBoot
+			return types.TypeT1WebusbBoot
 		}
-		return core.TypeT2Boot
+		return types.TypeT2Boot
 	}
 
 	if int(dd.BcdDevice>>8) == 1 {
-		return core.TypeT1Webusb
+		return types.TypeT1Webusb
 	}
 
-	return core.TypeT2
+	return types.TypeT2
 }
 
-func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
+func (b *LibUSB) match(dev lowlevel.Device) (bool, types.DeviceType) {
 	b.mw.Log("start")
 	dd, err := lowlevel.Get_Device_Descriptor(dev)
 	if err != nil {
@@ -394,10 +395,10 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 
 func (b *LibUSB) matchVidPid(vid uint16, pid uint16) bool {
 	// Note: Trezor1 libusb will actually have the T2 vid/pid
-	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
+	trezor2 := vid == types.VendorT2 && (pid == types.ProductT2Firmware || pid == types.ProductT2Bootloader)
 
 	if b.only {
-		trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
+		trezor1 := vid == types.VendorT1 && (pid == types.ProductT1Firmware)
 		return trezor1 || trezor2
 	}
 

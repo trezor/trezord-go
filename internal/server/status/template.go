@@ -3,11 +3,11 @@ package status
 import (
 	"html/template"
 
-	"github.com/trezor/trezord-go/api"
+	"github.com/trezor/trezord-go/types"
 )
 
 type statusTemplateDevice struct {
-	Type    api.DeviceType
+	Type    types.DeviceType
 	Path    string
 	Used    bool
 	Session string

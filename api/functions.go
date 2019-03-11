@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/trezor/trezord-go/internal/core"
+	"github.com/trezor/trezord-go/types"
 )
 
-func (a *API) Listen(ctx context.Context, previousEntries []EnumerateEntry) ([]EnumerateEntry, error) {
+func (a *API) Listen(ctx context.Context, previousEntries []types.EnumerateEntry) ([]types.EnumerateEntry, error) {
 	entries, err := a.c.Listen(ctx, previousEntries)
 	return entries, err
 }
 
-func (a *API) Enumerate() ([]EnumerateEntry, error) {
+func (a *API) Enumerate() ([]types.EnumerateEntry, error) {
 	return a.c.Enumerate()
 }
 

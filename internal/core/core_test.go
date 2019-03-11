@@ -2,10 +2,12 @@ package core
 
 import (
 	"testing"
+
+	"github.com/trezor/trezord-go/types"
 )
 
 func TestEnumerateEntriesSort(t *testing.T) {
-	entries := []EnumerateEntry{
+	entries := []types.EnumerateEntry{
 		{Path: "b"},
 		{Path: "a"},
 		{Path: "ab"},

@@ -12,6 +12,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/core"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 )
 
 var emulatorPing = []byte("PINGPING")
@@ -140,7 +141,7 @@ func (udp *UDP) Enumerate() ([]core.USBInfo, error) {
 				Path:      emulatorPrefix + strconv.Itoa(port.Normal) + "D" + strconv.Itoa(port.Debug),
 				VendorID:  0,
 				ProductID: 0,
-				Type:      core.TypeEmulator,
+				Type:      types.TypeEmulator,
 			}
 			if presentD {
 				info.Debug = true

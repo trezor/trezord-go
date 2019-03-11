@@ -9,6 +9,7 @@ import (
 
 	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 
 	"github.com/gorilla/mux"
 )
@@ -64,7 +65,7 @@ func (a *api) Info(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 	a.logger.Log("starting")
-	var entries []coreapi.EnumerateEntry
+	var entries []types.EnumerateEntry
 
 	a.logger.Log("decoding entries")
 

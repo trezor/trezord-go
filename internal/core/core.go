@@ -15,6 +15,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/wire"
+	"github.com/trezor/trezord-go/types"
 )
 
 // Package with "core logic" of device listing
@@ -41,22 +42,11 @@ type USBBus interface {
 	Close() // called on program exit
 }
 
-type DeviceType int
-
-const (
-	TypeT1Hid        DeviceType = 0
-	TypeT1Webusb     DeviceType = 1
-	TypeT1WebusbBoot DeviceType = 2
-	TypeT2           DeviceType = 3
-	TypeT2Boot       DeviceType = 4
-	TypeEmulator     DeviceType = 5
-)
-
 type USBInfo struct {
 	Path      string
 	VendorID  int
 	ProductID int
-	Type      DeviceType
+	Type      types.DeviceType
 	Debug     bool // has debug enabled?
 }
 
@@ -72,18 +62,7 @@ type session struct {
 	call int32 // atomic
 }
 
-type EnumerateEntry struct {
-	Path    string     `json:"path"`
-	Vendor  int        `json:"vendor"`
-	Product int        `json:"product"`
-	Type    DeviceType `json:"-"`     // used only in status page, not in JSON
-	Debug   bool       `json:"debug"` // has debug enabled?
-
-	Session      *string `json:"session"`
-	DebugSession *string `json:"debugSession"`
-}
-
-type EnumerateEntries []EnumerateEntry
+type EnumerateEntries []types.EnumerateEntry
 
 func (entries EnumerateEntries) Len() int {
 	return len(entries)
@@ -137,14 +116,6 @@ var (
 	ErrSessionNotFound  = errors.New("session not found")
 	ErrMalformedData    = errors.New("malformed data")
 	ErrOtherCall        = errors.New("other call in progress")
-)
-
-const (
-	VendorT1            = 0x534c
-	ProductT1Firmware   = 0x0001
-	VendorT2            = 0x1209
-	ProductT2Bootloader = 0x53C0
-	ProductT2Firmware   = 0x53C1
 )
 
 func New(bus USBBus, log *logs.Logger, allowStealing, reset bool) *Core {
@@ -232,7 +203,7 @@ func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
 }
 
 // Enumerate never returns nil
-func (c *Core) Enumerate() ([]EnumerateEntry, error) {
+func (c *Core) Enumerate() ([]types.EnumerateEntry, error) {
 	// Lock for atomic access to s.sessions.
 	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
@@ -269,7 +240,7 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	return entries, nil
 }
 
-func (c *Core) findSession(e *EnumerateEntry, path string, debug bool) {
+func (c *Core) findSession(e *types.EnumerateEntry, path string, debug bool) {
 	for _, ss := range c.sessions(debug) {
 		if ss.path == path {
 			// Copying to prevent overwriting on Acquire and
@@ -284,8 +255,8 @@ func (c *Core) findSession(e *EnumerateEntry, path string, debug bool) {
 	}
 }
 
-func (c *Core) createEnumerateEntry(info USBInfo) EnumerateEntry {
-	e := EnumerateEntry{
+func (c *Core) createEnumerateEntry(info USBInfo) types.EnumerateEntry {
+	e := types.EnumerateEntry{
 		Path:    info.Path,
 		Vendor:  info.VendorID,
 		Product: info.ProductID,
@@ -362,7 +333,7 @@ func (c *Core) release(
 	return err
 }
 
-func (c *Core) Listen(ctx context.Context, entries []EnumerateEntry) ([]EnumerateEntry, error) {
+func (c *Core) Listen(ctx context.Context, entries []types.EnumerateEntry) ([]types.EnumerateEntry, error) {
 	c.log.Log("start")
 
 	EnumerateEntries(entries).Sort()

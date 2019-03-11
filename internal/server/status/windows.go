@@ -14,8 +14,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 )
 
 // Devcon is a tool for listing devices and drivers on windows
@@ -109,22 +109,22 @@ func devconAllUsbStrings() ([]string, []string, error) {
 }
 
 func devconTrezorUsbStrings(mw *logs.Logger) ([]string, []string, error) {
-	allT1, err := devconUsbStringsVid(api.VendorT1, true, mw)
+	allT1, err := devconUsbStringsVid(types.VendorT1, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	allT2, err := devconUsbStringsVid(api.VendorT2, true, mw)
+	allT2, err := devconUsbStringsVid(types.VendorT2, true, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT1, err := devconUsbStringsVid(api.VendorT1, false, mw)
+	connT1, err := devconUsbStringsVid(types.VendorT1, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connT2, err := devconUsbStringsVid(api.VendorT2, false, mw)
+	connT2, err := devconUsbStringsVid(types.VendorT2, false, mw)
 	if err != nil {
 		return nil, nil, err
 	}

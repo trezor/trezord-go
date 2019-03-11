@@ -15,6 +15,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/core"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 )
 
 const (
@@ -51,7 +52,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 				Path:      b.identify(&dev),
 				VendorID:  int(dev.VendorID),
 				ProductID: int(dev.ProductID),
-				Type:      core.TypeT1Hid,
+				Type:      types.TypeT1Hid,
 				Debug:     false,
 			})
 		}
@@ -98,8 +99,8 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	vid := d.VendorID
 	pid := d.ProductID
-	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
-	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
+	trezor1 := vid == types.VendorT1 && (pid == types.ProductT1Firmware)
+	trezor2 := vid == types.VendorT2 && (pid == types.ProductT2Firmware || pid == types.ProductT2Bootloader)
 	return (trezor1 || trezor2) && (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
 }
 

@@ -5,6 +5,7 @@ import (
 
 	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
@@ -192,7 +193,7 @@ func (s *status) statusEnumerate() ([]statusTemplateDevice, error) {
 	return tdevs, nil
 }
 
-func makeStatusTemplateDevice(dev coreapi.EnumerateEntry) statusTemplateDevice {
+func makeStatusTemplateDevice(dev types.EnumerateEntry) statusTemplateDevice {
 	var session string
 	if dev.Session != nil {
 		session = *dev.Session
