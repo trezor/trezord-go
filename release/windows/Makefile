@@ -19,14 +19,21 @@ clean:
 	$(info Cleaning...)
 	rm -rf build
 
-.binary:
-	$(info Building with xgo ...)
+.binary64:
+	$(info Building 64bin with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
-	mv -f $(NAME32) build/trezord-32b.exe
 	xgo -ldflags="-H=windowsgui" -targets=windows/amd64 $(IMPORT_PATH)
 	mv -f $(NAME64) build/trezord-64b.exe
 	cp ../../VERSION build
+
+.binary32:
+	$(info Building 32bin with xgo ...)
+	mkdir -p build
+	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
+	mv -f $(NAME32) build/trezord-32b.exe
+	cp ../../VERSION build
+
+.binary: .binary32 .binary64
 
 .package: .binary .docker-image .wdi .devcon
 	$(info Packaging ...)
