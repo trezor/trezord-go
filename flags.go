@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// PortTouple is a thing
 type PortTouple struct {
 	Normal int
 	Debug  int
