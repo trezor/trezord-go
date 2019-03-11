@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -360,7 +361,7 @@ func (c *Core) release(
 	return err
 }
 
-func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan struct{}) ([]EnumerateEntry, error) {
+func (c *Core) Listen(entries []EnumerateEntry, ctx context.Context) ([]EnumerateEntry, error) {
 	c.log.Log("start")
 
 	EnumerateEntries(entries).Sort()
@@ -377,8 +378,8 @@ func (c *Core) Listen(entries []EnumerateEntry, closeNotify <-chan struct{}) ([]
 		if reflect.DeepEqual(entries, e) {
 			c.log.Log("equal, waiting")
 			select {
-			case <-closeNotify:
-				c.log.Log("request closed")
+			case <-ctx.Done():
+				c.log.Log(fmt.Sprintf("request closed (%s)", ctx.Err().Error()))
 				return nil, nil
 			default:
 				time.Sleep(iterDelay * time.Millisecond)
@@ -520,7 +521,7 @@ func (c *Core) Call(
 	session string,
 	mode CallMode,
 	debug bool,
-	closeNotify <-chan struct{},
+	ctx context.Context,
 ) ([]byte, error) {
 	c.log.Log("callMutex lock")
 	c.callMutex.Lock()
@@ -572,8 +573,8 @@ func (c *Core) Call(
 		select {
 		case <-finished:
 			return
-		case <-closeNotify:
-			c.log.Log("detected request close, auto-release")
+		case <-ctx.Done():
+			c.log.Log(fmt.Sprintf("detected request close %s, auto-release", ctx.Err().Error()))
 			errRelease := c.release(session, false, debug)
 			if errRelease != nil {
 				// just log, since request is already closed

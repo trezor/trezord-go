@@ -68,8 +68,6 @@ func (a *api) Info(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 	a.logger.Log("starting")
-	cnn := r.Context().Done()
-
 	var entries []core.EnumerateEntry
 
 	a.logger.Log("decoding entries")
@@ -88,7 +86,7 @@ func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := a.core.Listen(entries, cnn)
+	res, err := a.core.Listen(entries, r.Context())
 	if err != nil {
 		a.respondError(w, err)
 		return
@@ -194,7 +192,6 @@ func (a *api) ReadDebug(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, debug bool) {
 	a.logger.Log("start")
-	cnn := r.Context().Done()
 
 	vars := mux.Vars(r)
 	session := vars["session"]
@@ -213,7 +210,7 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 		}
 	}
 
-	binres, err := a.core.Call(binbody, session, mode, debug, cnn)
+	binres, err := a.core.Call(binbody, session, mode, debug, r.Context())
 	if err != nil {
 		a.respondError(w, err)
 		return
