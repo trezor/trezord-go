@@ -54,10 +54,7 @@ func ServeAPI(r *mux.Router, a *coreapi.API, v string, l *logs.Logger) {
 func (a *api) Info(w http.ResponseWriter, r *http.Request) {
 	a.logger.Log("version " + a.version)
 
-	type info struct {
-		Version string `json:"version"`
-	}
-	err := json.NewEncoder(w).Encode(info{
+	err := json.NewEncoder(w).Encode(types.VersionInfo{
 		Version: a.version,
 	})
 	a.checkJSONError(w, err)
@@ -127,11 +124,7 @@ func (a *api) acquire(w http.ResponseWriter, r *http.Request, debug bool) {
 		return
 	}
 
-	type result struct {
-		Session string `json:"session"`
-	}
-
-	err = json.NewEncoder(w).Encode(result{
+	err = json.NewEncoder(w).Encode(types.SessionInfo{
 		Session: res,
 	})
 	a.checkJSONError(w, err)

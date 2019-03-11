@@ -52,6 +52,9 @@ func initAPI(myOpts initOptions, mw io.Writer) (*api.API, error) {
 		apiOpts = append(apiOpts, api.AddUDPTouple(t.Normal, t.Debug))
 	}
 
+	// disable bridge - bridge cannot call itself :)
+	apiOpts = append(apiOpts, api.DisableBridge())
+
 	return api.New(apiOpts...)
 }
 

@@ -17,25 +17,45 @@ import (
 // for notes on the initializer design
 
 type API struct {
-	c      *core.Core
+	touples []usb.PortTouple
+
+	c      transport
 	b      core.USBBus
 	logger *logs.Logger
 
 	// init options
-	withUSB bool
+	writer  io.Writer
 	reset   bool
-	touples []usb.PortTouple
+	withUSB bool
 
-	writer io.Writer
+	bridge    bool
+	bridgeURL string
 }
 
 var defaultAPI = API{
 	withUSB: true,
 	reset:   true,
 	writer:  ioutil.Discard,
+
+	bridge:    true,
+	bridgeURL: "http://127.0.0.1:21325",
 }
 
 type InitOption func(*API)
+
+func BridgeURL(s string) InitOption {
+	return func(a *API) {
+		a.bridgeURL = s
+		a.bridge = true
+	}
+}
+
+func DisableBridge() InitOption {
+	return func(a *API) {
+		a.bridge = false
+		a.bridgeURL = ""
+	}
+}
 
 func WithUSB(b bool) InitOption {
 	return func(a *API) {
@@ -104,22 +124,43 @@ func New(options ...InitOption) (*API, error) {
 		option(&api)
 	}
 
-	api.logger = &logs.Logger{Writer: api.writer}
+	var t transport
+	if api.bridge {
+		b, err := newBridge(api.bridgeURL)
+		if err == nil {
+			t = b
+		}
+	}
+
+	// note - if bridge initialized, nothing else is (including UDP)
+	if t == nil {
+		c, err := api.initLowlevel()
+		if err != nil {
+			return nil, err
+		}
+		t = c
+	}
+	api.c = t
+	return &api, nil
+}
+
+func (a *API) initLowlevel() (transport, error) {
+	a.logger = &logs.Logger{Writer: a.writer}
 
 	bus := []core.USBBus{}
 
-	if api.withUSB {
-		newbus, err := initUsb(api.logger)
+	if a.withUSB {
+		newbus, err := initUsb(a.logger)
 		if err != nil {
 			return nil, err
 		}
 		bus = newbus
 	}
 
-	api.logger.Log(fmt.Sprintf("UDP port count - %d", len(api.touples)))
+	a.logger.Log(fmt.Sprintf("UDP port count - %d", len(a.touples)))
 
-	if len(api.touples) > 0 {
-		e, errUDP := usb.InitUDP(api.touples, api.logger)
+	if len(a.touples) > 0 {
+		e, errUDP := usb.InitUDP(a.touples, a.logger)
 		if errUDP != nil {
 			return nil, errUDP
 		}
@@ -131,12 +172,11 @@ func New(options ...InitOption) (*API, error) {
 	}
 
 	b := usb.Init(bus...)
-	api.b = b
+	a.b = b
 
-	api.logger.Log("Creating core")
-	c := core.New(b, api.logger, allowCancel(), api.reset)
-	api.c = c
-	return &api, nil
+	a.logger.Log("Creating core")
+	c := core.New(b, a.logger, allowCancel(), a.reset)
+	return c, nil
 }
 
 // Does OS allow sync canceling via our custom libusb patches?

@@ -9,6 +9,8 @@ const (
 	TypeT2           DeviceType = 3
 	TypeT2Boot       DeviceType = 4
 	TypeEmulator     DeviceType = 5
+
+	TypeBridgeTransport DeviceType = -1
 )
 
 const (
@@ -20,12 +22,26 @@ const (
 )
 
 type EnumerateEntry struct {
-	Path    string     `json:"path"`
-	Vendor  int        `json:"vendor"`
-	Product int        `json:"product"`
-	Type    DeviceType `json:"-"`     // used only in status page, not in JSON
-	Debug   bool       `json:"debug"` // has debug enabled?
+	Path    string `json:"path"`
+	Vendor  int    `json:"vendor"`
+	Product int    `json:"product"`
+
+	// Type used only in status page, not JSON
+	// when used with bridge transport, has always -1
+	// as bridge does not export device type in JSON response explicitly
+	// (for backwards compatibility reasons)
+	Type DeviceType `json:"-"`
+
+	Debug bool `json:"debug"` // has debug enabled?
 
 	Session      *string `json:"session"`
 	DebugSession *string `json:"debugSession"`
+}
+
+type VersionInfo struct {
+	Version string `json:"version"`
+}
+
+type SessionInfo struct {
+	Session string `json:"session"`
 }
