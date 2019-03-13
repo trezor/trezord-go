@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/server"
+	"github.com/trezor/trezord-go/trezorapi"
 )
 
 const version = "2.0.26"
@@ -28,7 +28,7 @@ func main() {
 
 	a, err := initAPI(opts, longMemoryWriter)
 	if err != nil {
-		stderrLogger.Fatalf("api: %s", err)
+		stderrLogger.Fatalf("trezorapi: %s", err)
 	}
 	defer a.Close()
 
@@ -40,26 +40,26 @@ func main() {
 	stderrLogger.Print("trezord ended successfully")
 }
 
-func initAPI(myOpts initOptions, mw io.Writer) (*api.API, error) {
-	apiOpts := make([]api.InitOption, 0, 3+len(myOpts.ports)+len(myOpts.touples))
-	apiOpts = append(apiOpts, api.WithUSB(myOpts.withusb))
-	apiOpts = append(apiOpts, api.ResetDeviceOnAcquire(myOpts.reset))
-	apiOpts = append(apiOpts, api.LogWriter(mw))
+func initAPI(myOpts initOptions, mw io.Writer) (*trezorapi.API, error) {
+	apiOpts := make([]trezorapi.InitOption, 0, 3+len(myOpts.ports)+len(myOpts.touples))
+	apiOpts = append(apiOpts, trezorapi.WithUSB(myOpts.withusb))
+	apiOpts = append(apiOpts, trezorapi.ResetDeviceOnAcquire(myOpts.reset))
+	apiOpts = append(apiOpts, trezorapi.LogWriter(mw))
 	for _, t := range myOpts.ports {
-		apiOpts = append(apiOpts, api.AddUDPPort(t))
+		apiOpts = append(apiOpts, trezorapi.AddUDPPort(t))
 	}
 	for _, t := range myOpts.touples {
-		apiOpts = append(apiOpts, api.AddUDPTouple(t.Normal, t.Debug))
+		apiOpts = append(apiOpts, trezorapi.AddUDPTouple(t.Normal, t.Debug))
 	}
 
 	// disable bridge - bridge cannot call itself :)
-	apiOpts = append(apiOpts, api.DisableBridge())
+	apiOpts = append(apiOpts, trezorapi.DisableBridge())
 
-	return api.New(apiOpts...)
+	return trezorapi.New(apiOpts...)
 }
 
 func initServer(
-	a *api.API,
+	a *trezorapi.API,
 	stderrWriter io.Writer,
 	shortMemoryWriter, longMemoryWriter *logs.MemoryWriter,
 ) error {

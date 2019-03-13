@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	coreapi "github.com/trezor/trezord-go/api"
+	"github.com/trezor/trezord-go/trezorapi"
 
 	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/server/api"
@@ -26,7 +26,7 @@ type Server struct {
 }
 
 func New(
-	a *coreapi.API,
+	a *trezorapi.API,
 	stderrWriter io.Writer,
 	shortWriter *logs.MemoryWriter,
 	longWriter *logs.MemoryWriter,

@@ -3,8 +3,8 @@ package status
 import (
 	"net/http"
 
-	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/trezorapi"
 	"github.com/trezor/trezord-go/types"
 
 	"github.com/gorilla/csrf"
@@ -15,7 +15,7 @@ import (
 // log file at /status/log.gz with the detailed log
 
 type status struct {
-	api                                 *coreapi.API
+	api                                 *trezorapi.API
 	version                             string
 	shortMemoryWriter, longMemoryWriter *logs.MemoryWriter
 	logger                              *logs.Logger
@@ -34,7 +34,7 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, a *coreapi.API, v string, mw, dmw *logs.MemoryWriter) {
+func ServeStatus(r *mux.Router, a *trezorapi.API, v string, mw, dmw *logs.MemoryWriter) {
 	status := &status{
 		api:               a,
 		version:           v,

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"regexp"
 
-	coreapi "github.com/trezor/trezord-go/api"
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/trezorapi"
 	"github.com/trezor/trezord-go/types"
 
 	"github.com/gorilla/mux"
@@ -20,12 +20,12 @@ import (
 // and then again formatting to the reply
 
 type api struct {
-	core    *coreapi.API
+	core    *trezorapi.API
 	version string
 	logger  *logs.Logger
 }
 
-func ServeAPI(r *mux.Router, a *coreapi.API, v string, l *logs.Logger) {
+func ServeAPI(r *mux.Router, a *trezorapi.API, v string, l *logs.Logger) {
 	api := &api{
 		core:    a,
 		version: v,
