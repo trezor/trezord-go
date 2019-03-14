@@ -25,19 +25,25 @@ func findInternalPrefix() string {
 var internalPrefix = findInternalPrefix()
 
 func (l *Logger) WriteString(s string) (int, error) {
-	l.Log(s)
+	// the "callers" int is a little magick-y way to
+	// get the "actual" calling function name written
+	// it's "magic", because it just goes 4 or 3 functions up the stack
+	// because we know where exactly is the logger called.
+	// TODO: less magic
+	l.logIn(s, 4)
 	return len(s), nil
 }
 
 func (l *Logger) Write(p []byte) (int, error) {
-	l.Log(string(p))
+	l.logIn(string(p), 3)
 	return len(p), nil
 }
 
-func (l *Logger) Log(s string) {
+func (l *Logger) logIn(s string, callers int) {
 	s = strings.TrimSuffix(s, "\n")
 	pc := make([]uintptr, 15)
-	n := runtime.Callers(2, pc)
+	// TODO: less magic, see WriteString
+	n := runtime.Callers(callers, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 	file := frame.File
@@ -46,6 +52,10 @@ func (l *Logger) Log(s string) {
 	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
 	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
 	l.println(r + " " + s)
+}
+
+func (l *Logger) Log(s string) {
+	l.logIn(s, 3)
 }
 
 func (l *Logger) println(s string) {
