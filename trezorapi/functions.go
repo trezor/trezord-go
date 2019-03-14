@@ -26,20 +26,20 @@ func (a *API) Release(session string, debugLink bool) error {
 
 func (a *API) Call(
 	ctx context.Context,
-	body []byte,
+	message *types.Message,
 	session string,
 	debugLink bool,
-) ([]byte, error) {
-	return a.c.Call(ctx, body, session, core.CallModeReadWrite, debugLink)
+) (*types.Message, error) {
+	return a.c.Call(ctx, message, session, core.CallModeReadWrite, debugLink)
 }
 
 func (a *API) Post(
 	ctx context.Context,
-	body []byte,
+	message *types.Message,
 	session string,
 	debugLink bool,
 ) error {
-	_, err := a.c.Call(ctx, body, session, core.CallModeWrite, debugLink)
+	_, err := a.c.Call(ctx, message, session, core.CallModeWrite, debugLink)
 	return err
 }
 
@@ -47,6 +47,6 @@ func (a *API) Read(
 	ctx context.Context,
 	session string,
 	debugLink bool,
-) ([]byte, error) {
+) (*types.Message, error) {
 	return a.c.Call(ctx, nil, session, core.CallModeRead, debugLink)
 }

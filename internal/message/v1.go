@@ -20,7 +20,7 @@ func WriteToDevice(m *types.Message, device io.Writer, logger io.Writer) (int64,
 	if logger == nil {
 		logger = ioutil.Discard
 	}
-	io.WriteString(logger, "start\n")
+	ioWriteStringCheck(logger, "start\n")
 
 	var (
 		rep  [packetLen]byte
@@ -34,7 +34,7 @@ func WriteToDevice(m *types.Message, device io.Writer, logger io.Writer) (int64,
 	binary.BigEndian.PutUint16(rep[3:], kind)
 	binary.BigEndian.PutUint32(rep[5:], size)
 
-	io.WriteString(logger, "actually writing\n")
+	ioWriteStringCheck(logger, "actually writing\n")
 
 	var (
 		written = 0 // number of written bytes
@@ -75,7 +75,7 @@ func ReadFromDevice(device io.Reader, logger io.Writer) (*types.Message, error) 
 	if logger == nil {
 		logger = ioutil.Discard
 	}
-	io.WriteString(logger, "start\n")
+	ioWriteStringCheck(logger, "start\n")
 	var (
 		rep  [packetLen]byte
 		read = 0 // number of read bytes
@@ -87,7 +87,7 @@ func ReadFromDevice(device io.Reader, logger io.Writer) (*types.Message, error) 
 
 	// skip all the previous messages in the bus
 	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
-		io.WriteString(logger, "detected previous message, skipping\n")
+		ioWriteStringCheck(logger, "detected previous message, skipping\n")
 		n, err = device.Read(rep[:])
 		if err != nil {
 			return nil, err
@@ -95,7 +95,7 @@ func ReadFromDevice(device io.Reader, logger io.Writer) (*types.Message, error) 
 	}
 	read += n
 
-	io.WriteString(logger, "actual reading started\n")
+	ioWriteStringCheck(logger, "actual reading started\n")
 
 	// parse header
 	var (
@@ -118,7 +118,7 @@ func ReadFromDevice(device io.Reader, logger io.Writer) (*types.Message, error) 
 	}
 	data = data[:size]
 
-	io.WriteString(logger, "actual reading finished\n")
+	ioWriteStringCheck(logger, "actual reading finished\n")
 
 	return &types.Message{
 		Kind: kind,

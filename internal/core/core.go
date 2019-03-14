@@ -488,11 +488,11 @@ const (
 
 func (c *Core) Call(
 	ctx context.Context,
-	body []byte,
+	message *types.Message,
 	session string,
 	mode CallMode,
 	debug bool,
-) ([]byte, error) {
+) (*types.Message, error) {
 	c.log.Log("callMutex lock")
 	c.callMutex.Lock()
 
@@ -554,48 +554,49 @@ func (c *Core) Call(
 	}()
 
 	c.log.Log("before actual logic")
-	bytes, err := c.readWriteDev(body, acquired.dev, mode)
+	message, err := c.readWriteDev(message, acquired.dev, mode)
 	c.log.Log("after actual logic")
 
-	return bytes, err
+	return message, err
 }
 
-func (c *Core) writeDev(body []byte, device io.Writer) error {
-	c.log.Log("decodeRaw")
+func (c *Core) writeDev(msg *types.Message, device io.Writer) error {
+	/*c.log.Log("decodeRaw")
 	msg, err := message.FromBridge(body, c.log)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	c.log.Log("writeTo")
-	_, err = message.WriteToDevice(msg, device, c.log)
+	_, err := message.WriteToDevice(msg, device, c.log)
 	return err
 }
 
-func (c *Core) readDev(device io.Reader) ([]byte, error) {
+func (c *Core) readDev(device io.Reader) (*types.Message, error) {
 	c.log.Log("readFrom")
 	msg, err := message.ReadFromDevice(device, c.log)
 	if err != nil {
 		return nil, err
 	}
 
-	c.log.Log("encoding back")
-	return message.ToBridge(msg, c.log)
+	return msg, nil
+	//c.log.Log("encoding back")
+	//return message.ToBridge(msg, c.log)
 }
 
 func (c *Core) readWriteDev(
-	body []byte,
+	msg *types.Message,
 	device io.ReadWriter,
 	mode CallMode,
-) ([]byte, error) {
+) (*types.Message, error) {
 
 	if mode == CallModeRead {
-		if len(body) != 0 {
-			return nil, errors.New("non-empty body on read mode")
+		if msg != nil {
+			return nil, errors.New("non-empty message on read mode")
 		}
 		c.log.Log("skipping write")
 	} else {
-		err := c.writeDev(body, device)
+		err := c.writeDev(msg, device)
 		if err != nil {
 			return nil, err
 		}
@@ -603,7 +604,7 @@ func (c *Core) readWriteDev(
 
 	if mode == CallModeWrite {
 		c.log.Log("skipping read")
-		return []byte{0}, nil
+		return nil, nil
 	}
 	return c.readDev(device)
 }

@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -11,16 +12,23 @@ import (
 
 var ErrMalformedData = errors.New("malformed data")
 
-// FromHex decodes from bridge format
-func FromBridge(body []byte, logger io.Writer) (*types.Message, error) {
+func ioWriteStringCheck(logger io.Writer, str string) {
+	_, wErr := io.WriteString(logger, str)
+	if wErr != nil {
+		// ?? not important to return
+		fmt.Println(wErr)
+	}
+}
+
+func FromBridgeFormat(body []byte, logger io.Writer) (*types.Message, error) {
 	if logger == nil {
 		logger = ioutil.Discard
 	}
 
-	io.WriteString(logger, "decodeString\n")
+	ioWriteStringCheck(logger, "decodeString\n")
 
 	if len(body) < 6 {
-		io.WriteString(logger, "body too short\n")
+		ioWriteStringCheck(logger, "body too short\n")
 		return nil, ErrMalformedData
 	}
 
@@ -28,28 +36,30 @@ func FromBridge(body []byte, logger io.Writer) (*types.Message, error) {
 	size := binary.BigEndian.Uint32(body[2:6])
 	data := body[6:]
 	if uint32(len(data)) != size {
-		io.WriteString(logger, "wrong data length\n")
+		ioWriteStringCheck(logger, "wrong data length\n")
 		return nil, ErrMalformedData
 	}
 
 	if validate(data) != nil {
-		io.WriteString(logger, "invalid data\n")
+		ioWriteStringCheck(logger, "invalid data\n")
+
 		return nil, ErrMalformedData
 	}
 
-	io.WriteString(logger, "returning\n")
+	ioWriteStringCheck(logger, "returning\n")
+
 	return &types.Message{
 		Kind: kind,
 		Data: data,
 	}, nil
 }
 
-func ToBridge(msg *types.Message, logger io.Writer) ([]byte, error) {
+func ToBridgeFormat(msg *types.Message, logger io.Writer) ([]byte, error) {
 	if logger == nil {
 		logger = ioutil.Discard
 	}
 
-	io.WriteString(logger, "start\n")
+	ioWriteStringCheck(logger, "start\n")
 	var header [6]byte
 	data := msg.Data
 	kind := msg.Kind

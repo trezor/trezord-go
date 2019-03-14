@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/trezor/trezord-go/internal/core"
+	"github.com/trezor/trezord-go/internal/message"
 	"github.com/trezor/trezord-go/types"
 )
 
@@ -152,11 +153,11 @@ func (b *bridge) Release(
 
 func (b *bridge) Call(
 	ctx context.Context,
-	body []byte,
+	msg *types.Message,
 	session string,
 	mode core.CallMode,
 	debug bool,
-) ([]byte, error) {
+) (*types.Message, error) {
 	var rurl string
 	switch mode {
 	case core.CallModeRead:
@@ -180,19 +181,23 @@ func (b *bridge) Call(
 	var hexreader io.Reader
 
 	if mode != core.CallModeRead {
+		body, err := message.ToBridgeFormat(msg, nil)
+		if err != nil {
+			return nil, err
+		}
 		hexbody := hex.EncodeToString(body)
 		hexreader = strings.NewReader(hexbody)
 	}
 
-	var reshexbytes []byte
+	var resbytes []byte
 
 	err := b.post(ctx, url, hexreader, func(d io.Reader) error {
 		if mode != core.CallModeWrite {
-			resbytes, err := ioutil.ReadAll(d)
+			reshexbytes, err := ioutil.ReadAll(d)
 			if err != nil {
 				return err
 			}
-			_, err = hex.Decode(reshexbytes, resbytes)
+			_, err = hex.Decode(resbytes, reshexbytes)
 			if err != nil {
 				return err
 			}
@@ -204,5 +209,10 @@ func (b *bridge) Call(
 		return nil, err
 	}
 
-	return reshexbytes, nil
+	resmsg, err := message.FromBridgeFormat(resbytes, nil)
+
+	if err != nil {
+		return nil, err
+	}
+	return resmsg, nil
 }

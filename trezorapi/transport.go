@@ -26,9 +26,9 @@ type transport interface {
 	) error
 	Call(
 		ctx context.Context,
-		body []byte,
+		message *types.Message,
 		session string,
 		mode core.CallMode,
 		debug bool,
-	) ([]byte, error)
+	) (*types.Message, error)
 }

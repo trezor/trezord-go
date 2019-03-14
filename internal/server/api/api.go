@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/internal/message"
 	"github.com/trezor/trezord-go/trezorapi"
 	"github.com/trezor/trezord-go/types"
 
@@ -208,15 +209,24 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode callMode, debug 
 		}
 	}
 
-	var binres []byte
+	var inMsg *types.Message
 	var err error
+	if mode != callModeRead {
+		inMsg, err = message.FromBridgeFormat(binbody, a.logger)
+		if err != nil {
+			a.respondError(w, err)
+			return
+		}
+	}
+
+	var outMsg *types.Message
 	switch mode {
 	case callModeRead:
-		binres, err = a.core.Read(r.Context(), session, debug)
+		outMsg, err = a.core.Read(r.Context(), session, debug)
 	case callModeWrite:
-		err = a.core.Post(r.Context(), binbody, session, debug)
+		err = a.core.Post(r.Context(), inMsg, session, debug)
 	default:
-		binres, err = a.core.Call(r.Context(), binbody, session, debug)
+		outMsg, err = a.core.Call(r.Context(), inMsg, session, debug)
 	}
 
 	if err != nil {
@@ -225,6 +235,13 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode callMode, debug 
 	}
 
 	if mode != callModeWrite {
+		binres, err := message.ToBridgeFormat(outMsg, a.logger)
+
+		if err != nil {
+			a.respondError(w, err)
+			return
+		}
+
 		hexres := hex.EncodeToString(binres)
 		_, err = w.Write([]byte(hexres))
 
