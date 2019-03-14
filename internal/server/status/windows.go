@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/trezor/trezord-go/internal/logs"
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 // Devcon is a tool for listing devices and drivers on windows

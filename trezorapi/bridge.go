@@ -13,7 +13,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/core"
 	"github.com/trezor/trezord-go/internal/message"
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 type bridge struct {

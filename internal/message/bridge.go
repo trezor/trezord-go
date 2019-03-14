@@ -7,7 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 var ErrMalformedData = errors.New("malformed data")

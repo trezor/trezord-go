@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/trezor/trezord-go/internal/core"
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 func (a *API) Listen(ctx context.Context, previousEntries []types.EnumerateEntry) ([]types.EnumerateEntry, error) {

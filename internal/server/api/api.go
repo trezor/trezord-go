@@ -10,7 +10,7 @@ import (
 	"github.com/trezor/trezord-go/internal/logs"
 	"github.com/trezor/trezord-go/internal/message"
 	"github.com/trezor/trezord-go/trezorapi"
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 
 	"github.com/gorilla/mux"
 )

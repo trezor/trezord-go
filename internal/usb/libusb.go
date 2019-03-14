@@ -11,7 +11,7 @@ import (
 
 	"github.com/trezor/trezord-go/internal/core"
 	"github.com/trezor/trezord-go/internal/logs"
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 const (

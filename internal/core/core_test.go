@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/trezor/trezord-go/types"
+	types "github.com/trezor/trezord-go/trezorapi/trezortypes"
 )
 
 func TestEnumerateEntriesSort(t *testing.T) {
