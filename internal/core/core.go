@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +13,7 @@ import (
 	"time"
 
 	"github.com/trezor/trezord-go/internal/logs"
-	"github.com/trezor/trezord-go/internal/wire"
+	"github.com/trezor/trezord-go/internal/message"
 	"github.com/trezor/trezord-go/types"
 )
 
@@ -114,7 +113,6 @@ type Core struct {
 var (
 	ErrWrongPrevSession = errors.New("wrong previous session")
 	ErrSessionNotFound  = errors.New("session not found")
-	ErrMalformedData    = errors.New("malformed data")
 	ErrOtherCall        = errors.New("other call in progress")
 )
 
@@ -564,25 +562,25 @@ func (c *Core) Call(
 
 func (c *Core) writeDev(body []byte, device io.Writer) error {
 	c.log.Log("decodeRaw")
-	msg, err := c.decodeRaw(body)
+	msg, err := message.FromBridge(body, c.log)
 	if err != nil {
 		return err
 	}
 
 	c.log.Log("writeTo")
-	_, err = msg.WriteTo(device)
+	_, err = message.WriteToDevice(msg, device, c.log)
 	return err
 }
 
 func (c *Core) readDev(device io.Reader) ([]byte, error) {
 	c.log.Log("readFrom")
-	msg, err := wire.ReadFrom(device, c.log)
+	msg, err := message.ReadFromDevice(device, c.log)
 	if err != nil {
 		return nil, err
 	}
 
 	c.log.Log("encoding back")
-	return c.encodeRaw(msg)
+	return message.ToBridge(msg, c.log)
 }
 
 func (c *Core) readWriteDev(
@@ -608,51 +606,4 @@ func (c *Core) readWriteDev(
 		return []byte{0}, nil
 	}
 	return c.readDev(device)
-}
-
-func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {
-	c.log.Log("readAll")
-
-	c.log.Log("decodeString")
-
-	if len(body) < 6 {
-		c.log.Log("body too short")
-		return nil, ErrMalformedData
-	}
-
-	kind := binary.BigEndian.Uint16(body[0:2])
-	size := binary.BigEndian.Uint32(body[2:6])
-	data := body[6:]
-	if uint32(len(data)) != size {
-		c.log.Log("wrong data length")
-		return nil, ErrMalformedData
-	}
-
-	if wire.Validate(data) != nil {
-		c.log.Log("invalid data")
-		return nil, ErrMalformedData
-	}
-
-	c.log.Log("returning")
-	return &wire.Message{
-		Kind: kind,
-		Data: data,
-
-		Log: c.log,
-	}, nil
-}
-
-func (c *Core) encodeRaw(msg *wire.Message) ([]byte, error) {
-	c.log.Log("start")
-	var header [6]byte
-	data := msg.Data
-	kind := msg.Kind
-	size := uint32(len(msg.Data))
-
-	binary.BigEndian.PutUint16(header[0:2], kind)
-	binary.BigEndian.PutUint32(header[2:6], size)
-
-	res := append(header[:], data...)
-
-	return res, nil
 }

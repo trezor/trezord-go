@@ -1,11 +1,12 @@
-package wire
+package message
 
 import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"io/ioutil"
 
-	"github.com/trezor/trezord-go/internal/logs"
+	"github.com/trezor/trezord-go/types"
 )
 
 const (
@@ -14,15 +15,12 @@ const (
 	packetLen = 64
 )
 
-type Message struct {
-	Kind uint16
-	Data []byte
-
-	Log *logs.Logger
-}
-
-func (m *Message) WriteTo(w io.Writer) (int64, error) {
-	m.Log.Log("start")
+// WriteToDevice encodes message to trezor format
+func WriteToDevice(m *types.Message, device io.Writer, logger io.Writer) (int64, error) {
+	if logger == nil {
+		logger = ioutil.Discard
+	}
+	io.WriteString(logger, "start\n")
 
 	var (
 		rep  [packetLen]byte
@@ -36,7 +34,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	binary.BigEndian.PutUint16(rep[3:], kind)
 	binary.BigEndian.PutUint32(rep[5:], size)
 
-	m.Log.Log("actually writing")
+	io.WriteString(logger, "actually writing\n")
 
 	var (
 		written = 0 // number of written bytes
@@ -47,7 +45,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 		written += n
 		offset += n
 		if offset >= len(rep) {
-			_, err := w.Write(rep[:])
+			_, err := device.Write(rep[:])
 			if err != nil {
 				return int64(written), err
 			}
@@ -59,7 +57,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 			rep[offset] = 0x00
 			offset++
 		}
-		_, err := w.Write(rep[:])
+		_, err := device.Write(rep[:])
 		if err != nil {
 			return int64(written), err
 		}
@@ -72,28 +70,32 @@ var (
 	ErrMalformedMessage = errors.New("malformed wire format")
 )
 
-func ReadFrom(r io.Reader, mw *logs.Logger) (*Message, error) {
-	mw.Log("start")
+// ReadFromDevice decodes message from trezor format to Message
+func ReadFromDevice(device io.Reader, logger io.Writer) (*types.Message, error) {
+	if logger == nil {
+		logger = ioutil.Discard
+	}
+	io.WriteString(logger, "start\n")
 	var (
 		rep  [packetLen]byte
 		read = 0 // number of read bytes
 	)
-	n, err := r.Read(rep[:])
+	n, err := device.Read(rep[:])
 	if err != nil {
 		return nil, err
 	}
 
 	// skip all the previous messages in the bus
 	for rep[0] != repMarker || rep[1] != repMagic || rep[2] != repMagic {
-		mw.Log("detected previous message, skipping")
-		n, err = r.Read(rep[:])
+		io.WriteString(logger, "detected previous message, skipping\n")
+		n, err = device.Read(rep[:])
 		if err != nil {
 			return nil, err
 		}
 	}
 	read += n
 
-	mw.Log("actual reading started")
+	io.WriteString(logger, "actual reading started\n")
 
 	// parse header
 	var (
@@ -104,7 +106,7 @@ func ReadFrom(r io.Reader, mw *logs.Logger) (*Message, error) {
 	data = append(data, rep[9:]...) // read data after header
 
 	for uint32(len(data)) < size {
-		n, err := r.Read(rep[:])
+		n, err := device.Read(rep[:])
 		if err != nil {
 			return nil, err
 		}
@@ -116,12 +118,10 @@ func ReadFrom(r io.Reader, mw *logs.Logger) (*Message, error) {
 	}
 	data = data[:size]
 
-	mw.Log("actual reading finished")
+	io.WriteString(logger, "actual reading finished\n")
 
-	return &Message{
+	return &types.Message{
 		Kind: kind,
 		Data: data,
-
-		Log: mw,
 	}, nil
 }

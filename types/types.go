@@ -45,3 +45,8 @@ type VersionInfo struct {
 type SessionInfo struct {
 	Session string `json:"session"`
 }
+
+type Message struct {
+	Kind uint16
+	Data []byte
+}

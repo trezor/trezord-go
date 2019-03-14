@@ -1,4 +1,4 @@
-package wire
+package message
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ var (
 	ErrMalformedProtobuf = errors.New("malformed protobuf")
 )
 
-func Validate(buf []byte) error {
+func validate(buf []byte) error {
 	const (
 		wireVarint   = 0               // int32, int64, uint32, uint64, sint32, sint64, bool, enum
 		wireData     = 2               // string, bytes, embedded messages, packed repeated fields

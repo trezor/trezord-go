@@ -24,7 +24,18 @@ func findInternalPrefix() string {
 
 var internalPrefix = findInternalPrefix()
 
+func (l *Logger) WriteString(s string) (int, error) {
+	l.Log(s)
+	return len(s), nil
+}
+
+func (l *Logger) Write(p []byte) (int, error) {
+	l.Log(string(p))
+	return len(p), nil
+}
+
 func (l *Logger) Log(s string) {
+	s = strings.TrimSuffix(s, "\n")
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
