@@ -191,7 +191,7 @@ func (b *bridge) Call(
 		hexreader = strings.NewReader(hexbody)
 	}
 
-	var resbytes []byte
+	var resmsg *types.Message
 
 	err := b.post(ctx, url, hexreader, func(d io.Reader) error {
 		if mode != core.CallModeWrite {
@@ -199,22 +199,22 @@ func (b *bridge) Call(
 			if err != nil {
 				return err
 			}
+			resbytes := make([]byte, hex.DecodedLen(len(reshexbytes)))
 			_, err = hex.Decode(resbytes, reshexbytes)
 			if err != nil {
 				return err
 			}
+			resmsg, err = message.FromBridgeFormat(resbytes, nil)
+			if err != nil {
+				return err
+			}
 		}
-		return json.NewDecoder(d).Decode(&session)
+		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	resmsg, err := message.FromBridgeFormat(resbytes, nil)
-
-	if err != nil {
-		return nil, err
-	}
 	return resmsg, nil
 }
