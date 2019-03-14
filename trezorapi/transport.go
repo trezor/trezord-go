@@ -17,18 +17,19 @@ type transport interface {
 		entries []types.EnumerateEntry,
 	) ([]types.EnumerateEntry, error)
 	Acquire(
-		path, prev string,
-		debug bool,
+		path string,
+		prevSession *string,
+		debugLink bool,
 	) (string, error)
 	Release(
 		session string,
-		debug bool,
+		debugLink bool,
 	) error
 	Call(
 		ctx context.Context,
 		message *types.Message,
 		session string,
 		mode core.CallMode,
-		debug bool,
+		debugLink bool,
 	) (*types.Message, error)
 }

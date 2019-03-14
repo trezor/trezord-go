@@ -115,13 +115,15 @@ func (b *bridge) Listen(ctx context.Context, entries []types.EnumerateEntry) ([]
 }
 
 func (b *bridge) Acquire(
-	path, prev string,
+	path string,
+	prev *string,
 	debug bool,
 ) (string, error) {
-	if prev == "" {
-		prev = "null"
+	if prev == nil || *prev == "" {
+		nullStr := "null"
+		prev = &nullStr
 	}
-	url := fmt.Sprintf("/acquire/%s/%s", path, prev)
+	url := fmt.Sprintf("/acquire/%s/%s", path, *prev)
 	if debug {
 		url = "/debug" + url
 	}

@@ -16,7 +16,7 @@ func (a *API) Enumerate() ([]types.EnumerateEntry, error) {
 	return a.c.Enumerate()
 }
 
-func (a *API) Acquire(path, previousSession string, debugLink bool) (string, error) {
+func (a *API) Acquire(path string, previousSession *string, debugLink bool) (string, error) {
 	return a.c.Acquire(path, previousSession, debugLink)
 }
 

@@ -118,7 +118,7 @@ func (a *api) acquire(w http.ResponseWriter, r *http.Request, debug bool) {
 	if prev == "null" {
 		prev = ""
 	}
-	res, err := a.core.Acquire(path, prev, debug)
+	res, err := a.core.Acquire(path, &prev, debug)
 
 	if err != nil {
 		a.respondError(w, err)

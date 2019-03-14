@@ -376,7 +376,8 @@ func (c *Core) findPrevSession(path string, debug bool) string {
 }
 
 func (c *Core) Acquire(
-	path, prev string,
+	path string,
+	prev *string,
 	debug bool,
 ) (string, error) {
 	// note - path is *fake path*, basically device ID,
@@ -387,13 +388,18 @@ func (c *Core) Acquire(
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
-	c.log.Log(fmt.Sprintf("input path %s prev %s", path, prev))
+	prevS := ""
+	if prev != nil {
+		prevS = *prev
+	}
+
+	c.log.Log(fmt.Sprintf("input path %s prev %s", path, prevS))
 
 	prevSession := c.findPrevSession(path, debug)
 
 	c.log.Log(fmt.Sprintf("actually previous %s", prevSession))
 
-	if prevSession != prev {
+	if prevSession != prevS {
 		return "", ErrWrongPrevSession
 	}
 
@@ -401,9 +407,9 @@ func (c *Core) Acquire(
 		return "", ErrOtherCall
 	}
 
-	if prev != "" {
+	if prevS != "" {
 		c.log.Log("releasing previous")
-		err := c.release(prev, false, debug)
+		err := c.release(prevS, false, debug)
 		if err != nil {
 			return "", err
 		}
