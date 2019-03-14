@@ -132,7 +132,7 @@ func main() {
 
 	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
 
-	stderrLogger.Print("trezord is starting.")
+	stderrLogger.Printf("trezord v%s is starting.", version)
 
 	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
