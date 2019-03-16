@@ -50,8 +50,8 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 		if b.match(&dev) {
 			infos = append(infos, core.USBInfo{
 				Path:      b.identify(&dev),
-				VendorID:  int(dev.VendorID),
-				ProductID: int(dev.ProductID),
+				VendorID:  dev.VendorID,
+				ProductID: dev.ProductID,
 				Type:      types.TypeT1Hid,
 				Debug:     false,
 			})

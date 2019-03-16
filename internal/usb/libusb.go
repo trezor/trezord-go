@@ -162,8 +162,8 @@ func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 				}
 				infos = append(infos, core.USBInfo{
 					Path:      path,
-					VendorID:  int(dd.IDVendor),
-					ProductID: int(dd.IDProduct),
+					VendorID:  dd.IDVendor,
+					ProductID: dd.IDProduct,
 					Type:      t,
 					Debug:     debug,
 				})

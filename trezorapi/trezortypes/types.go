@@ -14,17 +14,15 @@ const (
 )
 
 const (
-	VendorT1            = 0x534c
-	ProductT1Firmware   = 0x0001
-	VendorT2            = 0x1209
-	ProductT2Bootloader = 0x53C0
-	ProductT2Firmware   = 0x53C1
+	VendorT1            = uint16(0x534c)
+	ProductT1Firmware   = uint16(0x0001)
+	VendorT2            = uint16(0x1209)
+	ProductT2Bootloader = uint16(0x53C0)
+	ProductT2Firmware   = uint16(0x53C1)
 )
 
 type EnumerateEntry struct {
-	Path    string `json:"path"`
-	Vendor  int    `json:"vendor"`
-	Product int    `json:"product"`
+	Path string `json:"path"`
 
 	// Type used only in status page, not JSON
 	// when used with bridge transport, has always -1
@@ -32,10 +30,12 @@ type EnumerateEntry struct {
 	// (for backwards compatibility reasons)
 	Type DeviceType `json:"-"`
 
-	Debug bool `json:"debug"` // has debug enabled?
-
 	Session      *string `json:"session"`
 	DebugSession *string `json:"debugSession"`
+
+	Vendor  uint16 `json:"vendor"`
+	Product uint16 `json:"product"`
+	Debug   bool   `json:"debug"` // has debug enabled?
 }
 
 type VersionInfo struct {

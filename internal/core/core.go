@@ -43,9 +43,9 @@ type USBBus interface {
 
 type USBInfo struct {
 	Path      string
-	VendorID  int
-	ProductID int
 	Type      types.DeviceType
+	VendorID  uint16
+	ProductID uint16
 	Debug     bool // has debug enabled?
 }
 
