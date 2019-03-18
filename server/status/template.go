@@ -214,7 +214,9 @@ const templateString = `
          <div id="wait" class="badge" style="display: none">Please wait...</div>
          {{if .IsWindows}}
            <p style="margin-top: 6px">
-              Detailed log might take a while to generate.<br>It might also reveal detailed information about your PC configuration.
+              Detailed log might take a while to generate.
+              <br>
+              It might also reveal detailed information about your PC configuration.
            </p>
          {{end}}
        </form>
