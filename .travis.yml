@@ -45,12 +45,6 @@ matrix:
         - go get github.com/karalabe/xgo
         - cd release/macos
         - make all
-    - env: TEST=go-vet
-      script:
-        - go vet ./...
-    - env: TEST=go-fmt
-      script:
-        - gofmt -d *.go ./server ./server/status ./server/api ./usb ./wire ./core ./memorywriter
     - env: TEST=golangci
       script:
         - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.15.0
