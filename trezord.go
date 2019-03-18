@@ -25,7 +25,7 @@ func (i *udpTouples) String() string {
 	res := ""
 	for i, p := range *i {
 		if i > 0 {
-			res = res + ","
+			res += ","
 		}
 		res = res + strconv.Itoa(p.Normal) + ":" + strconv.Itoa(p.Debug)
 	}
@@ -55,9 +55,9 @@ func (i *udpPorts) String() string {
 	res := ""
 	for i, p := range *i {
 		if i > 0 {
-			res = res + ","
+			res += ","
 		}
-		res = res + strconv.Itoa(p)
+		res += strconv.Itoa(p)
 	}
 	return res
 }

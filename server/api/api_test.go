@@ -30,10 +30,7 @@ func TestOriginValidator(t *testing.T) {
 		{"http://localhost", false},
 		{"http://localhost:1234", false},
 	}
-	validator, err := corsValidator()
-	if err != nil {
-		t.Fatal(err)
-	}
+	validator := corsValidator()
 	for _, tc := range testcases {
 		allow := validator(tc.origin)
 		if allow != tc.allow {

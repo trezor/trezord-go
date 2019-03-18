@@ -228,7 +228,7 @@ func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
 			Debug:     dev.Debug,
 		})
 	}
-	return
+	return res
 }
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {

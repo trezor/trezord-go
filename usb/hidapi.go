@@ -29,6 +29,7 @@ type HIDAPI struct {
 }
 
 func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
+	lowlevel.Init()
 	lowlevel.SetLogWriter(mw)
 	return &HIDAPI{
 		mw: mw,
@@ -44,6 +45,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 	b.mw.Log("low level done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev // pin, see github.com/kyoh86/scopelint
 		if b.match(&dev) {
 			infos = append(infos, core.USBInfo{
 				Path:      b.identify(&dev),
@@ -70,6 +72,7 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 	b.mw.Log("enumerate done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev // pin, see github.com/kyoh86/scopelint
 		if b.match(&dev) && b.identify(&dev) == path {
 			b.mw.Log("low level open")
 			d, err := dev.Open()

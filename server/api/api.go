@@ -24,7 +24,7 @@ type api struct {
 	logger  *memorywriter.MemoryWriter
 }
 
-func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) error {
+func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) {
 	api := &api{
 		core:    c,
 		version: v,
@@ -46,12 +46,8 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 	r.HandleFunc("/debug/call/{session}", api.CallDebug)
 	r.HandleFunc("/debug/post/{session}", api.PostDebug)
 	r.HandleFunc("/debug/read/{session}", api.ReadDebug)
-	corsv, err := corsValidator()
-	if err != nil {
-		return err
-	}
+	corsv := corsValidator()
 	r.Use(CORS(corsv))
-	return nil
 }
 
 func (a *api) Info(w http.ResponseWriter, r *http.Request) {
@@ -226,16 +222,10 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 	}
 }
 
-func corsValidator() (OriginValidator, error) {
-	tregex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
-	if err != nil {
-		return nil, err
-	}
+func corsValidator() OriginValidator {
+	tregex := regexp.MustCompile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 	// `localhost:8xxx` and `5xxx` are added for easing local development.
-	lregex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
-	if err != nil {
-		return nil, err
-	}
+	lregex := regexp.MustCompile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
 			return true
@@ -254,7 +244,7 @@ func corsValidator() (OriginValidator, error) {
 		return false
 	}
 
-	return v, nil
+	return v
 }
 
 func (a *api) checkJSONError(w http.ResponseWriter, err error) {

@@ -51,10 +51,7 @@ func New(
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
 	status.ServeStatus(statusRouter, c, version, shortWriter, longWriter)
-	err := api.ServeAPI(postRouter, c, version, longWriter)
-	if err != nil {
-		panic(err) // only error is an error from originValidator regexp constructor
-	}
+	api.ServeAPI(postRouter, c, version, longWriter)
 
 	status.ServeStatusRedirect(redirectRouter)
 

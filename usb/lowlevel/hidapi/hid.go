@@ -73,7 +73,7 @@ type HidDeviceInfo struct {
 //   > "subsequent calls will cause the hid manager to release previously enumerated devices"
 var enumerateLock sync.Mutex
 
-func init() {
+func Init() {
 	// Initialize the HIDAPI library
 	C.hid_init()
 }

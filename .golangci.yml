@@ -32,6 +32,12 @@ issues:
         - lll
       path: usb/lowlevel/libusb/libusb.go
 
+    # Exclude noinit warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/hidapi/hid.go
+
     # Before we split into internal/non-internal, ignore comments
     - linters:
         - golint
@@ -57,6 +63,12 @@ linters:
     - depguard
     - misspell
     - lll
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gochecknoinits
+    - gocritic
 
 linters-settings:
   gofmt:
