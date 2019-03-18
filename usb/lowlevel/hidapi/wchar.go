@@ -60,7 +60,7 @@ func wchar2ToString(s *C.wchar_t) (string, error) {
 		i++
 		if !utf16.IsSurrogate(r) {
 			if !utf8.ValidRune(r) {
-				err := fmt.Errorf("Invalid rune at position %v", i)
+				err := fmt.Errorf("invalid rune at position %v", i)
 				return "", err
 			}
 			res += string(r)
@@ -69,7 +69,7 @@ func wchar2ToString(s *C.wchar_t) (string, error) {
 			r2 := rune(ch2)
 			r12 := utf16.DecodeRune(r, r2)
 			if r12 == '\uFFFD' {
-				err := fmt.Errorf("Invalid surrogate pair at position %v", i-1)
+				err := fmt.Errorf("invalid surrogate pair at position %v", i-1)
 				return "", err
 			}
 			res += string(r12)
@@ -90,7 +90,7 @@ func wchar4ToString(s *C.wchar_t) (string, error) {
 		}
 		r := rune(ch)
 		if !utf8.ValidRune(r) {
-			err := fmt.Errorf("Invalid rune at position %v", i)
+			err := fmt.Errorf("invalid rune at position %v", i)
 			return "", err
 		}
 		res += string(r)

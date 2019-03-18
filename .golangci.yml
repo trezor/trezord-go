@@ -26,6 +26,12 @@ issues:
       path: usb/lowlevel/libusb/libusb.go
       text: "ALL_CAPS"
 
+    # Exclude long lines warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/libusb/libusb.go
+
     # Before we split into internal/non-internal, ignore comments
     - linters:
         - golint
@@ -37,3 +43,21 @@ linters:
   enable:
     - golint
     - govet
+    - staticcheck
+    - gosec
+    - stylecheck
+    - interfacer
+    - unconvert
+    - dupl
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - maligned
+    - depguard
+    - misspell
+
+linters-settings:
+  gofmt:
+    # causes errors in old go
+    simplify: false

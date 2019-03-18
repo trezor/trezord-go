@@ -950,7 +950,7 @@ func Exit(ctx Context) {
 
 func Get_Device_List(ctx Context) ([]Device, error) {
 	var hdl **C.struct_libusb_device
-	rc := int(C.libusb_get_device_list(ctx, (***C.struct_libusb_device)(&hdl)))
+	rc := int(C.libusb_get_device_list(ctx, &hdl))
 	if rc < 0 {
 		return nil, &libusb_error{rc}
 	}
