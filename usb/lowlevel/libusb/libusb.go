@@ -591,7 +591,7 @@ func (x *Config_Descriptor) String() string {
 	s = append(s, fmt.Sprintf("MaxPower %d", x.MaxPower))
 	for i, v := range x.Interface {
 		s = append(s, fmt.Sprintf("Interface %d:", i))
-		s = append(s, indent(fmt.Sprintf(Interface_str(v))))
+		s = append(s, indent(Interface_str(v)))
 	}
 	s = append(s, fmt.Sprintf("extra %s", Extra_str(x.Extra)))
 	return strings.Join(s, "\n")
