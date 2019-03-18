@@ -7,4 +7,33 @@ issues:
     # Exclude `for i, _ :=`, since that doesn't work in old go
     - linters:
         - gosimple
-      text: "S1005:"
+      text: "should omit value from range"
+    - linters:
+        - golint
+      text: "should omit 2nd value from range"
+
+    # Exclude underscore warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - golint
+      path: usb/lowlevel/libusb/libusb.go
+      text: "don't use underscores"
+
+    # Exclude all cap warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - golint
+      path: usb/lowlevel/libusb/libusb.go
+      text: "ALL_CAPS"
+
+    # Before we split into internal/non-internal, ignore comments
+    - linters:
+        - golint
+      text: "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+
+  exclude-use-default: false
+
+linters:
+  enable:
+    - golint
+    - govet

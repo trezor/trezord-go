@@ -86,7 +86,7 @@ func (a *api) Listen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := a.core.Listen(entries, r.Context())
+	res, err := a.core.Listen(r.Context(), entries)
 	if err != nil {
 		a.respondError(w, err)
 		return
@@ -210,7 +210,7 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 		}
 	}
 
-	binres, err := a.core.Call(binbody, session, mode, debug, r.Context())
+	binres, err := a.core.Call(r.Context(), binbody, session, mode, debug)
 	if err != nil {
 		a.respondError(w, err)
 		return

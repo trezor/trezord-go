@@ -361,7 +361,7 @@ func (c *Core) release(
 	return err
 }
 
-func (c *Core) Listen(entries []EnumerateEntry, ctx context.Context) ([]EnumerateEntry, error) {
+func (c *Core) Listen(ctx context.Context, entries []EnumerateEntry) ([]EnumerateEntry, error) {
 	c.log.Log("start")
 
 	EnumerateEntries(entries).Sort()
@@ -517,11 +517,11 @@ const (
 )
 
 func (c *Core) Call(
+	ctx context.Context,
 	body []byte,
 	session string,
 	mode CallMode,
 	debug bool,
-	ctx context.Context,
 ) ([]byte, error) {
 	c.log.Log("callMutex lock")
 	c.callMutex.Lock()

@@ -114,9 +114,8 @@ import (
 func bcd2str(x uint16) string {
 	if (x>>12)&15 != 0 {
 		return fmt.Sprintf("%d%d.%d%d", (x>>12)&15, (x>>8)&15, (x>>4)&15, (x>>0)&15)
-	} else {
-		return fmt.Sprintf("%d.%d%d", (x>>8)&15, (x>>4)&15, (x>>0)&15)
 	}
+	return fmt.Sprintf("%d.%d%d", (x>>8)&15, (x>>4)&15, (x>>0)&15)
 }
 
 func indent(s string) string {
@@ -783,8 +782,8 @@ type Device_Descriptor struct {
 	BDeviceSubClass    uint8
 	BDeviceProtocol    uint8
 	BMaxPacketSize0    uint8
-	IdVendor           uint16
-	IdProduct          uint16
+	IDVendor           uint16
+	IDProduct          uint16
 	BcdDevice          uint16
 	IManufacturer      uint8
 	IProduct           uint8
@@ -802,8 +801,8 @@ func (x *C.struct_libusb_device_descriptor) c2go() *Device_Descriptor {
 		BDeviceSubClass:    uint8(x.bDeviceSubClass),
 		BDeviceProtocol:    uint8(x.bDeviceProtocol),
 		BMaxPacketSize0:    uint8(x.bMaxPacketSize0),
-		IdVendor:           uint16(x.idVendor),
-		IdProduct:          uint16(x.idProduct),
+		IDVendor:           uint16(x.idVendor),
+		IDProduct:          uint16(x.idProduct),
 		BcdDevice:          uint16(x.bcdDevice),
 		IManufacturer:      uint8(x.iManufacturer),
 		IProduct:           uint8(x.iProduct),
@@ -822,8 +821,8 @@ func (x *Device_Descriptor) String() string {
 	s = append(s, fmt.Sprintf("bDeviceSubClass %d", x.BDeviceSubClass))
 	s = append(s, fmt.Sprintf("bDeviceProtocol %d", x.BDeviceProtocol))
 	s = append(s, fmt.Sprintf("bMaxPacketSize0 %d", x.BMaxPacketSize0))
-	s = append(s, fmt.Sprintf("idVendor 0x%04x", x.IdVendor))
-	s = append(s, fmt.Sprintf("idProduct 0x%04x", x.IdProduct))
+	s = append(s, fmt.Sprintf("idVendor 0x%04x", x.IDVendor))
+	s = append(s, fmt.Sprintf("idProduct 0x%04x", x.IDProduct))
 	s = append(s, fmt.Sprintf("bcdDevice %s", bcd2str(x.BcdDevice)))
 	s = append(s, fmt.Sprintf("iManufacturer %d", x.IManufacturer))
 	s = append(s, fmt.Sprintf("iProduct %d", x.IProduct))
