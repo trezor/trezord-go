@@ -51,11 +51,10 @@ matrix:
     - env: TEST=go-fmt
       script:
         - gofmt -d *.go ./server ./server/status ./server/api ./usb ./wire ./core ./memorywriter
-    - env: TEST=metalinter
+    - env: TEST=golangci
       script:
-        - go get -u github.com/alecthomas/gometalinter
-        - gometalinter --install
-        - gometalinter
+        - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.15.0
+        - golangci-lint run
     - env: TEST=version-check
       script:
         - diff -u VERSION <(grep "const version" trezord.go | cut -f 2 -d '"')

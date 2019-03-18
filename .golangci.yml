@@ -1,0 +1,10 @@
+run:
+  deadline: 10m
+
+issues:
+  exclude-rules:
+
+    # Exclude `for i, _ :=`, since that doesn't work in old go
+    - linters:
+        - gosimple
+      text: "S1005:"
