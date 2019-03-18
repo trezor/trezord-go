@@ -6,8 +6,7 @@
 // The vendored file is licensed under the 3-clause BSD license, according to:
 // https://github.com/orofarne/gowchar/blob/master/LICENSE
 
-// +build !ios
-// +build linux freebsd darwin windows
+// +build darwin,!ios,cgo windows,cgo
 
 package hidapi
 
@@ -34,7 +33,7 @@ import (
 	"unicode/utf8"
 )
 
-var sizeofWcharT C.size_t = C.size_t(C.SIZEOF_WCHAR_T)
+var sizeofWcharT C.size_t = C.SIZEOF_WCHAR_T
 
 func wcharTToString(s *C.wchar_t) (string, error) {
 	switch sizeofWcharT {

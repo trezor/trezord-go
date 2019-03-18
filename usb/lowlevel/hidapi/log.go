@@ -1,3 +1,5 @@
+// +build darwin,!ios,cgo windows,cgo
+
 package hidapi
 
 import (
