@@ -236,3 +236,5 @@ func writeHex(mode core.CallMode, msg *types.Message) (io.Reader, error) {
 	}
 	return nil, nil
 }
+
+func (b *bridge) Close() {}

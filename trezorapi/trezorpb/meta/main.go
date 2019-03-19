@@ -1,3 +1,4 @@
+// meta is a program for generating the marshal code.
 package main
 
 import (

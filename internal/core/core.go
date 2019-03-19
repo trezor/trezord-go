@@ -619,3 +619,7 @@ func (c *Core) readWriteDev(
 	}
 	return c.readDev(device)
 }
+
+func (c *Core) Close() {
+	c.bus.Close()
+}

@@ -32,4 +32,5 @@ type transport interface {
 		mode core.CallMode,
 		debugLink bool,
 	) (*types.Message, error)
+	Close()
 }

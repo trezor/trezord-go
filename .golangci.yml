@@ -42,6 +42,7 @@ issues:
     - linters:
         - golint
       text: "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+      path: internal
 
   exclude-use-default: false
 

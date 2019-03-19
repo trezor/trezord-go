@@ -1,3 +1,8 @@
+// Trezord-go is a small program, that runs on client computer
+// and connects requests from web and sends them to the Trezor device and back.
+//
+// We also provide golang APIs for connecting to Trezor from Go programs.
+// See trezord-go/trezorapi package for more documentation.
 package main
 
 import (
