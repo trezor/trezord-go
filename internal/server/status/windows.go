@@ -208,7 +208,9 @@ func runMsinfo() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmpfile.Name())
+
+	// ignoring errcheck since windows users don't have stdout anyway...
+	defer os.Remove(tmpfile.Name()) // nolint:errcheck
 
 	err = tmpfile.Close()
 	if err != nil {
@@ -299,13 +301,13 @@ func devconStatus(id string) (string, error) {
 	return res, nil
 }
 
-func devconUsbStringsEvery(with_disconnected bool) ([]string, error) {
-	return devconUsbStrings("*", with_disconnected, nil)
+func devconUsbStringsEvery(withDisconnected bool) ([]string, error) {
+	return devconUsbStrings("*", withDisconnected, nil)
 }
 
-func devconUsbStrings(filter string, with_disconnected bool, mw *logs.Logger) ([]string, error) {
+func devconUsbStrings(filter string, withDisconnected bool, mw *logs.Logger) ([]string, error) {
 	command := "find"
-	if with_disconnected {
+	if withDisconnected {
 		command = "findall"
 	}
 	out, err := runDevcon(command, filter, mw, false)
@@ -322,9 +324,9 @@ func devconUsbStrings(filter string, with_disconnected bool, mw *logs.Logger) ([
 	return lines, nil
 }
 
-func devconUsbStringsVid(vid int, with_disconnected bool, mw *logs.Logger) ([]string, error) {
-	v := fmt.Sprintf("*vid_%04x*", vid)
-	return devconUsbStrings(v, with_disconnected, mw)
+func devconUsbStringsVid(vid uint16, withDisconnected bool, mw *logs.Logger) ([]string, error) {
+	v := fmt.Sprintf("*vid_%04x*", int(vid))
+	return devconUsbStrings(v, withDisconnected, mw)
 }
 
 func isWindows() bool {
@@ -335,7 +337,7 @@ func readFile(header, envDirName, subDirName, fileName string) (string, error) {
 	envDir := os.Getenv(envDirName)
 	subDir := envDir + "\\" + subDirName
 	file := subDir + "\\" + fileName
-	content, err := ioutil.ReadFile(file)
+	content, err := ioutil.ReadFile(file) //nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
