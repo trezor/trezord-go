@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -189,37 +190,59 @@ func (a *api) ReadDebug(w http.ResponseWriter, r *http.Request) {
 	a.call(w, r, callModeRead, true)
 }
 
+func hexRead(mode callMode, r *http.Request, l io.Writer) (*types.Message, error) {
+	if mode != callModeRead {
+		hexbody, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		binbody, err := hex.DecodeString(string(hexbody))
+		if err != nil {
+			return nil, err
+		}
+
+		inMsg, err := message.FromBridgeFormat(binbody, l)
+		if err != nil {
+			return nil, err
+		}
+		return inMsg, nil
+	}
+	return nil, nil
+}
+
+func hexWrite(mode callMode, outMsg *types.Message, httpWriter, log io.Writer) error {
+	if mode != callModeWrite {
+		binres, err := message.ToBridgeFormat(outMsg, log)
+
+		if err != nil {
+			return err
+		}
+
+		hexres := hex.EncodeToString(binres)
+		_, err = httpWriter.Write([]byte(hexres))
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *api) call(w http.ResponseWriter, r *http.Request, mode callMode, debug bool) {
 	a.logger.Log("start")
 
 	vars := mux.Vars(r)
 	session := vars["session"]
 
-	var binbody []byte
-	if mode != callModeRead {
-		hexbody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			a.respondError(w, err)
-			return
-		}
-		binbody, err = hex.DecodeString(string(hexbody))
-		if err != nil {
-			a.respondError(w, err)
-			return
-		}
-	}
+	inMsg, err := hexRead(mode, r, a.logger)
 
-	var inMsg *types.Message
-	var err error
-	if mode != callModeRead {
-		inMsg, err = message.FromBridgeFormat(binbody, a.logger)
-		if err != nil {
-			a.respondError(w, err)
-			return
-		}
+	if err != nil {
+		a.respondError(w, err)
+		return
 	}
 
 	var outMsg *types.Message
+
 	switch mode {
 	case callModeRead:
 		outMsg, err = a.core.Read(r.Context(), session, debug)
@@ -234,20 +257,11 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode callMode, debug 
 		return
 	}
 
-	if mode != callModeWrite {
-		binres, err := message.ToBridgeFormat(outMsg, a.logger)
+	err = hexWrite(mode, outMsg, w, a.logger)
 
-		if err != nil {
-			a.respondError(w, err)
-			return
-		}
-
-		hexres := hex.EncodeToString(binres)
-		_, err = w.Write([]byte(hexres))
-
-		if err != nil {
-			a.respondError(w, err)
-		}
+	if err != nil {
+		a.respondError(w, err)
+		return
 	}
 }
 

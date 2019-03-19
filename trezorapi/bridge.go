@@ -182,33 +182,19 @@ func (b *bridge) Call(
 
 	var hexreader io.Reader
 
-	if mode != core.CallModeRead {
-		body, err := message.ToBridgeFormat(msg, nil)
-		if err != nil {
-			return nil, err
-		}
-		hexbody := hex.EncodeToString(body)
-		hexreader = strings.NewReader(hexbody)
+	hexreader, err := writeHex(mode, msg)
+	if err != nil {
+		return nil, err
 	}
 
 	var resmsg *types.Message
 
-	err := b.post(ctx, url, hexreader, func(d io.Reader) error {
-		if mode != core.CallModeWrite {
-			reshexbytes, err := ioutil.ReadAll(d)
-			if err != nil {
-				return err
-			}
-			resbytes := make([]byte, hex.DecodedLen(len(reshexbytes)))
-			_, err = hex.Decode(resbytes, reshexbytes)
-			if err != nil {
-				return err
-			}
-			resmsg, err = message.FromBridgeFormat(resbytes, nil)
-			if err != nil {
-				return err
-			}
+	err = b.post(ctx, url, hexreader, func(d io.Reader) error {
+		resMsgPin, rErr := readHex(mode, d)
+		if rErr != nil {
+			return rErr
 		}
+		resmsg = resMsgPin
 		return nil
 	})
 
@@ -217,4 +203,36 @@ func (b *bridge) Call(
 	}
 
 	return resmsg, nil
+}
+
+func readHex(mode core.CallMode, d io.Reader) (*types.Message, error) {
+	if mode != core.CallModeWrite {
+		reshexbytes, err := ioutil.ReadAll(d)
+		if err != nil {
+			return nil, err
+		}
+		resbytes := make([]byte, hex.DecodedLen(len(reshexbytes)))
+		_, err = hex.Decode(resbytes, reshexbytes)
+		if err != nil {
+			return nil, err
+		}
+		resmsg, err := message.FromBridgeFormat(resbytes, nil)
+		if err != nil {
+			return nil, err
+		}
+		return resmsg, nil
+	}
+	return nil, nil
+}
+
+func writeHex(mode core.CallMode, msg *types.Message) (io.Reader, error) {
+	if mode != core.CallModeRead {
+		body, err := message.ToBridgeFormat(msg, nil)
+		if err != nil {
+			return nil, err
+		}
+		hexbody := hex.EncodeToString(body)
+		return strings.NewReader(hexbody), nil
+	}
+	return nil, nil
 }

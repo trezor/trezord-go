@@ -76,3 +76,6 @@ linters-settings:
     simplify: false
   maligned:
     suggest-new: true
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 10

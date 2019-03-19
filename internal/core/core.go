@@ -375,6 +375,14 @@ func (c *Core) findPrevSession(path string, debug bool) string {
 	return ""
 }
 
+func nonNil(p *string) string {
+	res := ""
+	if p != nil {
+		res = *p
+	}
+	return res
+}
+
 func (c *Core) Acquire(
 	path string,
 	prev *string,
@@ -388,10 +396,7 @@ func (c *Core) Acquire(
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
-	prevS := ""
-	if prev != nil {
-		prevS = *prev
-	}
+	prevS := nonNil(prev)
 
 	c.log.Log(fmt.Sprintf("input path %s prev %s", path, prevS))
 
