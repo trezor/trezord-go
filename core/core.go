@@ -17,6 +17,8 @@ import (
 	"github.com/trezor/trezord-go/wire"
 )
 
+var ErrTimeout = errors.New("timeout")
+
 // Package with "core logic" of device listing
 // and dealing with sessions, mutexes, ...
 //
@@ -61,8 +63,21 @@ type USBInfo struct {
 }
 
 type USBDevice interface {
-	io.ReadWriter
+	io.Writer
+	Read(buf []byte, stopShortTimeout bool) (int, error)
 	Close(disconnected bool) error
+}
+
+type USBDeviceIoWriter struct {
+	device USBDevice
+}
+
+func (u USBDeviceIoWriter) Write(buf []byte) (int, error) {
+	return u.device.Write(buf)
+}
+
+func (u USBDeviceIoWriter) Read(buf []byte) (int, error) {
+	return u.device.Read(buf, false)
 }
 
 type session struct {
@@ -130,6 +145,8 @@ type Core struct {
 	log *memorywriter.MemoryWriter
 
 	latestSessionID int
+
+	devicesWithUnreadData map[string]bool // info.Path, not usbPath
 }
 
 var (
@@ -156,6 +173,8 @@ func New(bus USBBus, log *memorywriter.MemoryWriter, allowStealing, reset bool) 
 		allowStealing:  allowStealing,
 		reset:          reset,
 		usbPaths:       make(map[int]string),
+
+		devicesWithUnreadData: make(map[string]bool),
 	}
 	go c.backgroundListen()
 	return c
@@ -261,26 +280,25 @@ func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 		c.lastInfos = infos
 	}
 
-	entries := c.createEnumerateEntries(infos)
 	c.log.Log("release disconnected")
 	c.releaseDisconnected(infos, false)
 	c.releaseDisconnected(infos, true)
-	return entries, nil
-}
 
-func (c *Core) findSession(e *EnumerateEntry, path string, debug bool) {
-	for _, ss := range c.sessions(debug) {
-		if ss.path == path {
-			// Copying to prevent overwriting on Acquire and
-			// wrong comparison in Listen.
-			ssidCopy := ss.id
-			if debug {
-				e.DebugSession = &ssidCopy
-			} else {
-				e.Session = &ssidCopy
-			}
-		}
+	// quickly check all the non-acquired devices,
+	// if there is not some dangling message (when closed during reading)
+	//
+	// It is done here, because
+	// (1) enumerate usually does run in the background because of backgroundListen
+	// (2) however, it does NOT run in the background if nobody "starts" it
+	//     so it should not break 3rd party stuff that connects to device directly
+	// (3) at this point we can be sure nobody is really reading the device
+	if c.callsInProgress == 0 {
+		c.cleanupReadQueue(infos, false)
+		c.cleanupReadQueue(infos, true)
 	}
+
+	entries := c.createEnumerateEntries(infos)
+	return entries, nil
 }
 
 func (c *Core) createEnumerateEntry(info USBInfo) EnumerateEntry {
@@ -291,8 +309,8 @@ func (c *Core) createEnumerateEntry(info USBInfo) EnumerateEntry {
 		Type:    info.Type,
 		Debug:   info.Debug,
 	}
-	c.findSession(&e, info.Path, false)
-	c.findSession(&e, info.Path, true)
+	c.findWriteSession(&e, info.Path, false)
+	c.findWriteSession(&e, info.Path, true)
 	return e
 }
 
@@ -318,6 +336,60 @@ func (c *Core) sessions(debug bool) map[string]*session {
 	return sessions
 }
 
+func (c *Core) cleanupReadQueue(infos []USBInfo, debug bool) {
+	c.log.Log("start")
+
+	// note - this is run after releaseDisconnected,
+	// we know that devices actually exist etc
+INFOS:
+	for _, info := range infos {
+		if debug && !info.Debug {
+			continue INFOS
+		}
+		session := c.findSession(info.Path, debug)
+		if session != "" {
+			continue INFOS
+		}
+		if !c.devicesWithUnreadData[info.Path] {
+			continue INFOS
+		}
+		usbPath, err := c.getUSBPath(info.Path)
+		if err != nil {
+			c.log.Log(fmt.Sprintf("Error on cleanup: %s", err))
+			continue INFOS
+		}
+		dev, err := c.tryConnect(usbPath, debug, false)
+		if err != nil {
+			c.log.Log(fmt.Sprintf("Error on cleanup: %s", err))
+			continue INFOS
+		}
+		// note - do NOT need lock callMutex, since
+		// this already happens in Enumerate
+		err = nil
+		readOnce := false
+		var buf [64]byte
+		for err == nil {
+			_, err = dev.Read(buf[:], true)
+			if err != nil {
+				if readOnce {
+					delete(c.devicesWithUnreadData, info.Path)
+				}
+				c.log.Log("read err")
+				if err != ErrTimeout {
+					c.log.Log(fmt.Sprintf("Error on cleanup: %s", err))
+				}
+				errR := dev.Close(false)
+				if errR != nil {
+					c.log.Log(fmt.Sprintf("Error on cleanup: %s", errR))
+				}
+				continue INFOS
+			}
+			readOnce = true
+			c.log.Log("read")
+		}
+	}
+}
+
 func (c *Core) releaseDisconnected(infos []USBInfo, debug bool) {
 
 	for ssid, ss := range c.sessions(debug) {
@@ -328,6 +400,7 @@ func (c *Core) releaseDisconnected(infos []USBInfo, debug bool) {
 			}
 		}
 		if !connected {
+			delete(c.devicesWithUnreadData, ss.path)
 			c.log.Log(fmt.Sprintf("disconnected device %s", ssid))
 			err := c.release(ssid, true, debug)
 			// just log if there is an error
@@ -394,7 +467,7 @@ func (c *Core) Listen(ctx context.Context, entries []EnumerateEntry) ([]Enumerat
 	return entries, nil
 }
 
-func (c *Core) findPrevSession(path string, debug bool) string {
+func (c *Core) findSession(path string, debug bool) string {
 	// note - sessionsMutex must be locked before entering this
 	for _, ss := range c.sessions(debug) {
 		if ss.path == path {
@@ -403,6 +476,31 @@ func (c *Core) findPrevSession(path string, debug bool) string {
 	}
 
 	return ""
+}
+
+func (c *Core) findWriteSession(e *EnumerateEntry, path string, debug bool) {
+	ssid := c.findSession(path, debug)
+	if ssid != "" {
+		if debug {
+			e.DebugSession = &ssid
+		} else {
+			e.Session = &ssid
+		}
+	}
+}
+
+func (c *Core) getUSBPath(path string) (string, error) {
+
+	pathI, err := strconv.Atoi(path)
+	if err != nil {
+		return "", err
+	}
+
+	usbPath, exists := c.usbPaths[pathI]
+	if !exists {
+		return "", errors.New("device not found")
+	}
+	return usbPath, nil
 }
 
 func (c *Core) Acquire(
@@ -419,7 +517,7 @@ func (c *Core) Acquire(
 
 	c.log.Log(fmt.Sprintf("input path %s prev %s", path, prev))
 
-	prevSession := c.findPrevSession(path, debug)
+	prevSession := c.findSession(path, debug)
 
 	c.log.Log(fmt.Sprintf("actually previous %s", prevSession))
 
@@ -441,17 +539,12 @@ func (c *Core) Acquire(
 
 	// reset device ONLY if no call on the other port
 	// otherwise, USB reset stops other call
-	otherSession := c.findPrevSession(path, !debug)
+	otherSession := c.findSession(path, !debug)
 	reset := otherSession == "" && c.reset
 
-	pathI, err := strconv.Atoi(path)
+	usbPath, err := c.getUSBPath(path)
 	if err != nil {
 		return "", err
-	}
-
-	usbPath, exists := c.usbPaths[pathI]
-	if !exists {
-		return "", errors.New("device not found")
 	}
 
 	c.log.Log("trying to connect")
@@ -459,6 +552,8 @@ func (c *Core) Acquire(
 	if err != nil {
 		return "", err
 	}
+
+	delete(c.devicesWithUnreadData, path)
 
 	id := c.newSession(debug)
 
@@ -584,9 +679,13 @@ func (c *Core) Call(
 	}()
 
 	c.log.Log("before actual logic")
-	bytes, err := c.readWriteDev(body, acquired.dev, mode)
+	bytes, err := c.readWriteDev(body, &USBDeviceIoWriter{device: acquired.dev}, mode)
 	c.log.Log("after actual logic")
 
+	if err != nil {
+		c.devicesWithUnreadData[acquired.path] = true
+		c.log.Log("canceled")
+	}
 	return bytes, err
 }
 

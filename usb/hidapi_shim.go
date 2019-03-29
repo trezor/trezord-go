@@ -41,7 +41,7 @@ func (d *HID) Write(buf []byte) (int, error) {
 	panic("not implemented for linux and freebsd")
 }
 
-func (d *HID) Read(buf []byte) (int, error) {
+func (d *HID) Read([]byte, bool) (int, error) {
 	panic("not implemented for linux and freebsd")
 }
 

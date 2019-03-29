@@ -176,7 +176,7 @@ func (b *HIDAPI) detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 	return false, errors.New("unknown HID version")
 }
 
-func (d *HID) readWrite(buf []byte, read bool) (int, error) {
+func (d *HID) readWrite(buf []byte, read bool, stopShortTimeout bool) (int, error) {
 
 	d.mw.Log("start")
 	for {
@@ -217,6 +217,10 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 				return 0, errors.New("HID - empty write")
 			}
 
+			if stopShortTimeout {
+				return 0, core.ErrTimeout
+			}
+
 			d.mw.Log("skipping empty transfer - go again")
 		} else {
 			if err.Error() == unknownErrorMessage {
@@ -230,9 +234,9 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 }
 
 func (d *HID) Write(buf []byte) (int, error) {
-	return d.readWrite(buf, false)
+	return d.readWrite(buf, false, false)
 }
 
-func (d *HID) Read(buf []byte) (int, error) {
-	return d.readWrite(buf, true)
+func (d *HID) Read(buf []byte, stopShortTimeout bool) (int, error) {
+	return d.readWrite(buf, true, stopShortTimeout)
 }
