@@ -253,6 +253,9 @@ func corsValidator() (OriginValidator, error) {
 
 	// sl dev servers
 	devRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
+	if err != nil {
+		return nil, err
+	}
 
 	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
