@@ -244,13 +244,22 @@ func corsValidator() (OriginValidator, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// `localhost:8xxx` and `5xxx` are added for easing local development.
 	lregex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	if err != nil {
 		return nil, err
 	}
+
+	// sl dev servers
+	devRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
+
 	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
+			return true
+		}
+
+		if devRegex.MatchString(origin) {
 			return true
 		}
 
