@@ -227,17 +227,29 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 }
 
 func corsValidator() (OriginValidator, error) {
-	tregex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
+	trezorRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 	if err != nil {
 		return nil, err
 	}
+
 	// `localhost:8xxx` and `5xxx` are added for easing local development.
-	lregex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
+	localRegex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	if err != nil {
 		return nil, err
 	}
+
+	// SatoshiLabs dev servers
+	devRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
+	if err != nil {
+		return nil, err
+	}
+
 	v := func(origin string) bool {
-		if lregex.MatchString(origin) {
+		if localRegex.MatchString(origin) {
+			return true
+		}
+
+		if devRegex.MatchString(origin) {
 			return true
 		}
 
@@ -247,7 +259,7 @@ func corsValidator() (OriginValidator, error) {
 		//	return true
 		// }
 
-		if tregex.MatchString(origin) {
+		if trezorRegex.MatchString(origin) {
 			return true
 		}
 

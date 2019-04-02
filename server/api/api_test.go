@@ -26,6 +26,15 @@ func TestOriginValidator(t *testing.T) {
 		{"https://localhost:5000", true},
 		{"http://localhost:5000", true},
 		{"http://localhost:5999", true},
+		// SatoshiLabs dev servers should be allowed
+		{"https://sldev.cz", true},
+		{"https://foo.sldev.cz", true},
+		{"https://bar.foo.sldev.cz", true},
+		// Should be denied
+		{"https://fakesldev.cz", false},
+		{"https://foo.fakesldev.cz", false},
+		{"https://foo.sldev.czz", false},
+		{"http://foo.trezor.sldev.cz", false},
 		// Other ports denied
 		{"http://localhost", false},
 		{"http://localhost:1234", false},
