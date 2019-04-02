@@ -26,6 +26,12 @@ func TestOriginValidator(t *testing.T) {
 		{"https://localhost:5000", true},
 		{"http://localhost:5000", true},
 		{"http://localhost:5999", true},
+		// SL dev server should be allowed
+		{"https://sldev.cz", true},
+		{"https://foo.sldev.cz", true},
+		{"https://bar.foo.sldev.cz", true}
+		// SL dev server without https should be denied
+		{"http://foo.trezor.sldev.cz", false},
 		// Other ports denied
 		{"http://localhost", false},
 		{"http://localhost:1234", false},
