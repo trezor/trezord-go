@@ -19,7 +19,7 @@ cp /release/trezord.ico trezord.ico
 
 SIGNKEY=/release/authenticode
 
-if [ -r $SIGNKEY.der ]; then
+if [ -r $SIGNKEY.key ]; then
     for BINARY in {trezord,devcon,wdi-simple}-{32b,64b}.exe ; do
         mv $BINARY $BINARY.unsigned
         osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $BINARY.unsigned -out $BINARY
@@ -33,7 +33,7 @@ else
     makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES64\TREZOR Bridge"' trezord.nsis
 fi
 
-if [ -r $SIGNKEY.der ]; then
+if [ -r $SIGNKEY.key ]; then
     mv $INSTALLER $INSTALLER.unsigned
     osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "TREZOR Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $INSTALLER.unsigned -out $INSTALLER
     osslsigncode verify -in $INSTALLER
