@@ -1,0 +1,82 @@
+run:
+  deadline: 10m
+
+issues:
+  exclude-rules:
+
+    # Exclude `for i, _ :=`, since that doesn't work in old go
+    - linters:
+        - gosimple
+      text: "should omit value from range"
+    - linters:
+        - golint
+      text: "should omit 2nd value from range"
+
+    # Exclude underscore warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - golint
+      path: usb/lowlevel/libusb/libusb.go
+      text: "don't use underscores"
+
+    # Exclude all cap warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - golint
+      path: usb/lowlevel/libusb/libusb.go
+      text: "ALL_CAPS"
+
+    # Exclude long lines warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/libusb/libusb.go
+
+    # Exclude noinit warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/hidapi/hid.go
+
+    # Before we split into internal/non-internal, ignore comments
+    - linters:
+        - golint
+      text: "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+      path: internal
+
+  exclude-use-default: false
+
+linters:
+  enable:
+    - golint
+    - govet
+    - staticcheck
+    - gosec
+    - stylecheck
+    - interfacer
+    - unconvert
+    - dupl
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - maligned
+    - depguard
+    - misspell
+    - lll
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gochecknoinits
+    - gocritic
+
+linters-settings:
+  gofmt:
+    # causes errors in old go
+    simplify: false
+  maligned:
+    suggest-new: true
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 10
