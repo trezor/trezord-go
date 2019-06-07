@@ -1,10 +1,15 @@
-# Changelog
+# ChangeLog
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.26] - unreleased
+## [2.0.27] - 2019-05-13
 
-- Add verbose logs from previous run on windows to better debug win7 crashes
+- Fix Certificate issue on Windows
+
+## [2.0.26] - 2019-03-07
+
+- Add verbose logs from previous run on Windows to better debug Windows 7 crashes
+- Fix behavior with old bootloaders
 
 ## [2.0.25] - 2018-11-23
 
