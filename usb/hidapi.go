@@ -29,6 +29,7 @@ type HIDAPI struct {
 }
 
 func InitHIDAPI(mw *memorywriter.MemoryWriter) (*HIDAPI, error) {
+	lowlevel.Init()
 	lowlevel.SetLogWriter(mw)
 	return &HIDAPI{
 		mw: mw,
@@ -44,6 +45,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 	b.mw.Log("low level done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev // pin, see github.com/kyoh86/scopelint
 		if b.match(&dev) {
 			infos = append(infos, core.USBInfo{
 				Path:      b.identify(&dev),
@@ -70,6 +72,7 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 	b.mw.Log("enumerate done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev // pin, see github.com/kyoh86/scopelint
 		if b.match(&dev) && b.identify(&dev) == path {
 			b.mw.Log("low level open")
 			d, err := dev.Open()
@@ -173,7 +176,7 @@ func (b *HIDAPI) detectPrepend(dev *lowlevel.HidDevice) (bool, error) {
 	return false, errors.New("unknown HID version")
 }
 
-func (d *HID) readWrite(buf []byte, read bool) (int, error) {
+func (d *HID) readWrite(buf []byte, read bool, stopShortTimeout bool) (int, error) {
 
 	d.mw.Log("start")
 	for {
@@ -214,6 +217,10 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 				return 0, errors.New("HID - empty write")
 			}
 
+			if stopShortTimeout {
+				return 0, core.ErrTimeout
+			}
+
 			d.mw.Log("skipping empty transfer - go again")
 		} else {
 			if err.Error() == unknownErrorMessage {
@@ -227,9 +234,9 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 }
 
 func (d *HID) Write(buf []byte) (int, error) {
-	return d.readWrite(buf, false)
+	return d.readWrite(buf, false, false)
 }
 
-func (d *HID) Read(buf []byte) (int, error) {
-	return d.readWrite(buf, true)
+func (d *HID) Read(buf []byte, stopShortTimeout bool) (int, error) {
+	return d.readWrite(buf, true, stopShortTimeout)
 }

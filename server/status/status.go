@@ -97,7 +97,13 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + old + libwdi + setupapi + "\nCurrent log:\n"
+	start := s.version + "\n" +
+		msinfo + "\n" +
+		devconLog + devconLogD + "\n" +
+		old +
+		libwdi +
+		setupapi +
+		"\nCurrent log:\n"
 
 	gzip, err := s.longMemoryWriter.Gzip(start)
 	if err != nil {

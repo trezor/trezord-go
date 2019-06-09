@@ -26,7 +26,7 @@ func (b *USB) Has(path string) bool {
 }
 
 func (b *USB) Enumerate() ([]core.USBInfo, error) {
-	var infos []core.USBInfo
+	infos := make([]core.USBInfo, 0, len(b.buses))
 
 	for _, b := range b.buses {
 		l, err := b.Enumerate()

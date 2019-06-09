@@ -196,7 +196,7 @@ func (d *UDPDevice) Close(disconnected bool) error {
 	return nil
 }
 
-func (d *UDPDevice) readWrite(buf []byte, read bool) (int, error) {
+func (d *UDPDevice) readWrite(buf []byte, read bool, stopShortTimeout bool) (int, error) {
 	lowlevel := d.lowlevel
 	for {
 		closed := (atomic.LoadInt32(&d.closed)) == 1
@@ -219,15 +219,18 @@ func (d *UDPDevice) readWrite(buf []byte, read bool) (int, error) {
 			copy(buf, response)
 			return len(response), nil
 		case <-time.After(emulatorPingTimeout):
+			if stopShortTimeout {
+				return 0, core.ErrTimeout
+			}
 			// timeout, continue for cycle
 		}
 	}
 }
 
 func (d *UDPDevice) Write(buf []byte) (int, error) {
-	return d.readWrite(buf, false)
+	return d.readWrite(buf, false, false)
 }
 
-func (d *UDPDevice) Read(buf []byte) (int, error) {
-	return d.readWrite(buf, true)
+func (d *UDPDevice) Read(buf []byte, stopShortTimeout bool) (int, error) {
+	return d.readWrite(buf, true, stopShortTimeout)
 }

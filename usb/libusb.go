@@ -66,7 +66,8 @@ func InitLibUSB(mw *memorywriter.MemoryWriter, onlyLibusb, allowCancel, detach b
 	err := lowlevel.Init(&usb)
 	if err != nil {
 		return nil, fmt.Errorf(`error when initializing LibUSB.
-If you run trezord in an environment without USB (for example, docker or travis), use '-u=false'. For example, './trezord-go -e 21324 -u=false'.
+If you run trezord in an environment without USB (for example, docker or travis),
+use '-u=false'. For example, './trezord-go -e 21324 -u=false'.
 
 Original error: %v`, err)
 	}
@@ -160,8 +161,8 @@ func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 				}
 				infos = append(infos, core.USBInfo{
 					Path:      path,
-					VendorID:  int(dd.IdVendor),
-					ProductID: int(dd.IdProduct),
+					VendorID:  int(dd.IDVendor),
+					ProductID: int(dd.IDProduct),
 					Type:      t,
 					Debug:     debug,
 				})
@@ -294,8 +295,9 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDe
 	if err != nil {
 		return nil, err
 	}
-	b.mw.Log("reset")
+	b.mw.Log("reset ?")
 	if reset {
+		b.mw.Log("reset .")
 		err = lowlevel.Reset_Device(d)
 		if err != nil {
 			// don't abort if reset fails
@@ -323,12 +325,12 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDe
 }
 
 func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
-	if dd.IdProduct == core.ProductT1Firmware {
+	if dd.IDProduct == core.ProductT1Firmware {
 		// this is HID, in platforms where we don't use hidapi (linux, bsd)
 		return core.TypeT1Hid
 	}
 
-	if dd.IdProduct == core.ProductT2Bootloader {
+	if dd.IDProduct == core.ProductT2Bootloader {
 		if int(dd.BcdDevice>>8) == 1 {
 			return core.TypeT1WebusbBoot
 		}
@@ -350,8 +352,8 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 		return false, 0
 	}
 
-	vid := dd.IdVendor
-	pid := dd.IdProduct
+	vid := dd.IDVendor
+	pid := dd.IDProduct
 	if !b.matchVidPid(vid, pid) {
 		b.mw.Log("unmatched")
 		return false, 0
@@ -441,16 +443,13 @@ func (d *LibUSBDevice) Close(disconnected bool) error {
 
 		d.mw.Log("canceling previous transfers")
 		lowlevel.Cancel_Sync_Transfers_On_Device(d.dev)
+	}
 
-		// reading recently disconnected device sometimes causes weird issues
-		// => if we *know* it is disconnected, don't finish read queue
-		//
-		// Finishing read queue is not necessary when we don't allow cancelling
-		// (since when we don't allow cancelling, we don't allow session stealing)
-		if !disconnected {
-			d.mw.Log("finishing read queue")
-			d.finishReadQueue(d.debug)
-		}
+	// reading recently disconnected device sometimes causes weird issues
+	// => if we *know* it is disconnected, don't finish read queue
+	if !disconnected {
+		d.mw.Log("finishing read queue")
+		d.finishReadQueue(d.debug)
 	}
 
 	d.mw.Log("releasing interface")
@@ -495,24 +494,32 @@ func (d *LibUSBDevice) transferMutexUnlock(debug bool) {
 	}
 }
 
-func (d *LibUSBDevice) finishReadQueue(debug bool) {
+func (d *LibUSBDevice) shortRead(buf []byte, debug bool) (int, error) {
 	d.mw.Log("wait for transfermutex lock")
 	usbEpIn := normalIface.epIn
 	if debug {
 		usbEpIn = debugIface.epIn
 	}
 	d.transferMutexLock(debug)
+	// these transfers have timeouts => should not interfer with
+	// cancel_sync_transfers_on_device
+	d.mw.Log("transfer")
+	i, err := lowlevel.Interrupt_Transfer(d.dev, usbEpIn, buf, 50)
+	d.transferMutexUnlock(debug)
+	d.mw.Log("done")
+	if err != nil && isErrorTimeout(err) {
+		return 0, core.ErrTimeout
+	}
+	return len(i), err
+}
+
+func (d *LibUSBDevice) finishReadQueue(debug bool) {
 	var err error
 	var buf [64]byte
 
 	for err == nil {
-		// these transfers have timeouts => should not interfer with
-		// cancel_sync_transfers_on_device
-		d.mw.Log("transfer")
-		_, err = lowlevel.Interrupt_Transfer(d.dev, usbEpIn, buf[:], 50)
+		_, err = d.shortRead(buf[:], debug)
 	}
-	d.transferMutexUnlock(debug)
-	d.mw.Log("done")
 }
 
 func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8) (int, error) {
@@ -555,6 +562,10 @@ func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8) (int, error) {
 	}
 }
 
+func isErrorTimeout(err error) bool {
+	return (err.Error() == lowlevel.Error_Name(int(lowlevel.ERROR_TIMEOUT)))
+}
+
 func isErrorDisconnect(err error) bool {
 	// according to libusb docs, disconnecting device should cause only
 	// LIBUSB_ERROR_NO_DEVICE error, but in real life, it causes also
@@ -578,11 +589,14 @@ func (d *LibUSBDevice) Write(buf []byte) (int, error) {
 	return d.readWrite(buf, usbEpOut)
 }
 
-func (d *LibUSBDevice) Read(buf []byte) (int, error) {
+func (d *LibUSBDevice) Read(buf []byte, stopShortTimeout bool) (int, error) {
 	d.mw.Log("read start")
 	usbEpIn := normalIface.epIn
 	if d.debug {
 		usbEpIn = debugIface.epIn
+	}
+	if stopShortTimeout {
+		return d.shortRead(buf, d.debug)
 	}
 	return d.readWrite(buf, usbEpIn)
 }

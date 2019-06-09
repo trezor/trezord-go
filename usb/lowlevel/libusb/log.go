@@ -1,6 +1,7 @@
 package libusb
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -15,6 +16,10 @@ func SetLogWriter(l io.Writer) {
 //export goLibusbLog
 func goLibusbLog(s *C.char) {
 	if writer != nil {
-		writer.Write([]byte(C.GoString(s)))
+		_, err := writer.Write([]byte(C.GoString(s)))
+		if err != nil {
+			// whatever, just log it out
+			fmt.Println(err)
+		}
 	}
 }
