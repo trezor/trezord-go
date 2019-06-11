@@ -29,7 +29,7 @@ func TestOriginValidator(t *testing.T) {
 		// SL dev server should be allowed
 		{"https://sldev.cz", true},
 		{"https://foo.sldev.cz", true},
-		{"https://bar.foo.sldev.cz", true}
+		{"https://bar.foo.sldev.cz", true},
 		// SL dev server without https should be denied
 		{"http://foo.trezor.sldev.cz", false},
 		// Other ports denied
