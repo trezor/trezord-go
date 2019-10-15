@@ -18,6 +18,10 @@ go build github.com/trezor/trezord-go
 ./trezord-go -h
 ```
 
+*Note:*
+
+If you are new to Go and you are confused how come you should not clone the repository yourself, this is indeed the Go way. If you need to modify the code you can simply `cd` into the directory (`$GOPATH/src/github.com/trezor/trezord-go`) and do whatever you please. Running `go build` inside that directory will produce a new executable at the same place. Running `go build github.com/trezor/trezord-go` will produce a new executable in `$GOPATH/bin`. Both are built from your local copy in `$GOPATH/src`.
+
 ## Update from source
 ```
 go clean
