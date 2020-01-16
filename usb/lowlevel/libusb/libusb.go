@@ -1,4 +1,4 @@
-// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
+// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo openbsd,cgo
 
 //-----------------------------------------------------------------------------
 /*
@@ -27,28 +27,30 @@ extern void goLibusbLog(const char *s);
 #cgo linux,!android LDFLAGS: -lrt
 #cgo freebsd CFLAGS: -DOS_FREEBSD
 #cgo freebsd LDFLAGS: -lusb
+#cgo openbsd CFLAGS: -DOS_OPENBSD
+#cgo openbsd LDFLAGS: -L/usr/local/lib -lusb-1.0
 #cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
 #cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
 #cgo windows LDFLAGS: -lsetupapi
 
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX)
 	#include <sys/poll.h>
 
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"
-#elif OS_FREEBSD
+#elif defined(OS_FREEBSD) || defined(OS_OPENBSD)
 	#include <stdlib.h>
-#elif OS_DARWIN
+#elif defined(OS_DARWIN)
 	#include <sys/poll.h>
 
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/darwin_usb.c"
-#elif OS_WINDOWS
+#elif defined(OS_WINDOWS)
 	#define HARDCODED_LIBUSB_DEVICE_FILTER "VID_1209"
 
 	#include <oledlg.h>
@@ -57,7 +59,7 @@ extern void goLibusbLog(const char *s);
 	#include "os/threads_windows.c"
 #endif
 
-#ifndef OS_FREEBSD
+#if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
 	#include "core.c"
 	#include "descriptor.c"
 	#include "hotplug.c"
@@ -73,14 +75,12 @@ extern void goLibusbLog(const char *s);
 	#include "os/windows_winusb.c"
 #endif
 
-#cgo freebsd LDFLAGS: -lusb
-
-#ifndef __FreeBSD__
+#if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
 #include "libusb.h"
 #else
 #include <libusb.h>
 
-// "fake" function so freebsd builds
+// "fake" function so freebsd and openbsd builds
 void libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
 }
 #endif
