@@ -263,7 +263,8 @@ func corsValidator() (OriginValidator, error) {
 			return true
 		}
 
-		return false
+		// cypress custom
+		return true
 	}
 
 	return v, nil
