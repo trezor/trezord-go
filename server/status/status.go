@@ -42,7 +42,7 @@ func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.Me
 	r.Methods("GET").Path("/").HandlerFunc(status.statusPage)
 	r.Methods("POST").Path("/log.gz").HandlerFunc(status.statusGzip)
 
-	r.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
+	// r.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
 	r.Use(OriginCheck(map[string]string{
 		"/status/":       "",
 		"/status/log.gz": "http://127.0.0.1:21325",
