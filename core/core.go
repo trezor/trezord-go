@@ -553,16 +553,18 @@ func (c *Core) Call(
 		return nil, ErrSessionNotFound
 	}
 
-	c.log.Log("checking other call on same session")
-	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
-	if !freeToCall {
-		return nil, ErrOtherCall
-	}
+	if mode != CallModeWrite {
+		c.log.Log("checking other call on same session")
+		freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
+		if !freeToCall {
+			return nil, ErrOtherCall
+		}
 
-	c.log.Log("checking other call on same session done")
-	defer func() {
-		atomic.StoreInt32(&acquired.call, 0)
-	}()
+		c.log.Log("checking other call on same session done")
+		defer func() {
+			atomic.StoreInt32(&acquired.call, 0)
+		}()
+	}
 
 	finished := make(chan bool, 1)
 	defer func() {
