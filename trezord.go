@@ -17,7 +17,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const version = "2.0.28"
+const version = "2.0.29"
 
 type udpTouples []usb.PortTouple
 
