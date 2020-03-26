@@ -20,7 +20,7 @@ var emulatorPong = []byte("PONGPONG")
 const (
 	emulatorPrefix      = "emulator"
 	emulatorAddress     = "127.0.0.1"
-	emulatorPingTimeout = 5000 * time.Millisecond
+	emulatorPingTimeout = 1000 * time.Millisecond  // it seems neither 500 nor 700 is enough for trezor-link
 )
 
 type udpLowlevel struct {
