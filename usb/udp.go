@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -21,11 +20,8 @@ var emulatorPong = []byte("PONGPONG")
 const (
 	emulatorPrefix      = "emulator"
 	emulatorAddress     = "127.0.0.1"
-	emulatorPingTimeoutDarwin = 5000 * time.Millisecond
-	emulatorPingTimeoutDefault = 500 * time.Millisecond
+	emulatorPingTimeout = 5000 * time.Millisecond
 )
-
-var emulatorPingTimeout = emulatorPingTimeoutDefault
 
 type udpLowlevel struct {
 	ping   chan []byte
@@ -91,10 +87,6 @@ func InitUDP(ports []PortTouple, mw *memorywriter.MemoryWriter) (*UDP, error) {
 		lowlevels: make(map[int](*udpLowlevel)),
 		mw:        mw,
 	}
-	if runtime.GOOS == "darwin" {
-		emulatorPingTimeout = emulatorPingTimeoutDarwin
-	}
-
 	for _, port := range ports {
 		err := udp.makeLowlevel(port.Normal)
 		if err != nil {
