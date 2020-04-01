@@ -556,6 +556,13 @@ func (c *Core) Call(
 	}
 
 	if mode != CallModeWrite {
+		// This check is implemented only for /call and /read:
+		// - /call: Two /calls should not run concurrently. Otherwise the "message writes" and "message reads"
+		//   could interleave and the second caller would read the first response.
+		// - /read: Although this could be possible we do not have a use case for that at the moment.
+		// The check IS NOT implemented for /post, meaning /post can write even though some /call or /read
+		// is in progress (but there are some read/write locks later on).
+
 		c.log.Log("checking other call on same session")
 		freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
 		if !freeToCall {
