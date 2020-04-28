@@ -29,7 +29,7 @@
   <choice
     id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
     visible="true"
-    title="Uninstall TREZOR Bridge"
+    title="Uninstall Trezor Bridge"
   >
     <pkg-ref
       id="com.bitcointrezor.pkg.TREZORBridge.uninstall"

@@ -11,22 +11,22 @@
   />
   <!--dispayed on top left. note that the image is GIANT.
       That might be some instaler issue, or maybe DPI/Retina? -->
-  <background 
+  <background
     file="logo.png"
     mime-type="image/png"
   />
 
-  <pkg-ref 
+  <pkg-ref
     id="com.bitcointrezor.pkg.TREZORBridge"
   />
-  
+
   <choices-outline>
-    <line 
+    <line
       choice="com.bitcointrezor.pkg.TREZORBridge"
     />
   </choices-outline>
-  
-  <choice 
+
+  <choice
     id="com.bitcointrezor.pkg.TREZORBridge"
     visible="true"
     title="Install Trezor Bridge"
