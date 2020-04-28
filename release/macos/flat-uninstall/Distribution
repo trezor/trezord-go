@@ -3,7 +3,7 @@
   minSpecVersion="1"
 >
   <!--displayed in the header-->
-  <title>TREZOR Bridge</title>
+  <title>Trezor Bridge</title>
   <!--displayed on start, can be localized-->
   <welcome
     file="welcome.txt"

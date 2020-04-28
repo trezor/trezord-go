@@ -35,6 +35,6 @@ fi
 
 if [ -r $SIGNKEY.key ]; then
     mv $INSTALLER $INSTALLER.unsigned
-    osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "TREZOR Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $INSTALLER.unsigned -out $INSTALLER
+    osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $INSTALLER.unsigned -out $INSTALLER
     osslsigncode verify -in $INSTALLER
 fi
