@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.29] - 2020-05-05
+
+- Lower UDP timeout to 1000 ms
+- Do not check if another call is in progress in Post method (#183)
+- Have separate locks for read and write in libusb (#183)
+
+## [2.0.28] - 2020-02-11
+
+- Whitelist SatoshiLabs dev servers
+- Add support for OpenBSD
+
 ## [2.0.27] - 2019-05-13
 
 - Fix Certificate issue on Windows
