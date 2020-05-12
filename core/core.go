@@ -351,12 +351,15 @@ func (c *Core) release(
 	debug bool,
 ) error {
 	c.log.Log(fmt.Sprintf("session %s", session))
+	c.sessionsMutex.Lock()
 	acquired := (c.sessions(debug))[session]
 	if acquired == nil {
 		c.log.Log("session not found")
+		c.sessionsMutex.Unlock()
 		return ErrSessionNotFound
 	}
 	delete(c.sessions(debug), session)
+	c.sessionsMutex.Unlock()
 
 	c.log.Log("bus close")
 	err := acquired.dev.Close(disconnected)
