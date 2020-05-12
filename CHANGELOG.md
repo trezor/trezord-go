@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.30] - 2020-05-12
+- Lock mutex when deleting session to avoid concurrent read and write (#190)
+
 ## [2.0.29] - 2020-05-05
 
 - Lower UDP timeout to 1000 ms
