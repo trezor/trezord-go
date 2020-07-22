@@ -19,23 +19,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <config.h>
-
-#include <time.h>
-#if defined(__linux__) || defined(__OpenBSD__)
-# if defined(__OpenBSD__)
-#  define _BSD_SOURCE
-# endif
-# include <unistd.h>
-# include <sys/syscall.h>
-#elif defined(__APPLE__)
-# include <mach/mach.h>
-#elif defined(__CYGWIN__)
-# include <windows.h>
-#endif
-
-#include "threads_posix.h"
 #include "libusbi.h"
+
+#if defined(__ANDROID__)
+# include <unistd.h>
+#elif defined(__HAIKU__)
+# include <os/kernel/OS.h>
+#elif defined(__linux__)
+# include <sys/syscall.h>
+# include <unistd.h>
+#elif defined(__NetBSD__)
+# include <lwp.h>
+#elif defined(__OpenBSD__)
+# define _BSD_SOURCE
+# include <sys/syscall.h>
+# include <unistd.h>
+#elif defined(__sun__)
+# include <sys/lwp.h>
+#endif
 
 int usbi_cond_timedwait(pthread_cond_t *cond,
 	pthread_mutex_t *mutex, const struct timeval *tv)
@@ -43,7 +44,7 @@ int usbi_cond_timedwait(pthread_cond_t *cond,
 	struct timespec timeout;
 	int r;
 
-	r = usbi_backend->clock_gettime(USBI_CLOCK_REALTIME, &timeout);
+	r = usbi_clock_gettime(USBI_CLOCK_REALTIME, &timeout);
 	if (r < 0)
 		return r;
 
@@ -59,21 +60,52 @@ int usbi_cond_timedwait(pthread_cond_t *cond,
 
 int usbi_get_tid(void)
 {
-	int ret = -1;
+#ifndef _WIN32
+	static _Thread_local int tid;
+
+	if (tid)
+		return tid;
+#else
+	int tid;
+#endif
+
 #if defined(__ANDROID__)
-	ret = gettid();
+	tid = gettid();
+#elif defined(__APPLE__)
+#ifdef HAVE_PTHREAD_THREADID_NP
+	uint64_t thread_id;
+
+	if (pthread_threadid_np(NULL, &thread_id) == 0)
+		tid = (int)thread_id;
+	else
+		tid = -1;
+#else
+	tid = (int)pthread_mach_thread_np(pthread_self());
+#endif
+#elif defined(__HAIKU__)
+	tid = get_pthread_thread_id(pthread_self());
 #elif defined(__linux__)
-	ret = syscall(SYS_gettid);
+	tid = (int)syscall(SYS_gettid);
+#elif defined(__NetBSD__)
+	tid = _lwp_self();
 #elif defined(__OpenBSD__)
 	/* The following only works with OpenBSD > 5.1 as it requires
-	   real thread support. For 5.1 and earlier, -1 is returned. */
-	ret = syscall(SYS_getthrid);
-#elif defined(__APPLE__)
-	ret = mach_thread_self();
-	mach_port_deallocate(mach_task_self(), ret);
-#elif defined(__CYGWIN__)
-	ret = GetCurrentThreadId();
+	 * real thread support. For 5.1 and earlier, -1 is returned. */
+	tid = syscall(SYS_getthrid);
+#elif defined(__sun__)
+	tid = _lwp_self();
+#elif defined(_WIN32)
+	tid = (int)GetCurrentThreadId();
+#else
+	tid = -1;
 #endif
-/* TODO: NetBSD thread ID support */
-	return ret;
+
+	if (tid == -1) {
+		/* If we don't have a thread ID, at least return a unique
+		 * value that can be used to distinguish individual
+		 * threads. */
+		tid = (int)(intptr_t)pthread_self();
+	}
+
+	return tid;
 }

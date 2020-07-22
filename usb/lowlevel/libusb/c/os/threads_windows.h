@@ -21,56 +21,99 @@
 #ifndef LIBUSB_THREADS_WINDOWS_H
 #define LIBUSB_THREADS_WINDOWS_H
 
-#define usbi_mutex_static_t	volatile LONG
-#define USBI_MUTEX_INITIALIZER	0
+#include <errno.h>
 
-#define usbi_mutex_t		HANDLE
+#define USBI_MUTEX_INITIALIZER	0L
+typedef LONG usbi_mutex_static_t;
+static inline void usbi_mutex_static_lock(usbi_mutex_static_t *mutex)
+{
+	while (InterlockedExchange(mutex, 1L) == 1L)
+		SleepEx(0, TRUE);
+}
+static inline void usbi_mutex_static_unlock(usbi_mutex_static_t *mutex)
+{
+	InterlockedExchange(mutex, 0L);
+}
 
-typedef struct usbi_cond {
-	// Every time a thread touches the CV, it winds up in one of these lists.
-	//   It stays there until the CV is destroyed, even if the thread terminates.
-	struct list_head waiters;
-	struct list_head not_waiting;
-} usbi_cond_t;
+typedef CRITICAL_SECTION usbi_mutex_t;
+static inline int usbi_mutex_init(usbi_mutex_t *mutex)
+{
+	InitializeCriticalSection(mutex);
+	return 0;
+}
+static inline void usbi_mutex_lock(usbi_mutex_t *mutex)
+{
+	EnterCriticalSection(mutex);
+}
+static inline void usbi_mutex_unlock(usbi_mutex_t *mutex)
+{
+	LeaveCriticalSection(mutex);
+}
+static inline int usbi_mutex_trylock(usbi_mutex_t *mutex)
+{
+	return !TryEnterCriticalSection(mutex);
+}
+static inline void usbi_mutex_destroy(usbi_mutex_t *mutex)
+{
+	DeleteCriticalSection(mutex);
+}
 
 // We *were* getting timespec from pthread.h:
-#if (!defined(HAVE_STRUCT_TIMESPEC) && !defined(_TIMESPEC_DEFINED))
+#if !defined(HAVE_STRUCT_TIMESPEC) && !defined(_TIMESPEC_DEFINED)
 #define HAVE_STRUCT_TIMESPEC 1
 #define _TIMESPEC_DEFINED 1
 struct timespec {
 	long tv_sec;
 	long tv_nsec;
 };
-#endif /* HAVE_STRUCT_TIMESPEC | _TIMESPEC_DEFINED */
+#endif /* HAVE_STRUCT_TIMESPEC || _TIMESPEC_DEFINED */
 
 // We *were* getting ETIMEDOUT from pthread.h:
 #ifndef ETIMEDOUT
-#  define ETIMEDOUT 10060     /* This is the value in winsock.h. */
+#define ETIMEDOUT	10060	/* This is the value in winsock.h. */
 #endif
 
-#define usbi_tls_key_t		DWORD
-
-int usbi_mutex_static_lock(usbi_mutex_static_t *mutex);
-int usbi_mutex_static_unlock(usbi_mutex_static_t *mutex);
-
-int usbi_mutex_init(usbi_mutex_t *mutex);
-int usbi_mutex_lock(usbi_mutex_t *mutex);
-int usbi_mutex_unlock(usbi_mutex_t *mutex);
-int usbi_mutex_trylock(usbi_mutex_t *mutex);
-int usbi_mutex_destroy(usbi_mutex_t *mutex);
-
-int usbi_cond_init(usbi_cond_t *cond);
-int usbi_cond_wait(usbi_cond_t *cond, usbi_mutex_t *mutex);
+typedef CONDITION_VARIABLE usbi_cond_t;
+static inline void usbi_cond_init(usbi_cond_t *cond)
+{
+	InitializeConditionVariable(cond);
+}
+static inline void usbi_cond_wait(usbi_cond_t *cond, usbi_mutex_t *mutex)
+{
+	(void)SleepConditionVariableCS(cond, mutex, INFINITE);
+}
 int usbi_cond_timedwait(usbi_cond_t *cond,
 	usbi_mutex_t *mutex, const struct timeval *tv);
-int usbi_cond_broadcast(usbi_cond_t *cond);
-int usbi_cond_destroy(usbi_cond_t *cond);
+static inline void usbi_cond_broadcast(usbi_cond_t *cond)
+{
+	WakeAllConditionVariable(cond);
+}
+static inline void usbi_cond_destroy(usbi_cond_t *cond)
+{
+	UNUSED(cond);
+}
 
-int usbi_tls_key_create(usbi_tls_key_t *key);
-void *usbi_tls_key_get(usbi_tls_key_t key);
-int usbi_tls_key_set(usbi_tls_key_t key, void *value);
-int usbi_tls_key_delete(usbi_tls_key_t key);
+typedef DWORD usbi_tls_key_t;
+static inline void usbi_tls_key_create(usbi_tls_key_t *key)
+{
+	*key = TlsAlloc();
+}
+static inline void *usbi_tls_key_get(usbi_tls_key_t key)
+{
+	return TlsGetValue(key);
+}
+static inline void usbi_tls_key_set(usbi_tls_key_t key, void *ptr)
+{
+	(void)TlsSetValue(key, ptr);
+}
+static inline void usbi_tls_key_delete(usbi_tls_key_t key)
+{
+	(void)TlsFree(key);
+}
 
-int usbi_get_tid(void);
+static inline int usbi_get_tid(void)
+{
+	return (int)GetCurrentThreadId();
+}
 
 #endif /* LIBUSB_THREADS_WINDOWS_H */
