@@ -20,24 +20,29 @@ extern void goLibusbLog(const char *s);
 #define ENABLE_LOGGING 1
 #define ENABLE_DEBUG_LOGGING 1
 #define ENUM_DEBUG
+#define DEFAULT_VISIBILITY
 
 #cgo CFLAGS: -I./c
 
-#cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
+#cgo linux CFLAGS: -DOS_LINUX -D_GNU_SOURCE -DPOLL_POSIX -DTHREADS_POSIX -DHAVE_CLOCK_GETTIME
 #cgo linux,!android LDFLAGS: -lrt
-#cgo freebsd CFLAGS: -DOS_FREEBSD
+
+#cgo freebsd CFLAGS: -DOS_FREEBSD -DPOLL_POSIX -DTHREADS_POSIX
 #cgo freebsd LDFLAGS: -lusb
-#cgo openbsd CFLAGS: -DOS_OPENBSD
+
+#cgo openbsd CFLAGS: -DOS_OPENBSD -DPOLL_POSIX -DTHREADS_POSIX
 #cgo openbsd LDFLAGS: -L/usr/local/lib -lusb-1.0
-#cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+
+#cgo darwin CFLAGS: -DOS_DARWIN -DPOLL_POSIX -DTHREADS_POSIX
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
-#cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+
+#cgo windows CFLAGS: -DOS_WINDOWS -DPOLL_WINDOWS -DTHREADS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
 
 
 #if defined(OS_LINUX)
 	#include <sys/poll.h>
-
+	#include "libusbi.h"
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/linux_usbfs.c"
@@ -46,17 +51,19 @@ extern void goLibusbLog(const char *s);
 	#include <stdlib.h>
 #elif defined(OS_DARWIN)
 	#include <sys/poll.h>
-
+	#include "libusbi.h"
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/darwin_usb.c"
 #elif defined(OS_WINDOWS)
 	#define HARDCODED_LIBUSB_DEVICE_FILTER "VID_1209"
-
 	#include <oledlg.h>
-
-	#include "os/poll_windows.c"
+	#include "libusbi.h"
 	#include "os/threads_windows.c"
+	#include "os/poll_windows.c"
+	#include "os/windows_common.c"
+	#include "os/windows_usbdk.c"
+	#include "os/windows_winusb.c"
 #endif
 
 #if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
@@ -66,13 +73,6 @@ extern void goLibusbLog(const char *s);
 	#include "io.c"
 	#include "strerror.c"
 	#include "sync.c"
-#else
-	#include <libusb.h>
-#endif
-
-#ifdef OS_WINDOWS
-	#include "os/windows_nt_common.c"
-	#include "os/windows_winusb.c"
 #endif
 
 #if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
@@ -1169,7 +1169,7 @@ func Setlocale(locale string) error {
 */
 
 func Strerror(errcode int) string {
-	return C.GoString(C.libusb_strerror(int32(errcode)))
+	return C.GoString(C.libusb_strerror(C.int(errcode)))
 }
 
 //-----------------------------------------------------------------------------
