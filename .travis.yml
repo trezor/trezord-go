@@ -1,26 +1,26 @@
 sudo: false
-dist: trusty
+dist: bionic
 language: go
 
 matrix:
   include:
     - env: TEST=build-local
-      go: 1.7
+      go: 1.11
       script:
         - go build .
         - go test -v ./...
     - env: TEST=build-local
-      go: 1.8
+      go: 1.12
       script:
         - go build .
         - go test -v ./...
     - env: TEST=build-local
-      go: 1.9
+      go: 1.13
       script:
         - go build .
         - go test -v ./...
     - env: TEST=build-local
-      go: "1.10"
+      go: 1.14
       script:
         - go build .
         - go test -v ./...
