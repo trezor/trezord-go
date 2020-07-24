@@ -40,6 +40,10 @@
 #include "windows_common.h"
 #include "windows_winusb.h"
 
+#if defined(interface)
+#undef interface
+#endif
+
 #define HANDLE_VALID(h) (((h) != NULL) && ((h) != INVALID_HANDLE_VALUE))
 
 // The below macro is used in conjunction with safe loops.
