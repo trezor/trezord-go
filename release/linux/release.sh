@@ -39,14 +39,11 @@ for TYPE in "deb" "rpm"; do
         linux-amd64-rpm)
             ARCH=x86_64
             ;;
-        linux-arm-7-deb)
-            ARCH=armhf
-            ;;
-        linux-arm-7-rpm)
-            ARCH=armv7hl
-            ;;
-        linux-arm64-*)
+        linux-arm64-deb)
             ARCH=arm64
+            ;;
+        linux-arm64-rpm)
+            ARCH=aarch64
             ;;
     esac
     fpm \
