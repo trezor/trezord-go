@@ -232,6 +232,11 @@ func corsValidator() (OriginValidator, error) {
 		return nil, err
 	}
 
+	trezorOnionRegex, err := regexp.Compile(`^https?://trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
+	if err != nil {
+		return nil, err
+	}
+
 	// `localhost:8xxx` and `5xxx` are added for easing local development.
 	localRegex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	if err != nil {
@@ -239,20 +244,12 @@ func corsValidator() (OriginValidator, error) {
 	}
 
 	// SatoshiLabs dev servers
-	devRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
+	develRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
 	if err != nil {
 		return nil, err
 	}
 
 	v := func(origin string) bool {
-		if localRegex.MatchString(origin) {
-			return true
-		}
-
-		if devRegex.MatchString(origin) {
-			return true
-		}
-
 		// `null` is for electron apps or chrome extensions.
 		// commented out for now
 		// if origin == "null" {
@@ -260,6 +257,18 @@ func corsValidator() (OriginValidator, error) {
 		// }
 
 		if trezorRegex.MatchString(origin) {
+			return true
+		}
+
+		if trezorOnionRegex.MatchString(origin) {
+			return true
+		}
+
+		if localRegex.MatchString(origin) {
+			return true
+		}
+
+		if develRegex.MatchString(origin) {
 			return true
 		}
 
