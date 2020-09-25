@@ -18,7 +18,7 @@ install -D -m 0644 /release/trezord.service ./usr/lib/systemd/system/trezord.ser
 GPG_PRIVKEY=/release/privkey.asc
 if [ -r $GPG_PRIVKEY ]; then
     export GPG_TTY=$(tty)
-    export LC_ALL=en_US.UTF-8
+    export LC_ALL=C.UTF-8
     gpg --import /release/privkey.asc
     GPG_SIGN=gpg
 fi
