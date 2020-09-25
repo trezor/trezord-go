@@ -13,4 +13,4 @@ RUN dnf install -y autoconf automake libtool make
 RUN gem install fpm --no-document
 
 # install package signing tools
-RUN dnf install -y rpm-sign
+RUN dnf install -y rpm-sign gnupg2 pinentry
