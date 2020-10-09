@@ -46,11 +46,13 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 	r.HandleFunc("/debug/call/{session}", api.CallDebug)
 	r.HandleFunc("/debug/post/{session}", api.PostDebug)
 	r.HandleFunc("/debug/read/{session}", api.ReadDebug)
-	corsv, err := corsValidator()
-	if err != nil {
-		return err
+	if !core.IsDebugBinary() {
+		corsv, err := corsValidator()
+		if err != nil {
+			return err
+		}
+		r.Use(CORS(corsv))
 	}
-	r.Use(CORS(corsv))
 	return nil
 }
 

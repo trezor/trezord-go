@@ -140,6 +140,9 @@ func main() {
 	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
 
 	stderrLogger.Printf("trezord v%s is starting.", version)
+	if core.IsDebugBinary() {
+		stderrLogger.Print("DEBUG mode enabled! Please contact Trezor support in case you did not initiate this.")
+	}
 
 	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
