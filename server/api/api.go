@@ -232,7 +232,7 @@ func corsValidator() (OriginValidator, error) {
 		return nil, err
 	}
 
-	trezorOnionRegex, err := regexp.Compile(`^https?://trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
+	trezorOnionRegex, err := regexp.Compile(`^https?://([[:alnum:]\-_]+\.)*trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
 	if err != nil {
 		return nil, err
 	}

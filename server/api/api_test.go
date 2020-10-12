@@ -10,18 +10,28 @@ func TestOriginValidator(t *testing.T) {
 		origin string
 		allow  bool
 	}{
-		// Trezor.io should be allowed
+		// HTTPS for trezor.io should be allowed
 		{"https://trezor.io", true},
 		{"https://foo.trezor.io", true},
 		{"https://bar.foo.trezor.io", true},
+		// but HTTP for trezor.io should be denied
+		{"http://trezor.io", false},
+		{"http://foo.trezor.io", false},
+		{"http://bar.foo.trezor.io", false},
 		// Fakes should be denied
 		{"https://faketrezor.io", false},
 		{"https://foo.faketrezor.io", false},
 		{"https://foo.trezor.ioo", false},
-		{"http://foo.trezor.io", false},
+		{"http://faketrezor.io", false},
+		{"http://foo.faketrezor.io", false},
+		{"http://foo.trezor.ioo", false},
 		// Trezor onion should be allowed
 		{"http://trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
 		{"https://trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"http://foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"https://foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"http://bar.foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"https://bar.foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
 		// Fake trezor onions should be denied
 		{"http://trezoriovpjcahpzkrewelclulmszwbqpzmzgub48gbcjlvluxtruqad.onion", false},
 		{"https://trezoriovpjcahpzkrewelclulmszwbqpzmzgub48gbcjlvluxtruqad.onion", false},
@@ -29,6 +39,14 @@ func TestOriginValidator(t *testing.T) {
 		{"https://trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqbd.onion", false},
 		{"http://trezoriowpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", false},
 		{"https://trezoriowpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", false},
+		{"http://foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub48gbcjlvluxtruqad.onion", false},
+		{"https://bar.foo.trezoriovpjcahpzkrewelclulmszwbqpzmzgub48gbcjlvluxtruqad.onion", false},
+		{"http://faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"https://faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"http://foo.faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"https://foo.faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"http://bar.foo.faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
+		{"https://bar.foo.faketrezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion", true},
 		// Localhost 8xxx and 5xxx should be allowed for local development
 		{"https://localhost:8000", true},
 		{"http://localhost:8000", true},
