@@ -36,6 +36,7 @@
 #include <sys/mman.h>
 #include <sys/utsname.h>
 #include <sys/vfs.h>
+#include <unistd.h>
 
 /* sysfs vs usbfs:
  * opening a usbfs node causes the device to be resumed, so we attempt to
@@ -93,6 +94,11 @@ static int sysfs_available = -1;
 
 /* how many times have we initted (and not exited) ? */
 static int init_count = 0;
+
+#ifdef __ANDROID__
+/* have no authority to operate usb device directly */
+static int weak_authority = 0;
+#endif
 
 /* Serialize hotplug start/stop */
 static usbi_mutex_static_t linux_hotplug_startstop_lock = USBI_MUTEX_INITIALIZER;
@@ -380,6 +386,12 @@ static int op_init(struct libusb_context *ctx)
 		}
 	}
 
+#ifdef __ANDROID__
+	if (weak_authority) {
+		return LIBUSB_SUCCESS;
+	}
+#endif
+
 	usbi_mutex_static_lock(&linux_hotplug_startstop_lock);
 	r = LIBUSB_SUCCESS;
 	if (init_count == 0) {
@@ -410,6 +422,23 @@ static void op_exit(struct libusb_context *ctx)
 		linux_stop_event_monitor();
 	}
 	usbi_mutex_static_unlock(&linux_hotplug_startstop_lock);
+}
+
+static int op_set_option(struct libusb_context *ctx, enum libusb_option option, va_list ap)
+{
+	UNUSED(ctx);
+	UNUSED(ap);
+
+	switch (option) {
+#ifdef __ANDROID__
+	case LIBUSB_OPTION_WEAK_AUTHORITY:
+		usbi_dbg("set libusb has weak authority");
+		weak_authority = 1;
+		return LIBUSB_SUCCESS;
+#endif
+	default:
+		return LIBUSB_ERROR_NOT_SUPPORTED;
+	}
 }
 
 static int linux_scan_devices(struct libusb_context *ctx)
@@ -834,6 +863,26 @@ static int usbfs_get_active_config(struct libusb_device *dev, int fd)
 	return LIBUSB_SUCCESS;
 }
 
+static enum libusb_speed usbfs_get_speed(struct libusb_context *ctx, int fd)
+{
+	int r;
+
+	r = ioctl(fd, IOCTL_USBFS_GET_SPEED, NULL);
+	switch (r) {
+	case USBFS_SPEED_UNKNOWN:	return LIBUSB_SPEED_UNKNOWN;
+	case USBFS_SPEED_LOW:		return LIBUSB_SPEED_LOW;
+	case USBFS_SPEED_FULL:		return LIBUSB_SPEED_FULL;
+	case USBFS_SPEED_HIGH:		return LIBUSB_SPEED_HIGH;
+	case USBFS_SPEED_WIRELESS:	return LIBUSB_SPEED_HIGH;
+	case USBFS_SPEED_SUPER:		return LIBUSB_SPEED_SUPER;
+	case USBFS_SPEED_SUPER_PLUS:	return LIBUSB_SPEED_SUPER_PLUS;
+	default:
+		usbi_warn(ctx, "Error getting device speed: %d", r);
+	}
+
+	return LIBUSB_SPEED_UNKNOWN;
+}
+
 static int initialize_device(struct libusb_device *dev, uint8_t busnum,
 	uint8_t devaddr, const char *sysfs_dir, int wrapped_fd)
 {
@@ -864,6 +913,8 @@ static int initialize_device(struct libusb_device *dev, uint8_t busnum,
 				usbi_warn(ctx, "unknown device speed: %d Mbps", speed);
 			}
 		}
+	} else if (wrapped_fd >= 0) {
+		dev->speed = usbfs_get_speed(ctx, wrapped_fd);
 	}
 
 	/* cache descriptors in memory */
@@ -991,7 +1042,7 @@ static int linux_get_parent_info(struct libusb_device *dev, const char *sysfs_di
 retry:
 	/* find the parent in the context */
 	usbi_mutex_lock(&ctx->usb_devs_lock);
-	list_for_each_entry(it, &ctx->usb_devs, list, struct libusb_device) {
+	for_each_device(ctx, it) {
 		struct linux_device_priv *priv = usbi_get_device_priv(it);
 
 		if (priv->sysfs_dir) {
@@ -1070,7 +1121,7 @@ void linux_hotplug_enumerate(uint8_t busnum, uint8_t devaddr, const char *sys_na
 	struct libusb_context *ctx;
 
 	usbi_mutex_static_lock(&active_contexts_lock);
-	list_for_each_entry(ctx, &active_contexts_list, list, struct libusb_context) {
+	for_each_context(ctx) {
 		linux_enumerate_device(ctx, busnum, devaddr, sys_name);
 	}
 	usbi_mutex_static_unlock(&active_contexts_lock);
@@ -1083,7 +1134,7 @@ void linux_device_disconnected(uint8_t busnum, uint8_t devaddr)
 	unsigned long session_id = busnum << 8 | devaddr;
 
 	usbi_mutex_static_lock(&active_contexts_lock);
-	list_for_each_entry(ctx, &active_contexts_list, list, struct libusb_context) {
+	for_each_context(ctx) {
 		dev = usbi_get_device_by_session_id(ctx, session_id);
 		if (dev) {
 			usbi_disconnect_device(dev);
@@ -1266,7 +1317,7 @@ static int initialize_handle(struct libusb_device_handle *handle, int fd)
 		hpriv->caps = USBFS_CAP_BULK_CONTINUATION;
 	}
 
-	return usbi_add_pollfd(HANDLE_CTX(handle), hpriv->fd, POLLOUT);
+	return usbi_add_event_source(HANDLE_CTX(handle), hpriv->fd, POLLOUT);
 }
 
 static int op_wrap_sys_device(struct libusb_context *ctx,
@@ -1352,7 +1403,7 @@ static void op_close(struct libusb_device_handle *dev_handle)
 
 	/* fd may have already been removed by POLLERR condition in op_handle_events() */
 	if (!hpriv->fd_removed)
-		usbi_remove_pollfd(HANDLE_CTX(dev_handle), hpriv->fd);
+		usbi_remove_event_source(HANDLE_CTX(dev_handle), hpriv->fd);
 	if (!hpriv->fd_keep)
 		close(hpriv->fd);
 }
@@ -1845,7 +1896,7 @@ static int submit_bulk_transfer(struct usbi_transfer *itransfer)
 	 * a time, but there is a big performance gain doing it this way.
 	 *
 	 * Newer versions lift the 16k limit (USBFS_CAP_NO_PACKET_SIZE_LIM),
-	 * using arbritary large transfers can still be a bad idea though, as
+	 * using arbitrary large transfers can still be a bad idea though, as
 	 * the kernel needs to allocate physical contiguous memory for this,
 	 * which may fail for large buffers.
 	 *
@@ -2614,22 +2665,24 @@ static int reap_for_handle(struct libusb_device_handle *handle)
 }
 
 static int op_handle_events(struct libusb_context *ctx,
-	struct pollfd *fds, usbi_nfds_t nfds, int num_ready)
+	void *event_data, unsigned int count, unsigned int num_ready)
 {
-	usbi_nfds_t n;
+	struct pollfd *fds = event_data;
+	unsigned int n;
 	int r;
 
 	usbi_mutex_lock(&ctx->open_devs_lock);
-	for (n = 0; n < nfds && num_ready > 0; n++) {
+	for (n = 0; n < count && num_ready > 0; n++) {
 		struct pollfd *pollfd = &fds[n];
 		struct libusb_device_handle *handle;
 		struct linux_device_handle_priv *hpriv = NULL;
+		int reap_count;
 
 		if (!pollfd->revents)
 			continue;
 
 		num_ready--;
-		list_for_each_entry(handle, &ctx->open_devs, list, struct libusb_device_handle) {
+		for_each_open_device(ctx, handle) {
 			hpriv = usbi_get_device_handle_priv(handle);
 			if (hpriv->fd == pollfd->fd)
 				break;
@@ -2645,7 +2698,7 @@ static int op_handle_events(struct libusb_context *ctx,
 			/* remove the fd from the pollfd set so that it doesn't continuously
 			 * trigger an event, and flag that it has been removed so op_close()
 			 * doesn't try to remove it a second time */
-			usbi_remove_pollfd(HANDLE_CTX(handle), hpriv->fd);
+			usbi_remove_event_source(HANDLE_CTX(handle), hpriv->fd);
 			hpriv->fd_removed = 1;
 
 			/* device will still be marked as attached if hotplug monitor thread
@@ -2666,9 +2719,11 @@ static int op_handle_events(struct libusb_context *ctx,
 			continue;
 		}
 
+		reap_count = 0;
 		do {
 			r = reap_for_handle(handle);
-		} while (r == 0);
+		} while (r == 0 && ++reap_count <= 25);
+
 		if (r == 1 || r == LIBUSB_ERROR_NO_DEVICE)
 			continue;
 		else if (r < 0)
@@ -2686,6 +2741,7 @@ const struct usbi_os_backend usbi_backend = {
 	.caps = USBI_CAP_HAS_HID_ACCESS|USBI_CAP_SUPPORTS_DETACH_KERNEL_DRIVER,
 	.init = op_init,
 	.exit = op_exit,
+	.set_option = op_set_option,
 	.hotplug_poll = op_hotplug_poll,
 	.get_active_config_descriptor = op_get_active_config_descriptor,
 	.get_config_descriptor = op_get_config_descriptor,

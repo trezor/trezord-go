@@ -21,6 +21,7 @@
 
 #include "libusbi.h"
 
+#include <errno.h>
 #if defined(__ANDROID__)
 # include <unistd.h>
 #elif defined(__HAIKU__)
@@ -38,36 +39,55 @@
 # include <sys/lwp.h>
 #endif
 
+void usbi_cond_init(pthread_cond_t *cond)
+{
+#ifdef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	pthread_condattr_t condattr;
+
+	PTHREAD_CHECK(pthread_condattr_init(&condattr));
+	PTHREAD_CHECK(pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC));
+	PTHREAD_CHECK(pthread_cond_init(cond, &condattr));
+	PTHREAD_CHECK(pthread_condattr_destroy(&condattr));
+#else
+	PTHREAD_CHECK(pthread_cond_init(cond, NULL));
+#endif
+}
+
 int usbi_cond_timedwait(pthread_cond_t *cond,
 	pthread_mutex_t *mutex, const struct timeval *tv)
 {
 	struct timespec timeout;
 	int r;
 
-	r = usbi_clock_gettime(USBI_CLOCK_REALTIME, &timeout);
-	if (r < 0)
-		return r;
+#ifdef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	usbi_get_monotonic_time(&timeout);
+#else
+	usbi_get_real_time(&timeout);
+#endif
 
 	timeout.tv_sec += tv->tv_sec;
-	timeout.tv_nsec += tv->tv_usec * 1000;
-	while (timeout.tv_nsec >= 1000000000L) {
-		timeout.tv_nsec -= 1000000000L;
+	timeout.tv_nsec += tv->tv_usec * 1000L;
+	if (timeout.tv_nsec >= NSEC_PER_SEC) {
+		timeout.tv_nsec -= NSEC_PER_SEC;
 		timeout.tv_sec++;
 	}
 
-	return pthread_cond_timedwait(cond, mutex, &timeout);
+	r = pthread_cond_timedwait(cond, mutex, &timeout);
+	if (r == 0)
+		return 0;
+	else if (r == ETIMEDOUT)
+		return LIBUSB_ERROR_TIMEOUT;
+	else
+		return LIBUSB_ERROR_OTHER;
 }
 
-int usbi_get_tid(void)
+unsigned int usbi_get_tid(void)
 {
-#ifndef _WIN32
-	static _Thread_local int tid;
-
-	if (tid)
-		return tid;
-#else
+	static _Thread_local unsigned int tl_tid;
 	int tid;
-#endif
+
+	if (tl_tid)
+		return tl_tid;
 
 #if defined(__ANDROID__)
 	tid = gettid();
@@ -94,8 +114,6 @@ int usbi_get_tid(void)
 	tid = syscall(SYS_getthrid);
 #elif defined(__sun__)
 	tid = _lwp_self();
-#elif defined(_WIN32)
-	tid = (int)GetCurrentThreadId();
 #else
 	tid = -1;
 #endif
@@ -107,5 +125,5 @@ int usbi_get_tid(void)
 		tid = (int)(intptr_t)pthread_self();
 	}
 
-	return tid;
+	return tl_tid = (unsigned int)tid;
 }

@@ -50,8 +50,8 @@
  * expecting additional events. Returning 0 will rearm the callback and 1 will cause
  * the callback to be deregistered. Note that when callbacks are called from
  * libusb_hotplug_register_callback() because of the \ref LIBUSB_HOTPLUG_ENUMERATE
- * flag, the callback return value is ignored, iow you cannot cause a callback
- * to be deregistered by returning 1 when it is called from
+ * flag, the callback return value is ignored. In other words, you cannot cause a
+ * callback to be deregistered by returning 1 when it is called from
  * libusb_hotplug_register_callback().
  *
  * Callbacks for a particular context are automatically deregistered by libusb_exit().
@@ -184,7 +184,7 @@ void usbi_hotplug_match(struct libusb_context *ctx, struct libusb_device *dev,
 
 	usbi_mutex_lock(&ctx->hotplug_cbs_lock);
 
-	list_for_each_entry_safe(hotplug_cb, next, &ctx->hotplug_cbs, list, struct libusb_hotplug_callback) {
+	for_each_hotplug_cb_safe(ctx, hotplug_cb, next) {
 		if (hotplug_cb->flags & USBI_HOTPLUG_NEEDS_FREE) {
 			/* process deregistration in usbi_hotplug_deregister() */
 			continue;
@@ -206,8 +206,8 @@ void usbi_hotplug_match(struct libusb_context *ctx, struct libusb_device *dev,
 void usbi_hotplug_notification(struct libusb_context *ctx, struct libusb_device *dev,
 	libusb_hotplug_event event)
 {
-	int pending_events;
 	struct libusb_hotplug_message *message = calloc(1, sizeof(*message));
+	unsigned int event_flags;
 
 	if (!message) {
 		usbi_err(ctx, "error allocating hotplug message");
@@ -220,10 +220,11 @@ void usbi_hotplug_notification(struct libusb_context *ctx, struct libusb_device 
 	/* Take the event data lock and add this message to the list.
 	 * Only signal an event if there are no prior pending events. */
 	usbi_mutex_lock(&ctx->event_data_lock);
-	pending_events = usbi_pending_events(ctx);
+	event_flags = ctx->event_flags;
+	ctx->event_flags |= USBI_EVENT_HOTPLUG_MSG_PENDING;
 	list_add_tail(&message->list, &ctx->hotplug_msgs);
-	if (!pending_events)
-		usbi_signal_event(ctx);
+	if (!event_flags)
+		usbi_signal_event(&ctx->event);
 	usbi_mutex_unlock(&ctx->event_data_lock);
 }
 
@@ -331,7 +332,7 @@ void API_EXPORTED libusb_hotplug_deregister_callback(libusb_context *ctx,
 	ctx = usbi_get_context(ctx);
 
 	usbi_mutex_lock(&ctx->hotplug_cbs_lock);
-	list_for_each_entry(hotplug_cb, &ctx->hotplug_cbs, list, struct libusb_hotplug_callback) {
+	for_each_hotplug_cb(ctx, hotplug_cb) {
 		if (callback_handle == hotplug_cb->handle) {
 			/* Mark this callback for deregistration */
 			hotplug_cb->flags |= USBI_HOTPLUG_NEEDS_FREE;
@@ -341,13 +342,13 @@ void API_EXPORTED libusb_hotplug_deregister_callback(libusb_context *ctx,
 	usbi_mutex_unlock(&ctx->hotplug_cbs_lock);
 
 	if (deregistered) {
-		int pending_events;
+		unsigned int event_flags;
 
 		usbi_mutex_lock(&ctx->event_data_lock);
-		pending_events = usbi_pending_events(ctx);
+		event_flags = ctx->event_flags;
 		ctx->event_flags |= USBI_EVENT_HOTPLUG_CB_DEREGISTERED;
-		if (!pending_events)
-			usbi_signal_event(ctx);
+		if (!event_flags)
+			usbi_signal_event(&ctx->event);
 		usbi_mutex_unlock(&ctx->event_data_lock);
 	}
 }
@@ -369,7 +370,7 @@ void * LIBUSB_CALL libusb_hotplug_get_user_data(libusb_context *ctx,
 	ctx = usbi_get_context(ctx);
 
 	usbi_mutex_lock(&ctx->hotplug_cbs_lock);
-	list_for_each_entry(hotplug_cb, &ctx->hotplug_cbs, list, struct libusb_hotplug_callback) {
+	for_each_hotplug_cb(ctx, hotplug_cb) {
 		if (callback_handle == hotplug_cb->handle) {
 			user_data = hotplug_cb->user_data;
 		}
@@ -384,7 +385,7 @@ void usbi_hotplug_deregister(struct libusb_context *ctx, int forced)
 	struct libusb_hotplug_callback *hotplug_cb, *next;
 
 	usbi_mutex_lock(&ctx->hotplug_cbs_lock);
-	list_for_each_entry_safe(hotplug_cb, next, &ctx->hotplug_cbs, list, struct libusb_hotplug_callback) {
+	for_each_hotplug_cb_safe(ctx, hotplug_cb, next) {
 		if (forced || (hotplug_cb->flags & USBI_HOTPLUG_NEEDS_FREE)) {
 			usbi_dbg("freeing hotplug cb %p with handle %d", hotplug_cb,
 				 hotplug_cb->handle);

@@ -23,7 +23,6 @@
 #include <assert.h>
 #include <time.h>
 #include <ctype.h>
-#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,7 +336,7 @@ static void darwin_devices_attached (void *ptr, io_iterator_t add_devices) {
     }
 
     /* add this device to each active context's device list */
-    list_for_each_entry(ctx, &active_contexts_list, list, struct libusb_context) {
+    for_each_context(ctx) {
       process_new_device (ctx, cached_device, old_session_id);
     }
 
@@ -381,7 +380,7 @@ static void darwin_devices_detached (void *ptr, io_iterator_t rem_devices) {
         if (old_device->in_reenumerate) {
           /* device is re-enumerating. do not dereference the device at this time. libusb_reset_device()
            * will deref if needed. */
-          usbi_dbg ("detected device detatched due to re-enumeration");
+          usbi_dbg ("detected device detached due to re-enumeration");
 
           /* the device object is no longer usable so go ahead and release it */
           if (old_device->device) {
@@ -403,7 +402,7 @@ static void darwin_devices_detached (void *ptr, io_iterator_t rem_devices) {
       continue;
     }
 
-    list_for_each_entry(ctx, &active_contexts_list, list, struct libusb_context) {
+    for_each_context(ctx) {
       usbi_dbg ("notifying context %p of device disconnect", ctx);
 
       dev = usbi_get_device_by_session_id(ctx, (unsigned long) session);
@@ -2148,31 +2147,34 @@ static enum libusb_transfer_status darwin_transfer_status (struct usbi_transfer 
 static int darwin_handle_transfer_completion (struct usbi_transfer *itransfer) {
   struct libusb_transfer *transfer = USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
   struct darwin_transfer_priv *tpriv = usbi_get_transfer_priv(itransfer);
-  bool isIsoc      = LIBUSB_TRANSFER_TYPE_ISOCHRONOUS == transfer->type;
-  bool isBulk      = LIBUSB_TRANSFER_TYPE_BULK == transfer->type;
-  bool isControl   = LIBUSB_TRANSFER_TYPE_CONTROL == transfer->type;
-  bool isInterrupt = LIBUSB_TRANSFER_TYPE_INTERRUPT == transfer->type;
-  int i;
+  const unsigned char max_transfer_type = LIBUSB_TRANSFER_TYPE_BULK_STREAM;
+  const char *transfer_types[max_transfer_type + 1] = {"control", "isoc", "bulk", "interrupt", "bulk-stream"};
+  bool is_isoc = LIBUSB_TRANSFER_TYPE_ISOCHRONOUS == transfer->type;
 
-  if (!isIsoc && !isBulk && !isControl && !isInterrupt) {
+  if (transfer->type > max_transfer_type) {
     usbi_err (TRANSFER_CTX(transfer), "unknown endpoint type %d", transfer->type);
     return LIBUSB_ERROR_INVALID_PARAM;
   }
 
-  usbi_dbg ("handling %s completion with kernel status %d",
-             isControl ? "control" : isBulk ? "bulk" : isIsoc ? "isoc" : "interrupt", tpriv->result);
+  if (NULL == tpriv) {
+    usbi_err (TRANSFER_CTX(transfer), "malformed request is missing transfer priv");
+    return LIBUSB_ERROR_INVALID_PARAM;
+  }
+
+  usbi_dbg ("handling transfer completion type %s with kernel status %d", transfer_types[transfer->type], tpriv->result);
 
   if (kIOReturnSuccess == tpriv->result || kIOReturnUnderrun == tpriv->result) {
-    if (isIsoc && tpriv->isoc_framelist) {
+    if (is_isoc && tpriv->isoc_framelist) {
       /* copy isochronous results back */
 
-      for (i = 0; i < transfer->num_iso_packets ; i++) {
+      for (int i = 0; i < transfer->num_iso_packets ; i++) {
         struct libusb_iso_packet_descriptor *lib_desc = &transfer->iso_packet_desc[i];
         lib_desc->status = darwin_transfer_status (itransfer, tpriv->isoc_framelist[i].frStatus);
         lib_desc->actual_length = tpriv->isoc_framelist[i].frActCount;
       }
-    } else if (!isIsoc)
+    } else if (!is_isoc) {
       itransfer->transferred += tpriv->size;
+    }
   }
 
   /* it is ok to handle cancelled transfers without calling usbi_handle_transfer_cancellation (we catch timeout transfers) */
@@ -2180,30 +2182,24 @@ static int darwin_handle_transfer_completion (struct usbi_transfer *itransfer) {
 }
 
 #if !defined(HAVE_CLOCK_GETTIME)
-int usbi_clock_gettime(int clk_id, struct timespec *tp) {
+void usbi_get_monotonic_time(struct timespec *tp) {
   mach_timespec_t sys_time;
-  clock_serv_t clock_ref;
 
-  switch (clk_id) {
-  case USBI_CLOCK_REALTIME:
-    /* CLOCK_REALTIME represents time since the epoch */
-    clock_ref = clock_realtime;
-    break;
-  case USBI_CLOCK_MONOTONIC:
-    /* use system boot time as reference for the monotonic clock */
-    clock_ref = clock_monotonic;
-    break;
-  default:
-    errno = EINVAL;
-    return -1;
-  }
-
-  clock_get_time (clock_ref, &sys_time);
+  /* use system boot time as reference for the monotonic clock */
+  clock_get_time (clock_monotonic, &sys_time);
 
   tp->tv_sec  = sys_time.tv_sec;
   tp->tv_nsec = sys_time.tv_nsec;
+}
 
-  return 0;
+void usbi_get_real_time(struct timespec *tp) {
+  mach_timespec_t sys_time;
+
+  /* CLOCK_REALTIME represents time since the epoch */
+  clock_get_time (clock_realtime, &sys_time);
+
+  tp->tv_sec  = sys_time.tv_sec;
+  tp->tv_nsec = sys_time.tv_nsec;
 }
 #endif
 
@@ -2215,7 +2211,7 @@ static int darwin_alloc_streams (struct libusb_device_handle *dev_handle, uint32
   uint8_t pipeRef;
   int rc, i;
 
-  /* find the mimimum number of supported streams on the endpoint list */
+  /* find the minimum number of supported streams on the endpoint list */
   for (i = 0 ; i < num_endpoints ; ++i) {
     if (0 != (rc = ep_to_pipeRef (dev_handle, endpoints[i], &pipeRef, NULL, &cInterface))) {
       return rc;
