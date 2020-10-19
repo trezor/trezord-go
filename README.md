@@ -27,6 +27,10 @@ directory will produce a new executable at the same place. Running
 `go build github.com/trezor/trezord-go` will produce a new executable in `$GOPATH/bin`. Both are built
 from your local copy in `$GOPATH/src`.
 
+#### Debug mode
+
+When built with `-tags debug` a debug mode is enabled. This disables CORS which is helpful for local development and when run inside a docker image.
+
 ## Update from source
 ```
 go clean

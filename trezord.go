@@ -139,8 +139,7 @@ func main() {
 
 	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
 
-	stderrLogger.Printf("trezord v%s is starting.", version)
-
+	printWelcomeInfo(stderrLogger)
 	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
 	longMemoryWriter.Log(fmt.Sprintf("UDP port count - %d", len(ports)))
@@ -181,6 +180,13 @@ func main() {
 	}
 
 	longMemoryWriter.Log("Main ended successfully")
+}
+
+func printWelcomeInfo(stderrLogger *log.Logger) {
+	stderrLogger.Printf("trezord v%s is starting.", version)
+	if core.IsDebugBinary() {
+		stderrLogger.Print("!! DEBUG mode enabled! Please contact Trezor support in case you did not initiate this. !!")
+	}
 }
 
 // Does OS allow sync canceling via our custom libusb patches?
