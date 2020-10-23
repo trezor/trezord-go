@@ -19,8 +19,8 @@ copy:
 	cp linux/build/*.deb linux/build/*.rpm installers
 
 gpg:
-	gpg --armor --detach-sig installers/trezor-bridge*.exe
-	gpg --armor --detach-sig installers/*.pkg
+	gpg -u 54067D8BBF00554181B5AB8F26A3A56662F0E7E2 --armor --detach-sig installers/trezor-bridge*.exe
+	gpg -u 54067D8BBF00554181B5AB8F26A3A56662F0E7E2 --armor --detach-sig installers/*.pkg
 
 clean:
 	rm -rf installers
