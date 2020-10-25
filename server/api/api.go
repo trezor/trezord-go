@@ -229,34 +229,36 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 }
 
 func corsValidator() (OriginValidator, error) {
+	// *.trezor.io
 	trezorRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 	if err != nil {
 		return nil, err
 	}
 
+	// *.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion
 	trezorOnionRegex, err := regexp.Compile(`^https?://([[:alnum:]\-_]+\.)*trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
 	if err != nil {
 		return nil, err
 	}
 
-	// `localhost:8xxx` and `5xxx` are added for easing local development.
+	// `localhost:8xxx` and `5xxx` are added for easing local development
 	localRegex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	if err != nil {
 		return nil, err
 	}
 
-	// SatoshiLabs dev servers
+	// SatoshiLabs development servers
 	develRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
 	if err != nil {
 		return nil, err
 	}
 
 	v := func(origin string) bool {
-		// `null` is for electron apps or chrome extensions.
-		// commented out for now
-		// if origin == "null" {
-		//	return true
-		// }
+		// * Electron
+		// * Tor Browser when `network.http.referer.hideOnionSource` is set to `true` (default)
+		if origin == "null" {
+			return true
+		}
 
 		if trezorRegex.MatchString(origin) {
 			return true
