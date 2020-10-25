@@ -112,8 +112,8 @@ Section "Start Menu Shortcuts"
 
   CreateDirectory "$SMPROGRAMS\TREZOR Bridge"
   CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-v -l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
-  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-v -l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
+  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
+  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
 SectionEnd
 
 Var CMDRESULT
