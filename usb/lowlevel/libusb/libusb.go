@@ -17,7 +17,7 @@ package libusb
 
 extern void goLibusbLog(const char *s);
 
-// #define ENABLE_LOGGING 1
+#define ENABLE_LOGGING 1
 // #define ENABLE_DEBUG_LOGGING 1
 // #define ENUM_DEBUG
 #define DEFAULT_VISIBILITY
