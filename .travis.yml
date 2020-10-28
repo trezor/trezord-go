@@ -20,6 +20,7 @@ matrix:
         - go build .
         - go test -v ./...
     - env: TEST=build-xgo-linux
+      go: 1.12
       sudo: true
       script:
         - docker pull karalabe/xgo-latest
@@ -27,6 +28,7 @@ matrix:
         - cd release/linux
         - make all
     - env: TEST=build-xgo-windows
+      go: 1.12
       sudo: true
       script:
         - docker pull karalabe/xgo-latest
@@ -34,6 +36,7 @@ matrix:
         - cd release/windows
         - make all
     - env: TEST=build-xgo-macos
+      go: 1.12
       sudo: true
       script:
         - docker pull karalabe/xgo-latest
@@ -41,6 +44,7 @@ matrix:
         - cd release/macos
         - make all
     - env: TEST=golangci
+      go: 1.12
       script:
         - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.0
         - golangci-lint run
