@@ -4,9 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.30] - unreleased
 - Lock mutex when deleting session to avoid concurrent read and write (#190)
-- hidapi: update to unstable 3fe9b78
+- hidapi: update to 0.10.0
 - libusb: update to unstable c3deb6d
 - libusb: update Windows API level to 6.0 and macOS to 10.7
+- allow Trezor onion domain
 
 ## [2.0.29] - 2020-05-05
 
