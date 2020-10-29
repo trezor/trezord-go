@@ -45,17 +45,10 @@ matrix:
         - go get github.com/karalabe/xgo
         - cd release/macos
         - make all
-    - env: TEST=go-vet
+    - env: TEST=golangci
       script:
-        - go vet ./...
-    - env: TEST=go-fmt
-      script:
-        - gofmt -d *.go ./server ./server/status ./server/api ./usb ./wire ./core ./memorywriter
-    - env: TEST=metalinter
-      script:
-        - go get -u github.com/alecthomas/gometalinter
-        - gometalinter --install
-        - gometalinter
+        - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.0
+        - golangci-lint run
     - env: TEST=version-check
       script:
         - diff -u VERSION <(grep "const version" trezord.go | cut -f 2 -d '"')

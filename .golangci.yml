@@ -1,0 +1,67 @@
+run:
+  deadline: 10m
+
+issues:
+  exclude-rules:
+
+    # Exclude underscore warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - stylecheck
+      path: usb/lowlevel/libusb/libusb.go
+      text: "should not use underscores in Go names"
+
+    # Exclude all cap warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - stylecheck
+      path: usb/lowlevel/libusb/libusb.go
+      text: "ALL_CAPS"
+
+    # Exclude long lines warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/libusb/libusb.go
+
+    # Exclude noinit warnings, too much work
+    # for a semi-vendored wrapper
+    - linters:
+        - lll
+      path: usb/lowlevel/hidapi/hid.go
+
+    # Before we split into internal/non-internal, ignore comments
+    - linters:
+        - stylecheck
+      text: "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+
+  exclude-use-default: false
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gosec
+    - stylecheck
+    - interfacer
+    - unconvert
+    - dupl
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - maligned
+    - depguard
+    - misspell
+    - lll
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gochecknoinits
+    - gocritic
+
+linters-settings:
+  gofmt:
+    # causes errors in old go
+    simplify: true
