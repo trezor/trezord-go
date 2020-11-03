@@ -18,17 +18,14 @@ issues:
       path: usb/lowlevel/libusb/libusb.go
       text: "ALL_CAPS"
 
-    # Exclude long lines warnings, too much work
-    # for a semi-vendored wrapper
     - linters:
-        - lll
+        - gocritic
       path: usb/lowlevel/libusb/libusb.go
 
-    # Exclude noinit warnings, too much work
-    # for a semi-vendored wrapper
     - linters:
-        - lll
-      path: usb/lowlevel/hidapi/hid.go
+        - unused
+        - deadcode
+      path: usb/lowlevel/hidapi/wchar.go
 
     # Before we split into internal/non-internal, ignore comments
     - linters:
@@ -53,7 +50,6 @@ linters:
     - maligned
     - depguard
     - misspell
-    - lll
     - unparam
     - nakedret
     - prealloc
