@@ -121,7 +121,7 @@ func bcd2str(x uint16) string {
 
 func indent(s string) string {
 	x := strings.Split(s, "\n")
-	for i, _ := range x {
+	for i := range x {
 		x[i] = fmt.Sprintf("%s%s", "  ", x[i])
 	}
 	return strings.Join(x, "\n")
@@ -370,7 +370,7 @@ const (
 
 // Flags for hotplug events.
 const (
-	//HOTPLUG_NO_FLAGS  = C.LIBUSB_HOTPLUG_NO_FLAGS
+	// HOTPLUG_NO_FLAGS  = C.LIBUSB_HOTPLUG_NO_FLAGS
 	HOTPLUG_ENUMERATE = C.LIBUSB_HOTPLUG_ENUMERATE
 )
 
@@ -458,7 +458,7 @@ func (x *C.struct_libusb_interface_descriptor) c2go() *Interface_Descriptor {
 	hdr.Len = int(x.bNumEndpoints)
 	hdr.Data = uintptr(unsafe.Pointer(x.endpoint))
 	endpoints := make([]*Endpoint_Descriptor, x.bNumEndpoints)
-	for i, _ := range endpoints {
+	for i := range endpoints {
 		endpoints[i] = (&list[i]).c2go()
 	}
 	return &Interface_Descriptor{
@@ -513,7 +513,7 @@ func (x *C.struct_libusb_interface) c2go() *Interface {
 	hdr.Len = int(x.num_altsetting)
 	hdr.Data = uintptr(unsafe.Pointer(x.altsetting))
 	altsetting := make([]*Interface_Descriptor, x.num_altsetting)
-	for i, _ := range altsetting {
+	for i := range altsetting {
 		altsetting[i] = (&list[i]).c2go()
 	}
 	return &Interface{
@@ -560,7 +560,7 @@ func (x *C.struct_libusb_config_descriptor) c2go() *Config_Descriptor {
 	hdr.Len = int(x.bNumInterfaces)
 	hdr.Data = uintptr(unsafe.Pointer(x._interface))
 	interfaces := make([]*Interface, x.bNumInterfaces)
-	for i, _ := range interfaces {
+	for i := range interfaces {
 		interfaces[i] = (&list[i]).c2go()
 	}
 	return &Config_Descriptor{
@@ -591,7 +591,7 @@ func (x *Config_Descriptor) String() string {
 	s = append(s, fmt.Sprintf("MaxPower %d", x.MaxPower))
 	for i, v := range x.Interface {
 		s = append(s, fmt.Sprintf("Interface %d:", i))
-		s = append(s, indent(fmt.Sprintf(Interface_str(v))))
+		s = append(s, indent(fmt.Sprint(Interface_str(v))))
 	}
 	s = append(s, fmt.Sprintf("extra %s", Extra_str(x.Extra)))
 	return strings.Join(s, "\n")
@@ -665,7 +665,7 @@ func (x *C.struct_libusb_bos_descriptor) c2go() *BOS_Descriptor {
 	hdr.Len = int(x.bNumDeviceCaps)
 	hdr.Data = uintptr(unsafe.Pointer(C.dev_capability_ptr(x)))
 	dev_capability := make([]*BOS_Dev_Capability_Descriptor, x.bNumDeviceCaps)
-	for i, _ := range dev_capability {
+	for i := range dev_capability {
 		dev_capability[i] = list[i].c2go()
 	}
 	return &BOS_Descriptor{
@@ -783,8 +783,8 @@ type Device_Descriptor struct {
 	BDeviceSubClass    uint8
 	BDeviceProtocol    uint8
 	BMaxPacketSize0    uint8
-	IdVendor           uint16
-	IdProduct          uint16
+	IDVendor           uint16
+	IDProduct          uint16
 	BcdDevice          uint16
 	IManufacturer      uint8
 	IProduct           uint8
@@ -802,8 +802,8 @@ func (x *C.struct_libusb_device_descriptor) c2go() *Device_Descriptor {
 		BDeviceSubClass:    uint8(x.bDeviceSubClass),
 		BDeviceProtocol:    uint8(x.bDeviceProtocol),
 		BMaxPacketSize0:    uint8(x.bMaxPacketSize0),
-		IdVendor:           uint16(x.idVendor),
-		IdProduct:          uint16(x.idProduct),
+		IDVendor:           uint16(x.idVendor),
+		IDProduct:          uint16(x.idProduct),
 		BcdDevice:          uint16(x.bcdDevice),
 		IManufacturer:      uint8(x.iManufacturer),
 		IProduct:           uint8(x.iProduct),
@@ -822,8 +822,8 @@ func (x *Device_Descriptor) String() string {
 	s = append(s, fmt.Sprintf("bDeviceSubClass %d", x.BDeviceSubClass))
 	s = append(s, fmt.Sprintf("bDeviceProtocol %d", x.BDeviceProtocol))
 	s = append(s, fmt.Sprintf("bMaxPacketSize0 %d", x.BMaxPacketSize0))
-	s = append(s, fmt.Sprintf("idVendor 0x%04x", x.IdVendor))
-	s = append(s, fmt.Sprintf("idProduct 0x%04x", x.IdProduct))
+	s = append(s, fmt.Sprintf("idVendor 0x%04x", x.IDVendor))
+	s = append(s, fmt.Sprintf("idProduct 0x%04x", x.IDProduct))
 	s = append(s, fmt.Sprintf("bcdDevice %s", bcd2str(x.BcdDevice)))
 	s = append(s, fmt.Sprintf("iManufacturer %d", x.IManufacturer))
 	s = append(s, fmt.Sprintf("iProduct %d", x.IProduct))
@@ -914,7 +914,7 @@ type Device *C.struct_libusb_device
 // Structure representing a handle on a USB device.
 type Device_Handle *C.struct_libusb_device_handle
 
-//type Hotplug_Callback *C.struct_libusb_hotplug_callback
+// type Hotplug_Callback *C.struct_libusb_hotplug_callback
 
 //-----------------------------------------------------------------------------
 // errors
@@ -951,7 +951,7 @@ func Exit(ctx Context) {
 
 func Get_Device_List(ctx Context) ([]Device, error) {
 	var hdl **C.struct_libusb_device
-	rc := int(C.libusb_get_device_list(ctx, (***C.struct_libusb_device)(&hdl)))
+	rc := int(C.libusb_get_device_list(ctx, &hdl))
 	if rc < 0 {
 		return nil, &libusb_error{rc}
 	}
@@ -1307,11 +1307,11 @@ func Get_String_Descriptor(hdl Device_Handle, desc_index uint8, langid uint16, d
 //-----------------------------------------------------------------------------
 // Device hotplug event notification
 
-//int 	libusb_hotplug_register_callback (libusb_context *ctx, libusb_hotplug_event events, libusb_hotplug_flag flags, int vendor_id, int product_id, int dev_class, libusb_hotplug_callback_fn cb_fn, void *user_data, libusb_hotplug_callback_handle *handle)
-//void 	libusb_hotplug_deregister_callback (libusb_context *ctx, libusb_hotplug_callback_handle handle)
+// int 	libusb_hotplug_register_callback (libusb_context *ctx, libusb_hotplug_event events, libusb_hotplug_flag flags, int vendor_id, int product_id, int dev_class, libusb_hotplug_callback_fn cb_fn, void *user_data, libusb_hotplug_callback_handle *handle)
+// void 	libusb_hotplug_deregister_callback (libusb_context *ctx, libusb_hotplug_callback_handle handle)
 
 //-----------------------------------------------------------------------------
-//Asynchronous device I/O
+// Asynchronous device I/O
 
 func Alloc_Streams(dev Device_Handle, num_streams uint32, endpoints []byte) (int, error) {
 	rc := int(C.libusb_alloc_streams(dev, (C.uint32_t)(num_streams), (*C.uchar)(&endpoints[0]), (C.int)(len(endpoints))))
