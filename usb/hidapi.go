@@ -207,7 +207,7 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 		if err == nil {
 			// sometimes, empty report is read, skip it
 			if w > 0 {
-				d.mw.Log("single transfer succesful")
+				d.mw.Log("single transfer successful")
 				return w, err
 			}
 			if !read {

@@ -18,6 +18,8 @@ import (
 // in this package, we deal with converting the data from the request
 // and then again formatting to the reply
 
+const NullValue = "null"
+
 type api struct {
 	core    *core.Core
 	version string
@@ -47,10 +49,7 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 	r.HandleFunc("/debug/post/{session}", api.PostDebug)
 	r.HandleFunc("/debug/read/{session}", api.ReadDebug)
 	if !core.IsDebugBinary() {
-		corsv, err := corsValidator()
-		if err != nil {
-			return err
-		}
+		corsv := corsValidator()
 		r.Use(CORS(corsv))
 	}
 	return nil
@@ -122,7 +121,7 @@ func (a *api) acquire(w http.ResponseWriter, r *http.Request, debug bool) {
 	vars := mux.Vars(r)
 	path := vars["path"]
 	prev := vars["session"]
-	if prev == "null" {
+	if prev == NullValue {
 		prev = ""
 	}
 	res, err := a.core.Acquire(path, prev, debug)
@@ -228,35 +227,23 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 	}
 }
 
-func corsValidator() (OriginValidator, error) {
+func corsValidator() OriginValidator {
 	// *.trezor.io
-	trezorRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
-	if err != nil {
-		return nil, err
-	}
+	trezorRegex := regexp.MustCompile(`^https://([[:alnum:]\-_]+\.)*trezor\.io$`)
 
 	// *.trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad.onion
-	trezorOnionRegex, err := regexp.Compile(`^https?://([[:alnum:]\-_]+\.)*trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
-	if err != nil {
-		return nil, err
-	}
+	trezorOnionRegex := regexp.MustCompile(`^https?://([[:alnum:]\-_]+\.)*trezoriovpjcahpzkrewelclulmszwbqpzmzgub37gbcjlvluxtruqad\.onion$`)
 
 	// `localhost:8xxx` and `5xxx` are added for easing local development
-	localRegex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
-	if err != nil {
-		return nil, err
-	}
+	localRegex := regexp.MustCompile(`^https?://localhost:[58][[:digit:]]{3}$`)
 
 	// SatoshiLabs development servers
-	develRegex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
-	if err != nil {
-		return nil, err
-	}
+	develRegex := regexp.MustCompile(`^https://([[:alnum:]\-_]+\.)*sldev\.cz$`)
 
 	v := func(origin string) bool {
 		// * Electron
 		// * Tor Browser when `network.http.referer.hideOnionSource` is set to `true` (default)
-		if origin == "null" {
+		if origin == NullValue {
 			return true
 		}
 
@@ -279,7 +266,7 @@ func corsValidator() (OriginValidator, error) {
 		return false
 	}
 
-	return v, nil
+	return v
 }
 
 func (a *api) checkJSONError(w http.ResponseWriter, err error) {
