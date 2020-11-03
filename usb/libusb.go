@@ -160,8 +160,8 @@ func (b *LibUSB) Enumerate() ([]core.USBInfo, error) {
 				}
 				infos = append(infos, core.USBInfo{
 					Path:      path,
-					VendorID:  int(dd.IdVendor),
-					ProductID: int(dd.IdProduct),
+					VendorID:  int(dd.IDVendor),
+					ProductID: int(dd.IDProduct),
 					Type:      t,
 					Debug:     debug,
 				})
@@ -323,12 +323,12 @@ func (b *LibUSB) connect(dev lowlevel.Device, debug bool, reset bool) (*LibUSBDe
 }
 
 func matchType(dd *lowlevel.Device_Descriptor) core.DeviceType {
-	if dd.IdProduct == core.ProductT1Firmware {
+	if dd.IDProduct == core.ProductT1Firmware {
 		// this is HID, in platforms where we don't use hidapi (linux, bsd)
 		return core.TypeT1Hid
 	}
 
-	if dd.IdProduct == core.ProductT2Bootloader {
+	if dd.IDProduct == core.ProductT2Bootloader {
 		if int(dd.BcdDevice>>8) == 1 {
 			return core.TypeT1WebusbBoot
 		}
@@ -350,8 +350,8 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 		return false, 0
 	}
 
-	vid := dd.IdVendor
-	pid := dd.IdProduct
+	vid := dd.IDVendor
+	pid := dd.IDProduct
 	if !b.matchVidPid(vid, pid) {
 		b.mw.Log("unmatched")
 		return false, 0
@@ -503,7 +503,7 @@ func (d *LibUSBDevice) finishReadQueue(debug bool) {
 	d.mw.Log("done")
 }
 
-func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8, mutex *sync.Mutex) (int, error) {
+func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8, mutex sync.Locker) (int, error) {
 	d.mw.Log("start")
 	for {
 		d.mw.Log("checking closed")
@@ -535,7 +535,7 @@ func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8, mutex *sync.Mutex) 
 		// sometimes, empty report is read, skip it
 		// TODO: is this still needed with 0 timeouts?
 		if len(p) > 0 {
-			d.mw.Log("single transfer succesful")
+			d.mw.Log("single transfer successful")
 			return len(p), err
 		}
 		d.mw.Log("skipping empty transfer, go again")

@@ -193,7 +193,7 @@ func (c *Core) backgroundListen() {
 	}
 }
 
-func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
+func (c *Core) saveUsbPaths(devs []USBInfo) []USBInfo {
 	for _, dev := range devs {
 		add := true
 		for _, usbPath := range c.usbPaths {
@@ -221,6 +221,7 @@ func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
 			reverse[usbPath] = strconv.Itoa(id)
 		}
 	}
+	res := make([]USBInfo, 0, len(devs))
 	for _, dev := range devs {
 		res = append(res, USBInfo{
 			Path:      reverse[dev.Path],
@@ -230,7 +231,7 @@ func (c *Core) saveUsbPaths(devs []USBInfo) (res []USBInfo) {
 			Debug:     dev.Debug,
 		})
 	}
-	return
+	return res
 }
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
