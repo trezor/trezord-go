@@ -61,10 +61,6 @@ func (ch *cors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if origin == "null" {
-		origin = "*"
-	}
-
 	w.Header().Set(corsAllowOriginHeader, origin)
 
 	if r.Method == corsOptionMethod {

@@ -10,8 +10,6 @@ func TestOriginValidator(t *testing.T) {
 		origin string
 		allow  bool
 	}{
-		// `null` should be allowed
-		{"null", true},
 		// HTTPS for trezor.io should be allowed
 		{"https://trezor.io", true},
 		{"https://foo.trezor.io", true},

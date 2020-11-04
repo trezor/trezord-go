@@ -254,12 +254,6 @@ func corsValidator() (OriginValidator, error) {
 	}
 
 	v := func(origin string) bool {
-		// * Electron
-		// * Tor Browser when `network.http.referer.hideOnionSource` is set to `true` (default)
-		if origin == "null" {
-			return true
-		}
-
 		if trezorRegex.MatchString(origin) {
 			return true
 		}
