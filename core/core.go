@@ -351,11 +351,12 @@ func (c *Core) release(
 ) error {
 	c.log.Log(fmt.Sprintf("session %s", ssid))
 	s := c.sessions(debug)
-	v, ok := s.LoadAndDelete(ssid)
+	v, ok := s.Load(ssid)
 	if !ok {
 		c.log.Log("session not found")
 		return ErrSessionNotFound
 	}
+	s.Delete(ssid)
 	acquired := v.(*session)
 	c.log.Log("bus close")
 	err := acquired.dev.Close(disconnected)
