@@ -127,7 +127,6 @@ func (d *HID) Close(disconnected bool) error {
 	d.mw.Log("storing d.closed")
 	atomic.StoreInt32(&d.closed, 1)
 
-	d.mw.Log("wait for transferMutex lock")
 	d.transferMutex.Lock()
 	d.mw.Log("low level close")
 	err := d.dev.Close()
@@ -184,7 +183,6 @@ func (d *HID) readWrite(buf []byte, read bool) (int, error) {
 			return 0, errClosedDevice
 		}
 
-		d.mw.Log("lock transfer mutex")
 		d.transferMutex.Lock()
 		d.mw.Log("actual interrupt transport")
 

@@ -116,7 +116,7 @@ type Core struct {
 	// Those variables help with that
 	callsInProgress int
 	callMutex       sync.Mutex
-	lastInfosMutex  sync.Mutex
+	lastInfosMutex  sync.RWMutex
 	lastInfos       []USBInfo // when call is in progress, use saved info for enumerating
 	// note - both lastInfos and Enumerate result have "paths"
 	// as *fake paths* 2.0.26 onwards; just using device IDs,
@@ -179,9 +179,9 @@ func (c *Core) backgroundListen() {
 	for {
 		time.Sleep(iterDelay * time.Millisecond)
 
-		c.lastInfosMutex.Lock()
+		c.lastInfosMutex.RLock()
 		linfos := len(c.lastInfos)
-		c.lastInfosMutex.Unlock()
+		c.lastInfosMutex.RUnlock()
 		if linfos > 0 {
 			c.log.Log("background enum runs")
 			_, err := c.Enumerate()
@@ -236,11 +236,9 @@ func (c *Core) saveUsbPaths(devs []USBInfo) []USBInfo {
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
 	// Lock for atomic access to s.sessions.
-	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
-	c.log.Log("locking callMutex")
 	// Lock for atomic access to s.callInProgress.  It needs to be over
 	// whole function, so that call does not actually start while
 	// enumerating.
@@ -419,7 +417,6 @@ func (c *Core) Acquire(
 	// because that is what enumerate returns;
 	// we convert it to actual path for USB layer
 
-	c.log.Log("locking sessionsMutex")
 	c.sessionsMutex.Lock()
 	defer c.sessionsMutex.Unlock()
 
@@ -529,31 +526,20 @@ func (c *Core) Call(
 	debug bool,
 	ctx context.Context,
 ) ([]byte, error) {
-	c.log.Log("callMutex lock")
+
 	c.callMutex.Lock()
-
-	c.log.Log("callMutex set callInProgress true, unlock")
 	c.callsInProgress++
-
 	c.callMutex.Unlock()
-	c.log.Log("callMutex unlock done")
 
 	defer func() {
-		c.log.Log("callMutex closing lock")
 		c.callMutex.Lock()
-
-		c.log.Log("callMutex set callInProgress false, unlock")
 		c.callsInProgress--
-
 		c.callMutex.Unlock()
-		c.log.Log("callMutex closing unlock")
 	}()
 
-	c.log.Log("sessionsMutex lock")
 	c.sessionsMutex.Lock()
 	acquired := (c.sessions(debug))[session]
 	c.sessionsMutex.Unlock()
-	c.log.Log("sessionsMutex unlock done")
 
 	if acquired == nil {
 		return nil, ErrSessionNotFound

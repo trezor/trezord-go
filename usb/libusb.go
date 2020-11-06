@@ -482,7 +482,6 @@ func (d *LibUSBDevice) Close(disconnected bool) error {
 }
 
 func (d *LibUSBDevice) finishReadQueue(debug bool) {
-	d.mw.Log("wait for transfermutex lock")
 	usbEpIn := normalIface.epIn
 	mutex := &d.normalReadMutex
 	if debug {
@@ -500,7 +499,6 @@ func (d *LibUSBDevice) finishReadQueue(debug bool) {
 		_, err = lowlevel.Interrupt_Transfer(d.dev, usbEpIn, buf[:], 50)
 	}
 	mutex.Unlock()
-	d.mw.Log("done")
 }
 
 func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8, mutex sync.Locker) (int, error) {
@@ -513,7 +511,6 @@ func (d *LibUSBDevice) readWrite(buf []byte, endpoint uint8, mutex sync.Locker) 
 			return 0, errClosedDevice
 		}
 
-		d.mw.Log("lock transfer mutex")
 		mutex.Lock()
 		d.mw.Log("actual interrupt transport")
 		// This has no timeout, but is stopped by Cancel_Sync_Transfers_On_Device
