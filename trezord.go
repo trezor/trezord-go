@@ -17,7 +17,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const version = "2.0.30"
+var version = "2.0.30"
+var githash = "unknown"
 
 type udpTouples []usb.PortTouple
 
@@ -146,7 +147,7 @@ func main() {
 	flag.Parse()
 
 	if versionFlag {
-		fmt.Printf("trezord version %s", version)
+		fmt.Printf("trezord version %s (rev %s)", version, githash)
 		return
 	}
 
@@ -200,7 +201,7 @@ func main() {
 	longMemoryWriter.Log("Creating core")
 	c := core.New(b, longMemoryWriter, allowCancel(), reset)
 	longMemoryWriter.Log("Creating HTTP server")
-	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
+	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version, githash)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
@@ -216,7 +217,7 @@ func main() {
 }
 
 func printWelcomeInfo(stderrLogger *log.Logger) {
-	stderrLogger.Printf("trezord v%s is starting.", version)
+	stderrLogger.Printf("trezord v%s (rev %s) is starting", version, githash)
 	if core.IsDebugBinary() {
 		stderrLogger.Print("!! DEBUG mode enabled! Please contact Trezor support in case you did not initiate this. !!")
 	}

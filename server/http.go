@@ -30,6 +30,7 @@ func New(
 	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
 	version string,
+	githash string,
 ) (*Server, error) {
 	longWriter.Log("starting")
 
@@ -50,8 +51,8 @@ func New(
 	postRouter := r.Methods("POST").Subrouter()
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
-	status.ServeStatus(statusRouter, c, version, shortWriter, longWriter)
-	err := api.ServeAPI(postRouter, c, version, longWriter)
+	status.ServeStatus(statusRouter, c, version, githash, shortWriter, longWriter)
+	err := api.ServeAPI(postRouter, c, version, githash, longWriter)
 	if err != nil {
 		panic(err) // only error is an error from originValidator regexp constructor
 	}

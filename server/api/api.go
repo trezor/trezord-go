@@ -21,13 +21,15 @@ import (
 type api struct {
 	core    *core.Core
 	version string
+	githash string
 	logger  *memorywriter.MemoryWriter
 }
 
-func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWriter) error {
+func ServeAPI(r *mux.Router, c *core.Core, v, h string, l *memorywriter.MemoryWriter) error {
 	api := &api{
 		core:    c,
 		version: v,
+		githash: h,
 		logger:  l,
 	}
 	r.HandleFunc("/", api.Info)
@@ -54,13 +56,15 @@ func ServeAPI(r *mux.Router, c *core.Core, v string, l *memorywriter.MemoryWrite
 }
 
 func (a *api) Info(w http.ResponseWriter, r *http.Request) {
-	a.logger.Log("version " + a.version)
+	a.logger.Log("version " + a.version + " (rev " + a.githash + ")")
 
 	type info struct {
 		Version string `json:"version"`
+		Githash string `json:"githash"`
 	}
 	err := json.NewEncoder(w).Encode(info{
 		Version: a.version,
+		Githash: a.githash,
 	})
 	a.checkJSONError(w, err)
 }

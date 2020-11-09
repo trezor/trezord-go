@@ -15,6 +15,7 @@ type statusTemplateDevice struct {
 
 type statusTemplateData struct {
 	Version     string
+	Githash     string
 	Devices     []statusTemplateDevice
 	DeviceCount int
 	Log         string
@@ -155,7 +156,7 @@ const templateString = `
     <div class="inner-container">
       <div class="heading">
         <h1>Trezor Bridge status</h1>
-        <span class="badge">Version: {{.Version}}</span>
+        <span class="badge">Version: {{.Version}} (rev {{.Githash}})</span>
       </div>
 
       <p>Connected devices: {{.DeviceCount}}</p>

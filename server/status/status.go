@@ -16,6 +16,7 @@ import (
 type status struct {
 	core                                *core.Core
 	version                             string
+	githash                             string
 	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter
 }
 
@@ -32,10 +33,11 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.MemoryWriter) {
+func ServeStatus(r *mux.Router, c *core.Core, v, h string, mw, dmw *memorywriter.MemoryWriter) {
 	status := &status{
 		core:              c,
 		version:           v,
+		githash:           h,
 		shortMemoryWriter: mw,
 		longMemoryWriter:  dmw,
 	}
@@ -97,7 +99,7 @@ func (s *status) statusGzip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + old + libwdi + setupapi + "\nCurrent log:\n"
+	start := s.version + " (rev " + s.githash + ")\n" + msinfo + "\n" + devconLog + devconLogD + "\n" + old + libwdi + setupapi + "\nCurrent log:\n"
 
 	gzip, err := s.longMemoryWriter.Gzip(start)
 	if err != nil {
@@ -131,7 +133,7 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := s.version + "\n" + devconLog
+	start := s.version + " (rev " + s.githash + ")\n" + devconLog
 
 	log, err := s.shortMemoryWriter.String(start)
 	if err != nil {
@@ -149,6 +151,7 @@ func (s *status) statusPage(w http.ResponseWriter, r *http.Request) {
 
 	data := &statusTemplateData{
 		Version:     s.version,
+		Githash:     s.githash,
 		Devices:     tdevs,
 		DeviceCount: len(tdevs),
 		Log:         log,
