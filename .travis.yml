@@ -50,7 +50,7 @@ matrix:
         - golangci-lint run
     - env: TEST=version-check
       script:
-        - diff -u VERSION <(grep "const version" trezord.go | cut -f 2 -d '"')
+        - diff -u VERSION <(grep "var version = " trezord.go | cut -f 2 -d '"')
 
 notifications:
   webhooks:
