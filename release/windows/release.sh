@@ -22,7 +22,7 @@ SIGNKEY=/release/authenticode
 if [ -r $SIGNKEY.key ]; then
     for BINARY in {trezord,devcon,wdi-simple}-{32b,64b}.exe ; do
         mv $BINARY $BINARY.unsigned
-        osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $BINARY.unsigned -out $BINARY
+        osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha384 -t "http://timestamp.comodoca.com?td=sha384" -in $BINARY.unsigned -out $BINARY
         osslsigncode verify -in $BINARY
     done
 fi
@@ -35,6 +35,6 @@ fi
 
 if [ -r $SIGNKEY.key ]; then
     mv $INSTALLER $INSTALLER.unsigned
-    osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $INSTALLER.unsigned -out $INSTALLER
+    osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha384 -t "http://timestamp.comodoca.com?td=sha384" -in $INSTALLER.unsigned -out $INSTALLER
     osslsigncode verify -in $INSTALLER
 fi
