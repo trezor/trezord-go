@@ -25,7 +25,7 @@ type api struct {
 	logger  *memorywriter.MemoryWriter
 }
 
-func ServeAPI(r *mux.Router, c *core.Core, v, h string, l *memorywriter.MemoryWriter) error {
+func ServeAPI(r *mux.Router, c *core.Core, v, h string, l *memorywriter.MemoryWriter) {
 	api := &api{
 		core:    c,
 		version: v,
@@ -52,7 +52,6 @@ func ServeAPI(r *mux.Router, c *core.Core, v, h string, l *memorywriter.MemoryWr
 		corsv := corsValidator()
 		r.Use(CORS(corsv))
 	}
-	return nil
 }
 
 func (a *api) Info(w http.ResponseWriter, r *http.Request) {
