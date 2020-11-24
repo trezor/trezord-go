@@ -1,4 +1,5 @@
 trezord-go
+build/
 release/installers/
 release/linux/privkey.asc
 release/linux/build/
