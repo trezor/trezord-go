@@ -1726,6 +1726,10 @@ static int winusb_get_device_list(struct libusb_context *ctx, struct discovered_
 					if (priv->hid == NULL)
 						LOOP_BREAK(LIBUSB_ERROR_NO_MEM);
 					break;
+				// ===== START TREZOR CODE =====
+				case USB_API_WINUSBX:
+					dev->has_winusb_driver = 1;
+				// ===== END TREZOR CODE =====
 				default:
 					// For other devices, the first interface is the same as the device
 					priv->usb_interface[0].path = _strdup(priv->path);
