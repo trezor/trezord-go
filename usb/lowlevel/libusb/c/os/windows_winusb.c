@@ -1189,10 +1189,6 @@ static int init_device(struct libusb_device *dev, struct libusb_device *parent_d
 			return r;
 	}
 
-	// ===== START TREZOR CODE =====
-	dev->has_winusb_driver = 0;
-	// ===== END TREZOR CODE =====
-
 	r = usbi_sanitize_device(dev);
 	if (r)
 		return r;
