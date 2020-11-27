@@ -1,9 +1,9 @@
 PLATFORM  = win
 BITS      = 32
-NAME32 = trezord-go-windows-6.0-386.exe
-NAME64 = trezord-go-windows-6.0-amd64.exe
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
+
+GITHASH  := $(shell git rev-parse --short HEAD)
 
 WDI_VOL_MOUNT = -v $(shell pwd):/release
 WDI_IMAGETAG  = trezord-go-wdi-build
@@ -22,10 +22,9 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/386 $(IMPORT_PATH)
-	mv -f $(NAME32) build/trezord-32b.exe
-	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/amd64 $(IMPORT_PATH)
-	mv -f $(NAME64) build/trezord-64b.exe
+	xgo -ldflags="-H=windowsgui -X 'main.githash=$(GITHASH)'" -targets=windows-6.0/386,windows-6.0/amd64 $(IMPORT_PATH)
+	mv -f trezord-go-windows-6.0-386.exe build/trezord-32b.exe
+	mv -f trezord-go-windows-6.0-amd64.exe build/trezord-64b.exe
 	cp ../../VERSION build
 
 .package: .binary .docker-image .wdi .devcon
