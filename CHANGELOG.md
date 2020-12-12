@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.31] - unreleased
 - hidapi: update to 0.10.1
-- libusb: upgrade to unstable 9d23ed
+- libusb: update to 1.0.24
 
 ## [2.0.30] - 2020-11-11
 - Lock mutex when deleting session to avoid concurrent read and write (#190)
