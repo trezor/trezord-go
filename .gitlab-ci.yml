@@ -26,7 +26,9 @@ test build xgo linux:
     - go version
     - go get github.com/karalabe/xgo
     - cd release/linux
-    - make all
+    - ./release.sh linux-386
+    - ./release.sh linux-amd64
+    - ./release.sh linux-arm64
 
 test build xgo windows:
   image: karalabe/xgo-latest
