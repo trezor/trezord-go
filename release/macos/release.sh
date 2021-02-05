@@ -16,6 +16,9 @@ VERSION=$(cat /release/build/VERSION)
 
 INSTALLER=trezor-bridge-$VERSION.pkg
 
+mkdir -p flat-uninstall/uninstall.pkg/payload-prev
+# mkdir -p flat-install/install.pkg/payload-prev/Applications/Utilities/TREZOR\ Bridge
+
 # first, make uninstaller
 
 rm -rf /release/build/flat-uninstall
