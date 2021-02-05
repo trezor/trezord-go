@@ -5,10 +5,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
-	"github.com/trezor/trezord-go/server/api"
-	"github.com/trezor/trezord-go/server/status"
+	"github.com/OneKeyHQ/onekey-bridge/core"
+	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
+	"github.com/OneKeyHQ/onekey-bridge/server/api"
+	"github.com/OneKeyHQ/onekey-bridge/server/status"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"

@@ -50,7 +50,7 @@ func (m *MemoryWriter) Log(s string) {
 	file := frame.File
 	file = strings.TrimPrefix(file, internalPrefix)
 	function := frame.Function
-	function = strings.TrimPrefix(function, "github.com/trezor/trezord-go/")
+	function = strings.TrimPrefix(function, "github.com/OneKeyHQ/onekey-bridge/")
 	r := fmt.Sprintf("[%s %d %s]", file, frame.Line, function)
 	m.println(r + " " + s)
 

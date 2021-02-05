@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/OneKeyHQ/onekey-bridge/core"
+	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 )
 
 var emulatorPing = []byte("PINGPING")

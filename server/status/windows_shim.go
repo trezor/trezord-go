@@ -3,7 +3,7 @@
 package status
 
 import (
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 )
 
 // Devcon is a tool for listing devices and drivers on windows

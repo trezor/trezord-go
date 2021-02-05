@@ -14,8 +14,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/OneKeyHQ/onekey-bridge/core"
+	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 )
 
 // Devcon is a tool for listing devices and drivers on windows

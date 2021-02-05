@@ -3,8 +3,8 @@ package status
 import (
 	"net/http"
 
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
+	"github.com/OneKeyHQ/onekey-bridge/core"
+	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
