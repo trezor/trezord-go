@@ -231,6 +231,12 @@ func corsValidator() (OriginValidator, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	okregex, err := regexp.Compile(`^https://([[:alnum:]\-_]+\.)*onekey\.so$`)
+	if err != nil {
+		return nil, err
+	}
+
 	// `localhost:8xxx` and `5xxx` are added for easing local development.
 	lregex, err := regexp.Compile(`^https?://localhost:[58][[:digit:]]{3}$`)
 	if err != nil {
@@ -238,6 +244,10 @@ func corsValidator() (OriginValidator, error) {
 	}
 	v := func(origin string) bool {
 		if lregex.MatchString(origin) {
+			return true
+		}
+
+		if okregex.MatchString(origin) {
 			return true
 		}
 

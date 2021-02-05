@@ -931,7 +931,7 @@ func (e *libusb_error) Error() string {
 // Library initialization/deinitialization
 
 func Set_Debug(ctx Context, level int) {
-	C.libusb_set_debug(ctx, C.int(level))
+	// C.libusb_set_debug(ctx, C.int(level))
 }
 
 func Init(ctx *Context) error {

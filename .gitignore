@@ -7,3 +7,5 @@ release/macos/key.pem
 release/macos/build/
 release/windows/authenticode.*
 release/windows/build/
+
+.DS_Store

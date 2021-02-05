@@ -29,6 +29,10 @@ func TestOriginValidator(t *testing.T) {
 		// Other ports denied
 		{"http://localhost", false},
 		{"http://localhost:1234", false},
+		// for onekey subdomains
+		{"https://firmware.onekey.so", true},
+		{"http://firmware.onekey.so", false},
+		{"https://other.onekey.so", true},
 	}
 	validator, err := corsValidator()
 	if err != nil {

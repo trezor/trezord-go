@@ -1,8 +1,37 @@
-# trezord-go
+# onekey-bridge
 
-[![Build Status](https://travis-ci.org/trezor/trezord-go.svg?branch=master)](https://travis-ci.org/trezor/trezord-go) [![gitter](https://badges.gitter.im/trezor/community.svg)](https://gitter.im/trezor/community)
+从 [trezord-go](https://github.com/trezor/trezord-go) fork 而来，主要为了本地通信时增加 \*.onekey.so 域名的支持。在 web 端连接时，需要本地有 bridge 的支持。
 
-Trezor Communication Daemon aka Trezor Bridge (written in Go)
+可以在 [release](https://github.com/OneKeyHQ/onekey-bridge/releases) 看到最新发布的二进制安装文件。
+
+## 编译与安装
+在本地安装了 go 环境之后，最好把项目安装到 GOPATH 中，防止后续 go 编译错误，一般来说 GOPATH 是 `~/${username}/go` （`username` 是当前登陆账户）：
+```
+go get github.com/karalabe/xgo
+docker pull karalabe/xgo-latest
+```
+
+同时确保 `xgo` 和 `docker` 在环境变量中
+
+```
+cd release
+GOPATH=xx make all
+```
+
+进入 release 文件夹，在跑命令时，增加 GOPATH 环境变量，GOPATH 一般来说是 `~/${username}/go` （username 是当前登陆账户），也可以通过 `go env` 来确认。
+
+编译完成之后，installers 下面就会有以下 8 个编译文件：
+
+* onekey-bridge-2.0.33-1.aarch64.rpm
+* onekey-bridge-2.0.33-1.i386.rpm（Linux 32-bit (rpm)）
+* onekey-bridge-2.0.33-1.x86_64.rpm（Linux 64-bit (rpm)）
+* onekey-bridge-2.0.33-win32-install.exe（windows 系统用户，32位，64位均用此安装包）
+* onekey-bridge-2.0.33.pkg（OSX 系统用户）
+* onekey-bridge_2.0.33_amd64.deb（Linux 64-bit (deb)）
+* onekey-bridge_2.0.33_arm64.deb
+* onekey-bridge_2.0.33_i386.deb（Linux 32-bit (deb)）
+
+其中中间的内容是版本号，由根目录下的 VERSION 文件控制，所以每次代码更新后，需要手动更新 VERSION 文件中的版本号。
 
 **Only compatible with Chrome (version 53 or later) and Firefox (version 55 or later).**
 

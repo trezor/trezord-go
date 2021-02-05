@@ -1,3 +1,8 @@
-This will install a communication bridge, which facilitates the connection between the applications on your Mac and your Trezor device.
+这将安装一个通讯桥接工具，来让 Mac 上的应用程序与 Onekey 设备之间进行连接。
+
+单击继续以完成安装。
+
+
+This will install a communication bridge, which facilitates the connection between the applications on your Mac and your Onekey device.
 
 Click Continue to install.
