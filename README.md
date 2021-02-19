@@ -20,16 +20,14 @@ GOPATH=xx make all
 
 进入 release 文件夹，在跑命令时，增加 GOPATH 环境变量，GOPATH 一般来说是 `~/${username}/go` （username 是当前登陆账户），也可以通过 `go env` 来确认。
 
-编译完成之后，installers 下面就会有以下 8 个编译文件：
+编译完成之后，installers 下面就会有以下二进制安装文件：
 
-* onekey-bridge-2.0.33-1.aarch64.rpm
-* onekey-bridge-2.0.33-1.i386.rpm（Linux 32-bit (rpm)）
-* onekey-bridge-2.0.33-1.x86_64.rpm（Linux 64-bit (rpm)）
-* onekey-bridge-2.0.33-win32-install.exe（windows 系统用户，32位，64位均用此安装包）
-* onekey-bridge-2.0.33.pkg（OSX 系统用户）
-* onekey-bridge_2.0.33_amd64.deb（Linux 64-bit (deb)）
-* onekey-bridge_2.0.33_arm64.deb
-* onekey-bridge_2.0.33_i386.deb（Linux 32-bit (deb)）
+* onekey-bridge-${version}-1.i386.rpm（Linux 32-bit (rpm)）
+* onekey-bridge-${version}-1.x86_64.rpm（Linux 64-bit (rpm)）
+* onekey-bridge-${version}-win32-install.exe（windows 系统用户，32位，64位均用此安装包）
+* onekey-bridge-${version}.pkg（OSX 系统用户）
+* onekey-bridge_${version}_amd64.deb（Linux 64-bit (deb)）
+* onekey-bridge_${version}_i386.deb（Linux 32-bit (deb)）
 
 其中中间的内容是版本号，由根目录下的 VERSION 文件控制，所以每次代码更新后，需要手动更新 VERSION 文件中的版本号。
 
@@ -116,7 +114,7 @@ To support an emulator with debug link, run
 
 `./trezord -ed 21324:21325 -u=false`
 
-this will detect emulator debug link on port 21325, with regular device on 21324. 
+this will detect emulator debug link on port 21325, with regular device on 21324.
 
 To support WebUSB devices with debug link, no option is needed, just run trezord-go.
 

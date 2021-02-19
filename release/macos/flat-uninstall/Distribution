@@ -3,7 +3,7 @@
   minSpecVersion="1"
 >
   <!--displayed in the header-->
-  <title>TREZOR Bridge</title>
+  <title>OneKey Bridge</title>
   <!--displayed on start, can be localized-->
   <welcome
     file="welcome.txt"
@@ -29,7 +29,7 @@
   <choice
     id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
     visible="true"
-    title="Uninstall TREZOR Bridge"
+    title="Uninstall OneKey Bridge"
   >
     <pkg-ref
       id="com.bitcointrezor.pkg.TREZORBridge.uninstall"

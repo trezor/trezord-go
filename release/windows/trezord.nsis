@@ -60,7 +60,7 @@ RequestExecutionLevel admin
 
 SetCompressor bzip2
 
-Name "Trezor Bridge"
+Name "OneKey Bridge"
 InstallDirRegKey HKLM Software\TREZOR\Bridge InstallDir
 
 ShowInstDetails hide
@@ -73,7 +73,7 @@ Function .onInit
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights on NT4+
-  MessageBox mb_iconstop "You need to be an admin to install Trezor Bridge. Sorry!"
+  MessageBox mb_iconstop "You need to be an admin to install OneKey Bridge. Sorry!"
   SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
   Quit
 ${EndIf}
@@ -84,10 +84,10 @@ Page instfiles
 
 DirText "Please select the installation folder."
 
-Section "TREZOR Bridge"
+Section "OneKey Bridge"
   SectionIn RO
 
-  DetailPrint "Stopping previous Trezor Bridge"
+  DetailPrint "Stopping previous Bridge"
   nsExec::Exec "taskkill /IM trezord.exe /F"
 
   SetOutPath "$INSTDIR"
@@ -129,7 +129,7 @@ Section "Check for connected devices"
   ${StrContains} $CONTAINS "No matching devices" $CMDRESULT
 
   ${DoWhile} $CONTAINS == ""
-    MessageBox MB_OK "Please disconnect Trezor"
+    MessageBox MB_OK "please disconnect the OneKey device"
 
     nsExec::ExecToStack '"$INSTDIR\devcon.exe" find *vid_1209*'
     Pop $0
@@ -143,7 +143,7 @@ Section "Check for connected devices"
   ${StrContains} $CONTAINS "No matching devices" $CMDRESULT
 
   ${DoWhile} $CONTAINS == ""
-    MessageBox MB_OK "Please disconnect Trezor"
+    MessageBox MB_OK "please disconnect the OneKey device"
 
     nsExec::ExecToStack '"$INSTDIR\devcon.exe" find *vid_534c*'
     Pop $0

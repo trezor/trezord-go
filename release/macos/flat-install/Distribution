@@ -3,7 +3,7 @@
   minSpecVersion="1"
 >
   <!--displayed in the header-->
-  <title>Trezor Bridge</title>
+  <title>OneKey Bridge</title>
   <!--displayed on start, can be localized-->
   <welcome
     file="welcome.txt"
@@ -11,25 +11,25 @@
   />
   <!--dispayed on top left. note that the image is GIANT.
       That might be some instaler issue, or maybe DPI/Retina? -->
-  <background 
+  <background
     file="logo.png"
     mime-type="image/png"
   />
 
-  <pkg-ref 
+  <pkg-ref
     id="com.bitcointrezor.pkg.TREZORBridge"
   />
-  
+
   <choices-outline>
-    <line 
+    <line
       choice="com.bitcointrezor.pkg.TREZORBridge"
     />
   </choices-outline>
-  
-  <choice 
+
+  <choice
     id="com.bitcointrezor.pkg.TREZORBridge"
     visible="true"
-    title="Install Trezor Bridge"
+    title="Install OneKey Bridge"
   >
     <pkg-ref
       id="com.bitcointrezor.pkg.TREZORBridge"

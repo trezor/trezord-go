@@ -32,7 +32,7 @@ const templateString = `
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Trezor Bridge status</title>
+  <title>OneKey Bridge status</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
@@ -154,7 +154,7 @@ const templateString = `
   <div id="container">
     <div class="inner-container">
       <div class="heading">
-        <h1>Trezor Bridge status</h1>
+        <h1>OneKey Bridge status</h1>
         <span class="badge">Version: {{.Version}}</span>
       </div>
 
@@ -169,27 +169,27 @@ const templateString = `
       {{range .Devices}}
       <div class="item">
         <h3>{{if eq .Type 0}}
-          Trezor One (HID)
+          OneKey (HID)
         {{end}}
 
         {{if eq .Type 1}}
-          Trezor One (WebUSB)
+          OneKey (WebUSB)
         {{end}}
 
         {{if eq .Type 2}}
-          Trezor One (WebUSB, bootloader)
+          OneKey (WebUSB, bootloader)
         {{end}}
 
         {{if eq .Type 3}}
-          Trezor Model T
+          OneKey
         {{end}}
 
         {{if eq .Type 4}}
-          Trezor Model T (bootloader)
+          OneKey (bootloader)
         {{end}}
 
         {{if eq .Type 5}}
-          Trezor Emulator
+          OneKey Emulator
         {{end}}
 
       </h3>

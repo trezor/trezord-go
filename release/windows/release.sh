@@ -28,9 +28,9 @@ if [ -r $SIGNKEY.key ]; then
 fi
 
 if [ $TARGET = win32 ]; then
-    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES32\TREZOR Bridge"' trezord.nsis
+    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES32\OneKey Bridge"' trezord.nsis
 else
-    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES64\TREZOR Bridge"' trezord.nsis
+    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES64\OneKey Bridge"' trezord.nsis
 fi
 
 if [ -r $SIGNKEY.key ]; then
