@@ -8,7 +8,7 @@ RUN dnf update -y
 
 # install dependencies for Linux packaging
 
-RUN dnf install -y ruby-devel rubygems rpm-build
+RUN dnf install -y ruby-devel rubygems rpm-build git
 RUN dnf install -y autoconf automake libtool make
 RUN gem install fpm --no-document
 

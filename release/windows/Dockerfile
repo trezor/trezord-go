@@ -8,4 +8,4 @@ RUN dnf update -y
 
 # install tools
 
-RUN dnf install -y osslsigncode mingw32-nsis
+RUN dnf install -y osslsigncode mingw32-nsis git
