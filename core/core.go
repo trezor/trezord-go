@@ -102,6 +102,7 @@ type Core struct {
 
 	normalSessions sync.Map
 	debugSessions  sync.Map
+	libusbMutex    sync.Mutex
 
 	allowStealing bool
 	reset         bool
@@ -232,6 +233,12 @@ func (c *Core) saveUsbPaths(devs []USBInfo) []USBInfo {
 }
 
 func (c *Core) Enumerate() ([]EnumerateEntry, error) {
+
+	// avoid enumerating while acquiring the device
+	// https://github.com/trezor/trezord-go/issues/221
+	c.libusbMutex.Lock()
+	defer c.libusbMutex.Unlock()
+
 	// Lock for atomic access to s.callInProgress.  It needs to be over
 	// whole function, so that call does not actually start while
 	// enumerating.
@@ -414,6 +421,12 @@ func (c *Core) Acquire(
 	path, prev string,
 	debug bool,
 ) (string, error) {
+
+	// avoid enumerating while acquiring the device
+	// https://github.com/trezor/trezord-go/issues/221
+	c.libusbMutex.Lock()
+	defer c.libusbMutex.Unlock()
+
 	// note - path is *fake path*, basically device ID,
 	// because that is what enumerate returns;
 	// we convert it to actual path for USB layer
