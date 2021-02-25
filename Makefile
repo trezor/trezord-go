@@ -29,6 +29,9 @@ $(BUILD_DIR)/$(NAME)-mac-x64: $(BUILD_DIR)
 $(BUILD_DIR)/$(NAME)-win-x64: $(BUILD_DIR)
 	CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CGO_CFLAGS="$(WIN_CFLAGS)" go build $(GOFLAGS) -o $(BUILD_DIR)/$(NAME)-win-x64
 
+native:
+	CGO_ENABLED=1 go build $(GOFLAGS)
+
 check:
 	file $(TARGETS)
 
