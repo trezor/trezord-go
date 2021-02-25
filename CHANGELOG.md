@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - hidapi: update to 0.10.1
 - libusb: update to 1.0.24
 - Fix bootloader not recognized on Windows accdently introduced in 2.0.30 (5438e38d)
+- Fix crash on macOS [#221]
 
 ## [2.0.30] - 2020-11-11
 - Lock mutex when deleting session to avoid concurrent read and write (#190)
@@ -170,3 +171,5 @@ All notable changes to this project will be documented in this file.
 
 - WebUSB: explicitly open USB Configuration before claiming the interface
 - Errors: nicer error messages
+
+[#221]: https://github.com/trezor/trezord-go/issues/221
