@@ -66,7 +66,7 @@ Trezord supports emulators for both Trezor versions. However, you need to enable
 
 To enable emulator, run trezord with a parameter `-e` followed by port, for every emulator with an enabled port
 
-`./trezord -e 21324`
+`./trezord-go -e 21324`
 
 If you want to run this automatically on linux, do
 
@@ -80,7 +80,7 @@ and edit the last `<string>` in the plist. (And also probably restart the pc.)
 
 You can disable all USB in order to run on some virtuaized environments, for example Travis
 
-`./trezord -e 21324 -u=false`
+`./trezord-go -e 21324 -u=false`
 
 ## API documentation
 
@@ -105,7 +105,7 @@ Trezord has support for debug link.
 
 To support an emulator with debug link, run
 
-`./trezord -ed 21324:21325 -u=false`
+`./trezord-go -ed 21324:21325 -u=false`
 
 this will detect emulator debug link on port 21325, with regular device on 21324. 
 
