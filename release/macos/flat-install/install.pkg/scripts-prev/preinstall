@@ -8,13 +8,13 @@ inst_user=`stat /dev/console | cut -f 5 -d ' '`
 
 # unload the agent file into launchd with correct user
 
-agent_file=/Library/LaunchAgents/com.bitcointrezor.trezorBridge.trezord.plist
+agent_file=/Library/LaunchAgents/com.bitcoinonekey.onekeyBridge.onekey.plist
 
 set +e
 sudo -u $inst_user launchctl unload $agent_file
-sudo -u $inst_user killall trezord > /dev/null
+sudo -u $inst_user killall onekey > /dev/null
 
 rm $agent_file
-rm -r /Applications/Utilities/TREZOR\ Bridge
+rm -r /Applications/Utilities/OneKey\ Bridge
 
 set -e

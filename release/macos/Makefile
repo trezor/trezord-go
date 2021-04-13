@@ -1,8 +1,8 @@
 PLATFORM  = macos
 BITS      = 64
-NAME64 = trezord-go-darwin-10.6-amd64
+NAME64 = onekey-bridge-darwin-10.6-amd64
 VOL_MOUNT = -v $(shell pwd):/release
-IMAGETAG  = trezord-go-build-env-$(PLATFORM)
+IMAGETAG  = onekey-bridge-build-env-$(PLATFORM)
 
 IMPORT_PATH = ../..
 
@@ -16,7 +16,7 @@ clean:
 	$(info Building with xgo ...)
 	mkdir -p build
 	xgo -targets=darwin/amd64 $(IMPORT_PATH)
-	mv -f $(NAME64) build/trezord
+	mv -f $(NAME64) build/onekey
 	cp ../../VERSION build
 
 .package: .binary .docker-image

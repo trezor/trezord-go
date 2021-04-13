@@ -3,7 +3,7 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.bitcointrezor.trezorBridge.trezord</string>
+    <string>com.bitcoinonekey.onekeyBridge.onekey</string>
 
     <key>KeepAlive</key>
     <true/>
@@ -12,7 +12,7 @@
     <array>
       <string>sh</string>
       <string>-c</string>
-      <string>/Applications/Utilities/TREZOR\ Bridge/trezord -l $HOME/Library/Logs/trezord.log</string>
+      <string>/Applications/Utilities/OneKey\ Bridge/onekey -l $HOME/Library/Logs/onekey.log</string>
     </array>
   </dict>
 </plist>

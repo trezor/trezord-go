@@ -14,10 +14,10 @@ cd $(dirname $0)
 TARGET=$1
 VERSION=$(cat /release/build/VERSION)
 
-INSTALLER=trezor-bridge-$VERSION.pkg
+INSTALLER=onekey-bridge-$VERSION.pkg
 
 mkdir -p flat-uninstall/uninstall.pkg/payload-prev
-# mkdir -p flat-install/install.pkg/payload-prev/Applications/Utilities/TREZOR\ Bridge
+# mkdir -p flat-install/install.pkg/payload-prev/Applications/Utilities/OneKey\ Bridge
 
 # first, make uninstaller
 
@@ -42,7 +42,7 @@ cd ..
 
 rm -rf /release/build/flat-uninstall
 
-# second, make installer and add trezord and uninstaller
+# second, make installer and add onekey and uninstaller
 
 rm -rf /release/build/flat-install
 
@@ -54,8 +54,8 @@ cd ..
 rm -r scripts-prev
 cd payload-prev
 
-cp /release/build/trezord Applications/Utilities/TREZOR\ Bridge/
-cp ../../../uninstall.pkg Applications/Utilities/TREZOR\ Bridge/
+cp /release/build/onekey Applications/Utilities/OneKey\ Bridge/
+cp ../../../uninstall.pkg Applications/Utilities/OneKey\ Bridge/
 
 FILES=$(find . | wc -l)
 KBYTES=$(du -k -s . | cut -f 1)

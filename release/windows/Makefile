@@ -1,15 +1,15 @@
 PLATFORM  = win
 BITS      = 32
-NAME32 = trezord-go-windows-4.0-386.exe
-NAME64 = trezord-go-windows-4.0-amd64.exe
+NAME32 = onekey-bridge-windows-4.0-386.exe
+NAME64 = onekey-bridge-windows-4.0-amd64.exe
 VOL_MOUNT = -v $(shell pwd):/release
-IMAGETAG  = trezord-go-build-env-$(PLATFORM)
+IMAGETAG  = onekey-bridge-build-env-$(PLATFORM)
 
 WDI_VOL_MOUNT = -v $(shell pwd):/release
-WDI_IMAGETAG  = trezord-go-wdi-build
+WDI_IMAGETAG  = onekey-bridge-wdi-build
 
 DEVCON_VOL_MOUNT = -v $(shell pwd):/release
-DEVCON_IMAGETAG  = trezord-go-devcon-build
+DEVCON_IMAGETAG  = onekey-bridge-devcon-build
 
 IMPORT_PATH = ../..
 
@@ -23,9 +23,9 @@ clean:
 	$(info Building with xgo ...)
 	mkdir -p build
 	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
-	mv -f $(NAME32) build/trezord-32b.exe
+	mv -f $(NAME32) build/onekey-32b.exe
 	xgo -ldflags="-H=windowsgui" -targets=windows/amd64 $(IMPORT_PATH)
-	mv -f $(NAME64) build/trezord-64b.exe
+	mv -f $(NAME64) build/onekey-64b.exe
 	cp ../../VERSION build
 
 .package: .binary .docker-image .wdi .devcon

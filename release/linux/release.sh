@@ -10,9 +10,9 @@ VERSION=$(cat /release/build/VERSION)
 
 cd /release/build
 
-install -D -m 0755 trezord-$TARGET          ./usr/bin/trezord
-install -D -m 0644 /release/trezor.rules    ./lib/udev/rules.d/50-trezor.rules
-install -D -m 0644 /release/trezord.service ./usr/lib/systemd/system/trezord.service
+install -D -m 0755 onekey-$TARGET          ./usr/bin/onekey
+install -D -m 0644 /release/onekey.rules    ./lib/udev/rules.d/50-onekey.rules
+install -D -m 0644 /release/onekey.service ./usr/lib/systemd/system/onekey.service
 
 # prepare GPG signing environment
 GPG_PRIVKEY=/release/privkey.asc
@@ -23,7 +23,7 @@ if [ -r $GPG_PRIVKEY ]; then
     GPG_SIGN=gpg
 fi
 
-NAME=trezor-bridge
+NAME=onekey-bridge
 
 rm -f *.tar.bz2
 tar -cjf $NAME-$VERSION.tar.bz2 ./usr ./lib
@@ -57,10 +57,10 @@ for TYPE in "deb" "rpm"; do
         -v $VERSION \
         -d systemd \
         --license "LGPL-3.0" \
-        --vendor "SatoshiLabs" \
-        --description "Communication daemon for Trezor" \
-        --maintainer "SatoshiLabs <stick@satoshilabs.com>" \
-        --url "https://trezor.io/" \
+        --vendor "OneKey" \
+        --description "Communication daemon for Onekey" \
+        --maintainer "OneKey <hi@onekey.so>" \
+        --url "https://onekey.so/" \
         --category "Productivity/Security" \
         --before-install /release/fpm.before-install.sh \
         --after-install /release/fpm.after-install.sh \
@@ -68,10 +68,10 @@ for TYPE in "deb" "rpm"; do
         $NAME-$VERSION.tar.bz2
     case "$TYPE-$GPG_SIGN" in
         deb-gpg)
-            /release/dpkg-sig -k $GPGSIGNKEY --sign builder trezor-bridge_${VERSION}_${ARCH}.deb
+            /release/dpkg-sig -k $GPGSIGNKEY --sign builder onekey-bridge_${VERSION}_${ARCH}.deb
             ;;
         rpm-gpg)
-            rpm --addsign -D "%_gpg_name $GPGSIGNKEY" trezor-bridge-${VERSION}-1.${ARCH}.rpm
+            rpm --addsign -D "%_gpg_name $GPGSIGNKEY" onekey-bridge-${VERSION}-1.${ARCH}.rpm
             ;;
     esac
 done

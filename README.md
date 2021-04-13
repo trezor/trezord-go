@@ -1,7 +1,4 @@
 # onekey-bridge
-
-从 [trezord-go](https://github.com/trezor/trezord-go) fork 而来，主要为了本地通信时增加 \*.onekey.so 域名的支持。在 web 端连接时，需要本地有 bridge 的支持。
-
 可以在 [release](https://github.com/OneKeyHQ/onekey-bridge/releases) 看到最新发布的二进制安装文件。
 
 ## 编译与安装
@@ -37,12 +34,12 @@ status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustw
 
 ## Install and run from source
 
-trezord-go requires go >= 1.6
+onekey-go requires go >= 1.6
 
 ```
-go get github.com/trezor/trezord-go
-go build github.com/trezor/trezord-go
-./trezord-go -h
+go get github.com/OneKeyHQ/onekey-go
+go build github.com/OneKeyHQ/onekey-go
+./onekey-go -h
 ```
 
 On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
@@ -69,29 +66,29 @@ Compiling for officially supported platforms:
 
 ## Emulator support
 
-Trezord supports emulators for both Trezor versions. However, you need to enable it manually; it is disabled by default. After enabling, services that work with emulator can work with all services that support trezord.
+onekey supports emulators for both OneKey versions. However, you need to enable it manually; it is disabled by default. After enabling, services that work with emulator can work with all services that support onekey.
 
-To enable emulator, run trezord with a parameter `-e` followed by port, for every emulator with an enabled port
+To enable emulator, run onekey with a parameter `-e` followed by port, for every emulator with an enabled port
 
-`./trezord -e 21324`
+`./onekey -e 21324`
 
 If you want to run this automatically on linux, do
 
-`sudo systemctl edit --full trezord.service`
+`sudo systemctl edit --full onekey.service`
 
-and edit the service file (and maybe restart the trezord service). On mac, you will need to edit
+and edit the service file (and maybe restart the onekey service). On mac, you will need to edit
 
-`/Library/LaunchAgents/com.bitcointrezor.trezorBridge.trezord.plist`
+`/Library/LaunchAgents/com.bitcoinonekey.onekeyBridge.onekey.plist`
 
 and edit the last `<string>` in the plist. (And also probably restart the pc.)
 
 You can disable all USB in order to run on some virtuaized environments, for example Travis
 
-`./trezord -e 21324 -u=false`
+`./onekey -e 21324 -u=false`
 
 ## API documentation
 
-`trezord-go` starts a HTTP server on `http://localhost:21320`. AJAX calls are only enabled from trezor.io subdomains.
+`onekey-go` starts a HTTP server on `http://localhost:21320`. AJAX calls are only enabled from onekey.so subdomains.
 
 Server supports following API calls:
 
@@ -102,25 +99,25 @@ Server supports following API calls:
 | `/listen` <br> POST | request body: previous, as JSON | like `enumerate` | Listen to changes and returns either on change or after 30 second timeout. Compares change from `previous` that is sent as a parameter. "Change" is both connecting/disconnecting and session change. |
 | `/acquire/PATH/PREVIOUS` <br> POST | `PATH`: path of device<br>`PREVIOUS`: previous session (or string "null") | {`session`:&nbsp;string} | Acquires the device at `PATH`. By "acquiring" the device, you are claiming the device for yourself.<br>Before acquiring, checks that the current session is `PREVIOUS`.<br>If two applications call `acquire` on a newly connected device at the same time, only one of them succeed. |
 | `/release/SESSION`<br>POST | `SESSION`: session to release | {} | Releases the device with the given session.<br>By "releasing" the device, you claim that you don't want to use the device anymore. |
-| `/call/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | hexadecimal string | Both input and output are hexadecimal, encoded in following way:<br>first 2 bytes (4 characters in the hexadecimal) is the message type<br>next 4 bytes (8 in hex) is length of the data<br>the rest is the actual encoded protobuf data.<br>Protobuf messages are defined in [this protobuf file](https://github.com/trezor/trezor-common/blob/master/protob/messages.proto) and the app, calling trezord, should encode/decode it itself. |
+| `/call/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | hexadecimal string | Both input and output are hexadecimal, encoded in following way:<br>first 2 bytes (4 characters in the hexadecimal) is the message type<br>next 4 bytes (8 in hex) is length of the data<br>the rest is the actual encoded protobuf data.<br>Protobuf messages are defined in [this protobuf file](https://github.com/trezor/trezor-common/blob/master/protob/messages.proto) and the app, calling onekey, should encode/decode it itself. |
 | `/post/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | 0 | Similar to `call`, just doesn't read response back. Usable mainly for debug link. |
 | `/read/SESSION`<br>POST | `SESSION`: session to call | 0 | Similar to `call`, just doesn't post, only reads. Usable mainly for debug link. |
 
 ## Debug link support
 
-Trezord has support for debug link.
+onekey has support for debug link.
 
 To support an emulator with debug link, run
 
-`./trezord -ed 21324:21320 -u=false`
+`./onekey -ed 21324:21320 -u=false`
 
 this will detect emulator debug link on port 21320, with regular device on 21324.
 
-To support WebUSB devices with debug link, no option is needed, just run trezord-go.
+To support WebUSB devices with debug link, no option is needed, just run onekey-go.
 
 In the `enumerate` and `listen` results, there are now two new fields: `debug` and `debugSession`. `debug` signals that device can receive debug link messages.
 
-Session management is separate for debug link and normal interface, so you can have two applications - one controlling trezor and one "normal".
+Session management is separate for debug link and normal interface, so you can have two applications - one controlling onekey and one "normal".
 
 There are new calls:
 

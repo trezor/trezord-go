@@ -1,2 +1,2 @@
-systemctl stop trezord.service
-systemctl disable trezord.service
+systemctl stop onekey.service
+systemctl disable onekey.service

@@ -2386,7 +2386,7 @@ Return Value:
 
 }
 
-// new routine, by trezor
+// new routine, by onekey
 // adds posibility to find + delete INF by provider and vendor name
 int cmdDPFindDelete(_In_ LPCTSTR BaseName, _In_opt_ LPCTSTR Machine, _In_ DWORD Flags, _In_ int argc, _In_reads_(argc) PTSTR argv[])
 {
@@ -2572,6 +2572,3 @@ DispatchEntry DispatchTable[] = {
     { TEXT("?"),            cmdHelp,        0,                     0 },
     { NULL,NULL }
 };
-
-
-

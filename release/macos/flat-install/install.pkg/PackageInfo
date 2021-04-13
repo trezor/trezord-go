@@ -1,6 +1,6 @@
 <pkg-info
   format-version="2"
-  identifier="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+  identifier="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
   version="VERSION"
   overwrite-permissions="false"
   useHFSPlusCompression="true"

@@ -1,6 +1,6 @@
 PLATFORM  = linux
 VOL_MOUNT = -v $(shell pwd):/release
-IMAGETAG  = trezord-go-build-env-$(PLATFORM)
+IMAGETAG  = onekey-bridge-build-env-$(PLATFORM)
 
 IMPORT_PATH = ../..
 
@@ -15,10 +15,10 @@ clean:
 	mkdir -p build
 	# xgo -targets=linux/386,linux/amd64,linux/arm-7,linux/arm64 $(IMPORT_PATH)
 	xgo -targets=linux/386,linux/amd64 $(IMPORT_PATH)
-	mv -f trezord-go-linux-386 build/trezord-linux-386
-	mv -f trezord-go-linux-amd64 build/trezord-linux-amd64
-	# mv -f trezord-go-linux-arm-7 build/trezord-linux-arm-7
-	# mv -f trezord-go-linux-arm64 build/trezord-linux-arm64
+	mv -f onekey-bridge-linux-386 build/onekey-linux-386
+	mv -f onekey-bridge-linux-amd64 build/onekey-linux-amd64
+	# mv -f onekey-bridge-linux-arm-7 build/onekey-linux-arm-7
+	# mv -f onekey-bridge-linux-arm64 build/onekey-linux-arm64
 	cp ../../VERSION build
 
 .package: .binary .docker-image

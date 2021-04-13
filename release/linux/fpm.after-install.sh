@@ -1,2 +1,2 @@
-systemctl enable trezord.service
-systemctl start trezord.service
+systemctl enable onekey.service
+systemctl start onekey.service

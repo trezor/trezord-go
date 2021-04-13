@@ -1,7 +1,7 @@
-getent group trezord >/dev/null || groupadd -r trezord
+getent group onekey >/dev/null || groupadd -r onekey
 getent group plugdev >/dev/null || groupadd -r plugdev
-getent passwd trezord >/dev/null || useradd -r -g trezord -d /var -s /bin/false -c "Trezor Bridge" trezord
-usermod -a -G plugdev trezord
-touch /var/log/trezord.log
-chown trezord:trezord /var/log/trezord.log
-chmod 660 /var/log/trezord.log
+getent passwd onekey >/dev/null || useradd -r -g onekey -d /var -s /bin/false -c "OneKey Bridge" onekey
+usermod -a -G plugdev onekey
+touch /var/log/onekey.log
+chown onekey:onekey /var/log/onekey.log
+chmod 660 /var/log/onekey.log

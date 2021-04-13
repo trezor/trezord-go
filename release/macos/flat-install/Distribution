@@ -17,26 +17,26 @@
   />
 
   <pkg-ref
-    id="com.bitcointrezor.pkg.TREZORBridge"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge"
   />
 
   <choices-outline>
     <line
-      choice="com.bitcointrezor.pkg.TREZORBridge"
+      choice="com.bitcoinonekey.pkg.ONEKEYBridge"
     />
   </choices-outline>
 
   <choice
-    id="com.bitcointrezor.pkg.TREZORBridge"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge"
     visible="true"
     title="Install OneKey Bridge"
   >
     <pkg-ref
-      id="com.bitcointrezor.pkg.TREZORBridge"
+      id="com.bitcoinonekey.pkg.ONEKEYBridge"
     />
   </choice>
   <pkg-ref
-    id="com.bitcointrezor.pkg.TREZORBridge"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge"
     version="VERSION"
     onConclusion="none"
     installKBytes="KBYTES"

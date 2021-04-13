@@ -17,26 +17,26 @@
   />
 
   <pkg-ref
-    id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
   />
 
   <choices-outline>
     <line
-      choice="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+      choice="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
     />
   </choices-outline>
 
   <choice
-    id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
     visible="true"
     title="Uninstall OneKey Bridge"
   >
     <pkg-ref
-      id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+      id="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
     />
   </choice>
   <pkg-ref
-    id="com.bitcointrezor.pkg.TREZORBridge.uninstall"
+    id="com.bitcoinonekey.pkg.ONEKEYBridge.uninstall"
     version="VERSION"
     onConclusion="none"
     installKBytes="0"

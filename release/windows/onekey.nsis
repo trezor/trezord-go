@@ -61,7 +61,7 @@ RequestExecutionLevel admin
 SetCompressor bzip2
 
 Name "OneKey Bridge"
-InstallDirRegKey HKLM Software\TREZOR\Bridge InstallDir
+InstallDirRegKey HKLM Software\OneKey\Bridge InstallDir
 
 ShowInstDetails hide
 ShowUninstDetails hide
@@ -88,32 +88,32 @@ Section "OneKey Bridge"
   SectionIn RO
 
   DetailPrint "Stopping previous Bridge"
-  nsExec::Exec "taskkill /IM trezord.exe /F"
+  nsExec::Exec "taskkill /IM onekey.exe /F"
 
   SetOutPath "$INSTDIR"
   ${If} ${RunningX64}
     ${If} ${IsWin7}
       File /oname=wdi-simple.exe wdi-simple-64b.exe
     ${EndIf}
-    File /oname=trezord.exe trezord-64b.exe
+    File /oname=onekey.exe onekey-64b.exe
     File /oname=devcon.exe devcon-64b.exe
   ${Else}
     ${If} ${IsWin7}
       File /oname=wdi-simple.exe wdi-simple-32b.exe
     ${EndIf}
-    File /oname=trezord.exe trezord-32b.exe
+    File /oname=onekey.exe onekey-32b.exe
     File /oname=devcon.exe devcon-32b.exe
   ${EndIf}
-  File "trezord.ico"
+  File "onekey.ico"
 SectionEnd
 
 Section "Start Menu Shortcuts"
   SetShellVarContext all
 
-  CreateDirectory "$SMPROGRAMS\TREZOR Bridge"
-  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-v -l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
-  CreateShortCut "$SMSTARTUP\TREZOR Bridge.lnk" "$INSTDIR\trezord.exe" "-v -l $\"%APPDATA%\TREZOR Bridge\trezord.log$\"" "$INSTDIR\trezord.ico" 0
+  CreateDirectory "$SMPROGRAMS\ONEKEY Bridge"
+  CreateShortCut "$SMPROGRAMS\ONEKEY Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\ONEKEY Bridge\ONEKEY Bridge.lnk" "$INSTDIR\onekey.exe" "-v -l $\"%APPDATA%\ONEKEY Bridge\onekey.log$\"" "$INSTDIR\onekey.ico" 0
+  CreateShortCut "$SMSTARTUP\ONEKEY Bridge.lnk" "$INSTDIR\onekey.exe" "-v -l $\"%APPDATA%\ONEKEY Bridge\onekey.log$\"" "$INSTDIR\onekey.ico" 0
 SectionEnd
 
 Var CMDRESULT
@@ -165,26 +165,26 @@ SectionEnd
 Section "Install drivers"
   ${If} ${IsWin7}
   DetailPrint "Installing drivers"
-  nsExec::ExecToLog '"$sysdir\cmd.exe" /c "mkdir "%APPDATA%\TREZOR Bridge""'
-  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT > "%APPDATA%\TREZOR Bridge\wdi-log.txt" 2>&1"'
-  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "TREZOR" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT >> "%APPDATA%\TREZOR Bridge\wdi-log.txt" 2>&1"'
+  nsExec::ExecToLog '"$sysdir\cmd.exe" /c "mkdir "%APPDATA%\ONEKEY Bridge""'
+  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "ONEKEY" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C0 --progressbar=$HWNDPARENT > "%APPDATA%\ONEKEY Bridge\wdi-log.txt" 2>&1"'
+  nsExec::ExecToLog '"$sysdir\cmd.exe" /c ""$INSTDIR\wdi-simple.exe" --name "ONEKEY" --manufacturer "SatoshiLabs" --vid 0x1209 --pid 0x53C1 --iid 0 --progressbar=$HWNDPARENT >> "%APPDATA%\ONEKEY Bridge\wdi-log.txt" 2>&1"'
   ${EndIf}
   nsExec::ExecToLog '"$INSTDIR\devcon.exe" rescan'
 SectionEnd
 
 Section "Uninstall"
-  ExecWait "taskkill /f /im trezord.exe"
+  ExecWait "taskkill /f /im onekey.exe"
 
-  Delete /rebootok "$SMSTARTUP\TREZOR Bridge.lnk"
-  Delete /rebootok "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk"
-  Delete /rebootok "$SMPROGRAMS\TREZOR Bridge\Uninstall.lnk"
-  RMDir "$SMPROGRAMS\TREZOR Bridge"
+  Delete /rebootok "$SMSTARTUP\ONEKEY Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\ONEKEY Bridge\ONEKEY Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\ONEKEY Bridge\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\ONEKEY Bridge"
 
   RMDir /r /rebootok "$INSTDIR\usb_driver"
   Delete /rebootok "$INSTDIR\devcon.exe"
   Delete /rebootok "$INSTDIR\wdi-simple.exe"
-  Delete /rebootok "$INSTDIR\trezord.exe"
-  Delete /rebootok "$INSTDIR\trezord.ico"
+  Delete /rebootok "$INSTDIR\onekey.exe"
+  Delete /rebootok "$INSTDIR\onekey.ico"
   Delete /rebootok "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 SectionEnd
@@ -194,10 +194,10 @@ Section -post
 SectionEnd
 
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Start Trezor Bridge"
+!define MUI_FINISHPAGE_RUN_TEXT "Start OneKey Bridge"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApplication"
 !insertmacro MUI_PAGE_FINISH
 
 Function LaunchApplication
-  ExecShell "" "$SMPROGRAMS\TREZOR Bridge\TREZOR Bridge.lnk"
+  ExecShell "" "$SMPROGRAMS\ONEKEY Bridge\ONEKEY Bridge.lnk"
 FunctionEnd
