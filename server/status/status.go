@@ -29,7 +29,7 @@ func ServeStatusRedirect(r *mux.Router) {
 }
 
 func redirect(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "http://127.0.0.1:21320/status/", http.StatusMovedPermanently)
 }
 
 func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.MemoryWriter) {
@@ -45,7 +45,7 @@ func ServeStatus(r *mux.Router, c *core.Core, v string, mw, dmw *memorywriter.Me
 	r.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
 	r.Use(OriginCheck(map[string]string{
 		"/status/":       "",
-		"/status/log.gz": "http://127.0.0.1:21325",
+		"/status/log.gz": "http://127.0.0.1:21320",
 	}))
 }
 

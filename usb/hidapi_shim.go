@@ -1,6 +1,6 @@
 // +build linux freebsd
 
-// shim for linux and freebsd so that trezord.go builds
+// shim for linux and freebsd so that onekey.go builds
 
 package usb
 

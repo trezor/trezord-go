@@ -163,7 +163,7 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 	return r;
 }
 
-// ============= TREZORD LIBUSB CODE ============
+// ============= OneKey LIBUSB CODE ============
 
 // libusb does not have the option to cancel transfers, made through sync API
 // however, we did not want to rewrite everything into async API and
@@ -230,7 +230,7 @@ void API_EXPORTED libusb_cancel_sync_transfers_on_device(struct libusb_device_ha
 	}
 }
 
-// ============= TREZORD LIBUSB CODE END ========
+// ============= OneKey LIBUSB CODE END ========
 
 static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 	unsigned char endpoint, unsigned char *buffer, int length,

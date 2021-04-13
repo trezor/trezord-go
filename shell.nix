@@ -1,6 +1,6 @@
 with import <nixpkgs> {};
 
 stdenv.mkDerivation {
-  name = "trezord-go-dev";
+  name = "onekey-go-dev";
   buildInputs = [ go ];
 }

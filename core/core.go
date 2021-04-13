@@ -476,7 +476,7 @@ func (c *Core) Acquire(
 	return id, nil
 }
 
-// Chrome tries to read from trezor immediately after connecting,
+// Chrome tries to read from onekey immediately after connecting,
 // ans so do we.  Bad timing can produce error on s.bus.Connect.
 // Try 3 times with a 100ms delay.
 func (c *Core) tryConnect(path string, debug bool, reset bool) (USBDevice, error) {

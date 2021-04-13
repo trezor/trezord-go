@@ -352,8 +352,8 @@ func oldLog() (string, error) {
 	return readFile(
 		"previous log",
 		"AppData",
-		"TREZOR Bridge",
-		"trezord.log",
+		"OneKey Bridge",
+		"onekey.log",
 	)
 }
 
@@ -361,7 +361,7 @@ func libwdiReinstallLog() (string, error) {
 	return readFile(
 		"libwdi reinstall log",
 		"AppData",
-		"TREZOR Bridge",
+		"OneKey Bridge",
 		"wdi-log.txt",
 	)
 }

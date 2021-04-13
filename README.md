@@ -91,7 +91,7 @@ You can disable all USB in order to run on some virtuaized environments, for exa
 
 ## API documentation
 
-`trezord-go` starts a HTTP server on `http://localhost:21325`. AJAX calls are only enabled from trezor.io subdomains.
+`trezord-go` starts a HTTP server on `http://localhost:21320`. AJAX calls are only enabled from trezor.io subdomains.
 
 Server supports following API calls:
 
@@ -112,9 +112,9 @@ Trezord has support for debug link.
 
 To support an emulator with debug link, run
 
-`./trezord -ed 21324:21325 -u=false`
+`./trezord -ed 21324:21320 -u=false`
 
-this will detect emulator debug link on port 21325, with regular device on 21324.
+this will detect emulator debug link on port 21320, with regular device on 21324.
 
 To support WebUSB devices with debug link, no option is needed, just run trezord-go.
 

@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// This package is for serving the actual trezord API.
+// This package is for serving the actual onekey API.
 // The actual logic of enumeration is in core package,
 // in this package, we deal with converting the data from the request
 // and then again formatting to the reply

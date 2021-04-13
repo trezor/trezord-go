@@ -1,8 +1,8 @@
 version: '3'
 services:
-  trezor-bridge:
+  onekey-bridge:
     build:
       context: './'
-    image: "trezor-bridge"
+    image: "onekey-bridge"
     ports:
-      - "127.0.0.1:21325:11325"
+      - "127.0.0.1:21320:11325"

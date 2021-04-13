@@ -492,7 +492,7 @@ static int raw_desc_to_config(struct libusb_context *ctx,
 {
 	struct libusb_config_descriptor *_config = malloc(sizeof(*_config));
 	int r;
-	
+
 	if (!_config)
 		return LIBUSB_ERROR_NO_MEM;
 
@@ -504,7 +504,7 @@ static int raw_desc_to_config(struct libusb_context *ctx,
 	} else if (r > 0) {
 		usbi_warn(ctx, "still %d bytes of descriptor data left", r);
 	}
-	
+
 	*config = _config;
 	return LIBUSB_SUCCESS;
 }
@@ -534,7 +534,7 @@ int usbi_device_cache_descriptor(libusb_device *dev)
  * This is a non-blocking function; the device descriptor is cached in memory.
  *
  * Note since libusb-1.0.16, \ref LIBUSB_API_VERSION >= 0x01000102, this
- * function always succeeds. (Not true in trezord fork on windows.)
+ * function always succeeds. (Not true in onekey fork on windows.)
  *
  * \param dev the device
  * \param desc output location for the descriptor data
@@ -549,8 +549,8 @@ int API_EXPORTED libusb_get_device_descriptor(libusb_device *dev,
 	usbi_dbg("after memcpy");
 
 	#ifdef OS_WINDOWS
-	// hack for filtering out non-winusb devices in trezord
-	// (note that in trezord layer, throwing error here does NOT throw error up the chain,
+	// hack for filtering out non-winusb devices in onekey
+	// (note that in OneKey layer, throwing error here does NOT throw error up the chain,
 	//  it just ignores the device)
 	usbi_dbg("windows -> ask driver");
 	if (!dev->has_winusb_driver) {

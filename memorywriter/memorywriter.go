@@ -111,7 +111,7 @@ func (m *MemoryWriter) Write(p []byte) (int, error) {
 }
 
 // Exports lines to a writer, plus adds additional text on top
-// In our case, additional text is devcon exports and trezord version
+// In our case, additional text is devcon exports and onekey version
 func (m *MemoryWriter) writeTo(start string, w io.Writer) error {
 	m.mutex.Lock()
 	defer func() {
