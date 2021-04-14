@@ -11,8 +11,8 @@ INSTALLER=onekey-bridge-$VERSION-$TARGET-install.exe
 
 cd /release/build
 
-cp /release/onekey.nsis onekey.nsis
-cp /release/onekey.ico onekey.ico
+cp /release/onekeyd.nsis onekeyd.nsis
+cp /release/onekeyd.ico onekeyd.ico
 
 # openssl pkcs12 -in authenticode.p12 -out authenticode.crt -clcerts -nokeys
 # openssl pkcs12 -in authenticode.p12 -out authenticode.key -nocerts -nodes
@@ -20,7 +20,7 @@ cp /release/onekey.ico onekey.ico
 SIGNKEY=/release/authenticode
 
 if [ -r $SIGNKEY.key ]; then
-    for BINARY in {onekey,devcon,wdi-simple}-{32b,64b}.exe ; do
+    for BINARY in {onekeyd,devcon,wdi-simple}-{32b,64b}.exe ; do
         mv $BINARY $BINARY.unsigned
         osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "OneKey Bridge" -i "https://onekey.so/" -h sha256 -t "http://timestamp.comodoca.com?td=sha256" -in $BINARY.unsigned -out $BINARY
         osslsigncode verify -in $BINARY
@@ -28,9 +28,9 @@ if [ -r $SIGNKEY.key ]; then
 fi
 
 if [ $TARGET = win32 ]; then
-    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES32\OneKey Bridge"' onekey.nsis
+    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES32\OneKey-Bridge"' onekeyd.nsis
 else
-    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES64\OneKey Bridge"' onekey.nsis
+    makensis -X"OutFile $INSTALLER" -X'InstallDir "$PROGRAMFILES64\OneKey-Bridge"' onekeyd.nsis
 fi
 
 if [ -r $SIGNKEY.key ]; then

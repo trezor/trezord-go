@@ -1,2 +1,2 @@
-systemctl enable onekey.service
-systemctl start onekey.service
+systemctl enable onekeyd.service
+systemctl start onekeyd.service

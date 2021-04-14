@@ -16,7 +16,7 @@ clean:
 	$(info Building with xgo ...)
 	mkdir -p build
 	xgo -targets=darwin/amd64 $(IMPORT_PATH)
-	mv -f $(NAME64) build/onekey
+	mv -f $(NAME64) build/onekeyd
 	cp ../../VERSION build
 
 .package: .binary .docker-image

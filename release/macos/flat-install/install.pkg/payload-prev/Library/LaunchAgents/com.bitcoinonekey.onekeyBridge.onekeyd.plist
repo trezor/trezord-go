@@ -12,7 +12,7 @@
     <array>
       <string>sh</string>
       <string>-c</string>
-      <string>/Applications/Utilities/OneKey\ Bridge/onekey -l $HOME/Library/Logs/onekey.log</string>
+      <string>/Applications/Utilities/OneKey\ Bridge/onekeyd -l $HOME/Library/Logs/onekeyd.log</string>
     </array>
   </dict>
 </plist>

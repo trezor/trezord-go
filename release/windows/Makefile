@@ -23,9 +23,9 @@ clean:
 	$(info Building with xgo ...)
 	mkdir -p build
 	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
-	mv -f $(NAME32) build/onekey-32b.exe
+	mv -f $(NAME32) build/onekeyd-32b.exe
 	xgo -ldflags="-H=windowsgui" -targets=windows/amd64 $(IMPORT_PATH)
-	mv -f $(NAME64) build/onekey-64b.exe
+	mv -f $(NAME64) build/onekeyd-64b.exe
 	cp ../../VERSION build
 
 .package: .binary .docker-image .wdi .devcon

@@ -54,7 +54,7 @@ cd ..
 rm -r scripts-prev
 cd payload-prev
 
-cp /release/build/onekey Applications/Utilities/OneKey\ Bridge/
+cp /release/build/onekeyd Applications/Utilities/OneKey\ Bridge/
 cp ../../../uninstall.pkg Applications/Utilities/OneKey\ Bridge/
 
 FILES=$(find . | wc -l)

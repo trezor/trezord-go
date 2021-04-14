@@ -8,12 +8,12 @@ inst_user=`stat /dev/console | cut -f 5 -d ' '`
 
 # load the agent file into launchd with correct user
 
-agent_file=/Library/LaunchAgents/com.bitcoinonekey.onekeyBridge.onekey.plist
+agent_file=/Library/LaunchAgents/com.bitcoinonekey.onekeyBridge.onekeyd.plist
 
 set +e
 sudo -u $inst_user launchctl unload $agent_file
 
-sudo -u $inst_user killall onekey > /dev/null
+sudo -u $inst_user killall onekeyd > /dev/null
 
 rm $agent_file
 rm -r /Applications/Utilities/OneKey\ Bridge

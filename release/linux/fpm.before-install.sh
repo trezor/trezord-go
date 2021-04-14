@@ -1,7 +1,7 @@
-getent group onekey >/dev/null || groupadd -r onekey
+getent group onekeyd >/dev/null || groupadd -r onekeyd
 getent group plugdev >/dev/null || groupadd -r plugdev
-getent passwd onekey >/dev/null || useradd -r -g onekey -d /var -s /bin/false -c "OneKey Bridge" onekey
-usermod -a -G plugdev onekey
-touch /var/log/onekey.log
-chown onekey:onekey /var/log/onekey.log
-chmod 660 /var/log/onekey.log
+getent passwd onekeyd >/dev/null || useradd -r -g onekeyd -d /var -s /bin/false -c "OneKey Bridge" onekeyd
+usermod -a -G plugdev onekeyd
+touch /var/log/onekeyd.log
+chown onekeyd:onekeyd /var/log/onekeyd.log
+chmod 660 /var/log/onekeyd.log

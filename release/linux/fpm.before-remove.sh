@@ -1,2 +1,2 @@
-systemctl stop onekey.service
-systemctl disable onekey.service
+systemctl stop onekeyd.service
+systemctl disable onekeyd.service

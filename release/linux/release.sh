@@ -10,9 +10,9 @@ VERSION=$(cat /release/build/VERSION)
 
 cd /release/build
 
-install -D -m 0755 onekey-$TARGET          ./usr/bin/onekey
+install -D -m 0755 onekey-$TARGET          ./usr/bin/onekeyd
 install -D -m 0644 /release/onekey.rules    ./lib/udev/rules.d/50-onekey.rules
-install -D -m 0644 /release/onekey.service ./usr/lib/systemd/system/onekey.service
+install -D -m 0644 /release/onekeyd.service ./usr/lib/systemd/system/onekeyd.service
 
 # prepare GPG signing environment
 GPG_PRIVKEY=/release/privkey.asc
