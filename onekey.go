@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/OneKeyHQ/onekey-bridge/core"
 	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 	"github.com/OneKeyHQ/onekey-bridge/server"
@@ -111,6 +112,11 @@ func main() {
 	flag.BoolVar(&versionFlag, "version", false, "Write version")
 	flag.BoolVar(&reset, "r", true, "Reset USB device on session acquiring. Enabled by default (to prevent wrong device states); set to false if you plan to connect to debug link outside of bridge.")
 	flag.Parse()
+
+	sentry.Init(sentry.ClientOptions{
+		Dsn: "",
+		Debug: true,
+	})
 
 	if versionFlag {
 		fmt.Printf("onekey version %s", version)

@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"errors"
+	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/OneKeyHQ/onekey-bridge/core"
 	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
-
 	"github.com/gorilla/mux"
 )
 
@@ -277,6 +279,11 @@ func (a *api) respondError(w http.ResponseWriter, err error) {
 	type jsonError struct {
 		Error string `json:"error"`
 	}
+
+	sentry.CaptureException(err);
+
+	sentry.Flush(time.Second * 5)
+
 	a.logger.Log("Returning error: " + err.Error())
 	w.WriteHeader(http.StatusBadRequest)
 
