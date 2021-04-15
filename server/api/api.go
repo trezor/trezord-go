@@ -6,9 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/OneKeyHQ/onekey-bridge/core"
 	"github.com/OneKeyHQ/onekey-bridge/memorywriter"
 	"github.com/gorilla/mux"
