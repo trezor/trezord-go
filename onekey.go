@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/OneKeyHQ/onekey-bridge/core"
@@ -115,7 +116,7 @@ func main() {
 
 	sentry.Init(sentry.ClientOptions{
 		Dsn: "",
-		Debug: true,
+		Debug: false,
 	})
 
 	if versionFlag {
@@ -186,6 +187,8 @@ func main() {
 		stderrLogger.Fatalf("https: %s", err)
 	}
 
+	defer sentry.Recover()
+	sentry.Flush(time.Second * 5)
 	longMemoryWriter.Log("Main ended successfully")
 }
 

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"errors"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -280,7 +279,7 @@ func (a *api) respondError(w http.ResponseWriter, err error) {
 		Error string `json:"error"`
 	}
 
-	sentry.CaptureException(err);
+	sentry.CaptureMessage("Returning error: " + err.Error());
 
 	sentry.Flush(time.Second * 5)
 
