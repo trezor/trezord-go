@@ -279,10 +279,6 @@ func (a *api) respondError(w http.ResponseWriter, err error) {
 		Error string `json:"error"`
 	}
 
-	sentry.CaptureMessage("Returning error: " + err.Error());
-
-	sentry.Flush(time.Second * 5)
-
 	a.logger.Log("Returning error: " + err.Error())
 	w.WriteHeader(http.StatusBadRequest)
 

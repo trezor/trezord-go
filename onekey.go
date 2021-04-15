@@ -117,7 +117,17 @@ func main() {
 	sentry.Init(sentry.ClientOptions{
 		Dsn: "",
 		Debug: false,
+		Release: version,
 	})
+
+	defer func() {
+		err := recover()
+
+		if err != nil {
+			sentry.CurrentHub().Recover(err)
+			sentry.Flush(time.Second * 5)
+		}
+	}()
 
 	if versionFlag {
 		fmt.Printf("onekey version %s", version)
@@ -178,17 +188,17 @@ func main() {
 	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version)
 
 	if err != nil {
+		sentry.CaptureException(err)
 		stderrLogger.Fatalf("https: %s", err)
 	}
 
 	longMemoryWriter.Log("Running HTTP server")
 	err = s.Run()
 	if err != nil {
+		sentry.CaptureException(err)
 		stderrLogger.Fatalf("https: %s", err)
 	}
 
-	defer sentry.Recover()
-	sentry.Flush(time.Second * 5)
 	longMemoryWriter.Log("Main ended successfully")
 }
 
