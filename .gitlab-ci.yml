@@ -53,6 +53,7 @@ test build xgo macos:
 
 prebuild go lint:
   stage: test
+  image: golang
   variables:
     TEST: "golangci"
   script:
@@ -60,6 +61,7 @@ prebuild go lint:
     - golangci-lint run
 version check:
   stage: test
+  image: golang
   variables:   
     TEST: "version-check"
   script:
