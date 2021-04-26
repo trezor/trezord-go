@@ -1,9 +1,8 @@
-image: docker:latest
-
-services:
-  - docker:dind
-
 build and push emulator image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
   before_script:
     - apk add --no-cache py-pip
     - pip install docker-compose
@@ -12,3 +11,57 @@ build and push emulator image:
   script:
     - docker-compose -f ./docker-compose.yml build
     - docker-compose -f ./docker-compose.yml push
+
+build test:
+  stage: test
+  image: golang
+  variables:
+    TEST: "build-local"
+  script:
+    - go version
+    - go build .
+    - go test -v ./...
+
+test build xgo linux:
+  stage: test
+  image: karalabe/xgo-latest
+  script:
+    - go version
+    - go get github.com/karalabe/xgo
+    - cd release/linux
+    - ./release.sh linux-386
+    - ./release.sh linux-amd64
+    - ./release.sh linux-arm64
+
+test build xgo windows:
+  stage: test
+  image: karalabe/xgo-latest
+  script:
+    - go version
+    - go get github.com/karalabe/xgo
+    - cd release/windows
+    - make all
+
+test build xgo macos:
+  stage: test
+  image: karalabe/xgo-latest
+  script:
+    - go version
+    - go get github.com/karalabe/xgo
+    - cd release/macos
+    - make all
+
+prebuild go lint:
+  stage: test
+  variables:
+    TEST: "golangci"
+  script:
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.0
+    - golangci-lint run
+version check:
+  stage: test
+  variables:   
+    TEST: "version-check"
+  script:
+    - diff -u VERSION <(grep "var version = " trezord.go | cut -f 2 -d '"')
+
