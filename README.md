@@ -13,8 +13,8 @@ status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustw
 trezord-go requires go >= 1.12
 
 ```
-go get github.com/trezor/trezord-go
-go build github.com/trezor/trezord-go
+GO111MODULE=auto go get github.com/trezor/trezord-go
+GO111MODULE=auto go build github.com/trezor/trezord-go
 ./trezord-go -h
 ```
 
@@ -34,8 +34,8 @@ When built with `-tags debug` a debug mode is enabled. This disables CORS which 
 ## Update from source
 ```
 go clean
-go get -u github.com/trezor/trezord-go
-go build -a github.com/trezor/trezord-go
+GO111MODULE=auto go get -u github.com/trezor/trezord-go
+GO111MODULE=auto go build -a github.com/trezor/trezord-go
 ```
 
 On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
