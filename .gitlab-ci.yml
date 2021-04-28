@@ -24,10 +24,10 @@ build test:
 
 test build xgo linux:
   stage: test
-  image: karalabe/xgo-latest
+  image: techknowlogick/xgo:latest #testing out image with latest go also still supported project on github, with karalabe working on this.
   script:
     - go version
-    - go get github.com/karalabe/xgo
+    - go get src.techknowlogick.com/xgo #still supported project on github, with karalabe working on this.
     - cd release/linux
     - ./release.sh linux-386
     - ./release.sh linux-amd64
@@ -59,6 +59,7 @@ prebuild go lint:
   script:
     - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.0
     - golangci-lint run
+
 version check:
   stage: test
   image: golang
