@@ -34,12 +34,12 @@ status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustw
 
 ## Install and run from source
 
-onekey-go requires go >= 1.6
+onekey-bridge requires go >= 1.6
 
 ```
-go get github.com/OneKeyHQ/onekey-go
-go build github.com/OneKeyHQ/onekey-go
-./onekey-go -h
+go get github.com/OneKeyHQ/onekey-bridge
+go build github.com/OneKeyHQ/onekey-bridge
+./onekey-bridge -h
 ```
 
 On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
@@ -88,7 +88,7 @@ You can disable all USB in order to run on some virtuaized environments, for exa
 
 ## API documentation
 
-`onekey-go` starts a HTTP server on `http://localhost:21320`. AJAX calls are only enabled from onekey.so subdomains.
+`onekey-bridge` starts a HTTP server on `http://localhost:21320`. AJAX calls are only enabled from onekey.so subdomains.
 
 Server supports following API calls:
 
@@ -113,7 +113,7 @@ To support an emulator with debug link, run
 
 this will detect emulator debug link on port 21320, with regular device on 21324.
 
-To support WebUSB devices with debug link, no option is needed, just run onekey-go.
+To support WebUSB devices with debug link, no option is needed, just run onekey-bridge.
 
 In the `enumerate` and `listen` results, there are now two new fields: `debug` and `debugSession`. `debug` signals that device can receive debug link messages.
 
