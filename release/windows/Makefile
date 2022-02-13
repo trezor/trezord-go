@@ -1,7 +1,7 @@
 PLATFORM  = win
 BITS      = 32
-NAME32 = onekey-bridge-windows-4.0-386.exe
-NAME64 = onekey-bridge-windows-4.0-amd64.exe
+NAME32 = onekey-bridge-windows-6.0-386.exe
+NAME64 = onekey-bridge-windows-6.0-amd64.exe
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = onekey-bridge-build-env-$(PLATFORM)
 
@@ -22,9 +22,9 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows/386 $(IMPORT_PATH)
+	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/386 $(IMPORT_PATH)
 	mv -f $(NAME32) build/onekeyd-32b.exe
-	xgo -ldflags="-H=windowsgui" -targets=windows/amd64 $(IMPORT_PATH)
+	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/amd64 $(IMPORT_PATH)
 	mv -f $(NAME64) build/onekeyd-64b.exe
 	cp ../../VERSION build
 

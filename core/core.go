@@ -66,10 +66,12 @@ type USBDevice interface {
 }
 
 type session struct {
-	path string
-	id   string
-	dev  USBDevice
-	call int32 // atomic
+	path       string
+	id         string
+	dev        USBDevice
+	call       int32 // atomic
+	readMutex  sync.Mutex
+	writeMutex sync.Mutex
 }
 
 type EnumerateEntry struct {
@@ -349,12 +351,15 @@ func (c *Core) release(
 	debug bool,
 ) error {
 	c.log.Log(fmt.Sprintf("session %s", session))
+	c.sessionsMutex.Lock()
 	acquired := (c.sessions(debug))[session]
 	if acquired == nil {
 		c.log.Log("session not found")
+		c.sessionsMutex.Unlock()
 		return ErrSessionNotFound
 	}
 	delete(c.sessions(debug), session)
+	c.sessionsMutex.Unlock()
 
 	c.log.Log("bus close")
 	err := acquired.dev.Close(disconnected)
@@ -553,16 +558,25 @@ func (c *Core) Call(
 		return nil, ErrSessionNotFound
 	}
 
-	c.log.Log("checking other call on same session")
-	freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
-	if !freeToCall {
-		return nil, ErrOtherCall
-	}
+	if mode != CallModeWrite {
+		// This check is implemented only for /call and /read:
+		// - /call: Two /calls should not run concurrently. Otherwise the "message writes" and "message reads"
+		//   could interleave and the second caller would read the first response.
+		// - /read: Although this could be possible we do not have a use case for that at the moment.
+		// The check IS NOT implemented for /post, meaning /post can write even though some /call or /read
+		// is in progress (but there are some read/write locks later on).
 
-	c.log.Log("checking other call on same session done")
-	defer func() {
-		atomic.StoreInt32(&acquired.call, 0)
-	}()
+		c.log.Log("checking other call on same session")
+		freeToCall := atomic.CompareAndSwapInt32(&acquired.call, 0, 1)
+		if !freeToCall {
+			return nil, ErrOtherCall
+		}
+
+		c.log.Log("checking other call on same session done")
+		defer func() {
+			atomic.StoreInt32(&acquired.call, 0)
+		}()
+	}
 
 	finished := make(chan bool, 1)
 	defer func() {
@@ -584,7 +598,7 @@ func (c *Core) Call(
 	}()
 
 	c.log.Log("before actual logic")
-	bytes, err := c.readWriteDev(body, acquired.dev, mode)
+	bytes, err := c.readWriteDev(body, acquired, mode)
 	c.log.Log("after actual logic")
 
 	return bytes, err
@@ -615,7 +629,7 @@ func (c *Core) readDev(device io.Reader) ([]byte, error) {
 
 func (c *Core) readWriteDev(
 	body []byte,
-	device io.ReadWriter,
+	acquired *session,
 	mode CallMode,
 ) ([]byte, error) {
 
@@ -625,7 +639,9 @@ func (c *Core) readWriteDev(
 		}
 		c.log.Log("skipping write")
 	} else {
-		err := c.writeDev(body, device)
+		acquired.writeMutex.Lock()
+		err := c.writeDev(body, acquired.dev)
+		acquired.writeMutex.Unlock()
 		if err != nil {
 			return nil, err
 		}
@@ -635,7 +651,9 @@ func (c *Core) readWriteDev(
 		c.log.Log("skipping read")
 		return []byte{0}, nil
 	}
-	return c.readDev(device)
+	acquired.readMutex.Lock()
+	defer acquired.readMutex.Unlock()
+	return c.readDev(acquired.dev)
 }
 
 func (c *Core) decodeRaw(body []byte) (*wire.Message, error) {

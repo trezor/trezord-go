@@ -1,6 +1,6 @@
 PLATFORM  = macos
 BITS      = 64
-NAME64 = onekey-bridge-darwin-10.6-amd64
+NAME64 = onekey-bridge-darwin-10.7-amd64
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = onekey-bridge-build-env-$(PLATFORM)
 
@@ -15,7 +15,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -targets=darwin/amd64 $(IMPORT_PATH)
+	xgo -targets=darwin-10.7/amd64 $(IMPORT_PATH)
 	mv -f $(NAME64) build/onekeyd
 	cp ../../VERSION build
 

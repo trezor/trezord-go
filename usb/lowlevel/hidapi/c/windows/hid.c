@@ -17,7 +17,7 @@
  files located at the root of the source distribution.
  These files may also be found in the public source
  code repository located at:
-        http://github.com/signal11/hidapi .
+        https://github.com/libusb/hidapi .
 ********************************************************/
 
 #include <windows.h>
@@ -55,6 +55,7 @@ extern "C" {
 	#define HID_OUT_CTL_CODE(id)  \
 		CTL_CODE(FILE_DEVICE_KEYBOARD, (id), METHOD_OUT_DIRECT, FILE_ANY_ACCESS)
 	#define IOCTL_HID_GET_FEATURE                   HID_OUT_CTL_CODE(100)
+	#define IOCTL_HID_GET_INPUT_REPORT              HID_OUT_CTL_CODE(104)
 
 #ifdef __cplusplus
 } /* extern "C" */
@@ -64,7 +65,7 @@ extern "C" {
 #include <stdlib.h>
 
 
-#include "hidapi/hidapi.h"
+#include "hidapi.h"
 
 #undef MIN
 #define MIN(x,y) ((x) < (y)? (x): (y))
@@ -109,6 +110,7 @@ extern "C" {
 	typedef BOOLEAN (__stdcall *HidD_GetProductString_)(HANDLE handle, PVOID buffer, ULONG buffer_len);
 	typedef BOOLEAN (__stdcall *HidD_SetFeature_)(HANDLE handle, PVOID data, ULONG length);
 	typedef BOOLEAN (__stdcall *HidD_GetFeature_)(HANDLE handle, PVOID data, ULONG length);
+	typedef BOOLEAN (__stdcall *HidD_GetInputReport_)(HANDLE handle, PVOID data, ULONG length);
 	typedef BOOLEAN (__stdcall *HidD_GetIndexedString_)(HANDLE handle, ULONG string_index, PVOID buffer, ULONG buffer_len);
 	typedef BOOLEAN (__stdcall *HidD_GetPreparsedData_)(HANDLE handle, PHIDP_PREPARSED_DATA *preparsed_data);
 	typedef BOOLEAN (__stdcall *HidD_FreePreparsedData_)(PHIDP_PREPARSED_DATA preparsed_data);
@@ -121,6 +123,7 @@ extern "C" {
 	static HidD_GetProductString_ HidD_GetProductString;
 	static HidD_SetFeature_ HidD_SetFeature;
 	static HidD_GetFeature_ HidD_GetFeature;
+	static HidD_GetInputReport_ HidD_GetInputReport;
 	static HidD_GetIndexedString_ HidD_GetIndexedString;
 	static HidD_GetPreparsedData_ HidD_GetPreparsedData;
 	static HidD_FreePreparsedData_ HidD_FreePreparsedData;
@@ -169,7 +172,7 @@ static void free_hid_device(hid_device *dev)
 	free(dev);
 }
 
-static void register_error(hid_device *device, const char *op)
+static void register_error(hid_device *dev, const char *op)
 {
 	WCHAR *ptr, *msg;
 
@@ -195,8 +198,8 @@ static void register_error(hid_device *device, const char *op)
 
 	/* Store the message off in the Device entry so that
 	   the hid_error() function can pick it up. */
-	LocalFree(device->last_error_str);
-	device->last_error_str = msg;
+	LocalFree(dev->last_error_str);
+	dev->last_error_str = msg;
 }
 
 #ifndef HIDAPI_USE_DDK
@@ -211,6 +214,7 @@ static int lookup_functions()
 		RESOLVE(HidD_GetProductString);
 		RESOLVE(HidD_SetFeature);
 		RESOLVE(HidD_GetFeature);
+		RESOLVE(HidD_GetInputReport);
 		RESOLVE(HidD_GetIndexedString);
 		RESOLVE(HidD_GetPreparsedData);
 		RESOLVE(HidD_FreePreparsedData);
@@ -225,10 +229,10 @@ static int lookup_functions()
 }
 #endif
 
-static HANDLE open_device(const char *path, BOOL enumerate)
+static HANDLE open_device(const char *path, BOOL open_rw)
 {
 	HANDLE handle;
-	DWORD desired_access = (enumerate)? 0: (GENERIC_WRITE | GENERIC_READ);
+	DWORD desired_access = (open_rw)? (GENERIC_WRITE | GENERIC_READ): 0;
 	DWORD share_mode = FILE_SHARE_READ|FILE_SHARE_WRITE;
 
 	handle = CreateFileA(path,
@@ -269,7 +273,6 @@ int HID_API_EXPORT hid_exit(void)
 
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
-	hid_log("enumerate started");
 	BOOL res;
 	struct hid_device_info *root = NULL; /* return object */
 	struct hid_device_info *cur_dev = NULL;
@@ -287,24 +290,20 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		return NULL;
 
 	/* Initialize the Windows objects. */
-	hid_log("initializing windows objects");
 	memset(&devinfo_data, 0x0, sizeof(devinfo_data));
 	devinfo_data.cbSize = sizeof(SP_DEVINFO_DATA);
 	device_interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
 	/* Get information for all the devices belonging to the HID class. */
-	hid_log("getting device info set");
 	device_info_set = SetupDiGetClassDevsA(&InterfaceClassGuid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 	
 	/* Iterate over each device in the HID class, looking for the right one. */
 	
 	for (;;) {
-		hid_log("run another iteration");
 		HANDLE write_handle = INVALID_HANDLE_VALUE;
 		DWORD required_size = 0;
 		HIDD_ATTRIBUTES attrib;
 
-		hid_log("SetupDiEnumDeviceInterfaces");
 		res = SetupDiEnumDeviceInterfaces(device_info_set,
 			NULL,
 			&InterfaceClassGuid,
@@ -314,15 +313,12 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		if (!res) {
 			/* A return of FALSE from this function means that
 			   there are no more devices. */
-			hid_log("no more devices => exit");
 			break;
 		}
-
 
 		/* Call with 0-sized detail size, and let the function
 		   tell us how long the detail struct needs to be. The
 		   size is put in &required_size. */
-		hid_log("SetupDiGetDeviceInterfaceDetailA with 0 size");
 		res = SetupDiGetDeviceInterfaceDetailA(device_info_set,
 			&device_interface_data,
 			NULL,
@@ -331,14 +327,12 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			NULL);
 
 		/* Allocate a long enough structure for device_interface_detail_data. */
-		hid_log("allocating detail data structure");
 		device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A*) malloc(required_size);
 		device_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
 
 		/* Get the detailed data for this device. The detail data gives us
 		   the device path for this device, which is then passed into
 		   CreateFile() to get a handle to the device. */
-		hid_log("SetupDiGetDeviceInterfaceDetailA again");
 		res = SetupDiGetDeviceInterfaceDetailA(device_info_set,
 			&device_interface_data,
 			device_interface_detail_data,
@@ -349,21 +343,8 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		if (!res) {
 			/* register_error(dev, "Unable to call SetupDiGetDeviceInterfaceDetail");
 			   Continue to the next device. */
-			hid_log("Unable to call SetupDiGetDeviceInterfaceDetailA");
 			goto cont;
 		}
-		{
-			char cc[900];
-			snprintf(cc, 900, "Found device %s", device_interface_detail_data->DevicePath);
-			hid_log(cc);
-		}
-
-		if (strstr(device_interface_detail_data->DevicePath, HARDCODED_HIDAPI_DEVICE_FILTER) == NULL) {
-			hid_log("Device does not satisfy filter, skipping");
-			goto cont;
-		}
-
-		hid_log("Making sure the device is HID");
 
 		/* Make sure this device is of Setup Class "HIDClass" and has a
 		   driver bound to it. */
@@ -381,7 +362,9 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			if (!res)
 				goto cont;
 
-			if (strcmp(driver_name, "HIDClass") == 0) {
+			if ((strcmp(driver_name, "HIDClass") == 0) ||
+				(strcmp(driver_name, "Mouse") == 0) ||
+				(strcmp(driver_name, "Keyboard") == 0)) {
 				/* See if there's a driver bound. */
 				res = SetupDiGetDeviceRegistryPropertyA(device_info_set, &devinfo_data,
 				           SPDRP_DRIVER, NULL, (PBYTE)driver_name, sizeof(driver_name), NULL);
@@ -391,10 +374,9 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		}
 
 		//wprintf(L"HandleName: %s\n", device_interface_detail_data->DevicePath);
-		hid_log("Open a handle to the device");
 
 		/* Open a handle to the device */
-		write_handle = open_device(device_interface_detail_data->DevicePath, TRUE);
+		write_handle = open_device(device_interface_detail_data->DevicePath, FALSE);
 
 		/* Check validity of write_handle. */
 		if (write_handle == INVALID_HANDLE_VALUE) {
@@ -403,7 +385,6 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			goto cont_close;
 		}		
 
-		hid_log("Get vendor and product ID");
 
 		/* Get the Vendor ID and Product ID for this device. */
 		attrib.Size = sizeof(HIDD_ATTRIBUTES);
@@ -414,7 +395,6 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		   device to the enumeration list. */
 		if ((vendor_id == 0x0 || attrib.VendorID == vendor_id) &&
 		    (product_id == 0x0 || attrib.ProductID == product_id)) {
-			hid_log("Create the record");
 
 			#define WSTR_LEN 512
 			const char *str;
@@ -435,7 +415,6 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 				root = tmp;
 			}
 			cur_dev = tmp;
-			hid_log("Getting usage data");
 
 			/* Get the Usage Page and Usage for this device. */
 			res = HidD_GetPreparsedData(write_handle, &pp_data);
@@ -461,24 +440,24 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			else
 				cur_dev->path = NULL;
 
-			hid_log("Getting serial number");
 			/* Serial Number */
+			wstr[0]= 0x0000;
 			res = HidD_GetSerialNumberString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
 			if (res) {
 				cur_dev->serial_number = _wcsdup(wstr);
 			}
 
-			hid_log("Getting manufacturer string");
 			/* Manufacturer String */
+			wstr[0]= 0x0000;
 			res = HidD_GetManufacturerString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
 			if (res) {
 				cur_dev->manufacturer_string = _wcsdup(wstr);
 			}
 
-			hid_log("Getting product string");
 			/* Product String */
+			wstr[0]= 0x0000;
 			res = HidD_GetProductString(write_handle, wstr, sizeof(wstr));
 			wstr[WSTR_LEN-1] = 0x0000;
 			if (res) {
@@ -492,7 +471,6 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			/* Release Number */
 			cur_dev->release_number = attrib.VersionNumber;
 
-			hid_log("Parsing interface numbers");
 			/* Interface Number. It can sometimes be parsed out of the path
 			   on Windows if a device has multiple interfaces. See
 			   http://msdn.microsoft.com/en-us/windows/hardware/gg487473 or
@@ -523,7 +501,6 @@ cont:
 
 	}
 
-	hid_log("Close the device information handle");
 	/* Close the device information handle. */
 	SetupDiDestroyDeviceInfoList(device_info_set);
 
@@ -598,13 +575,23 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char *path)
 	dev = new_hid_device();
 
 	/* Open a handle to the device */
-	dev->device_handle = open_device(path, FALSE);
+	dev->device_handle = open_device(path, TRUE);
 
 	/* Check validity of write_handle. */
 	if (dev->device_handle == INVALID_HANDLE_VALUE) {
-		/* Unable to open the device. */
-		register_error(dev, "CreateFile");
-		goto err;
+		/* System devices, such as keyboards and mice, cannot be opened in
+		   read-write mode, because the system takes exclusive control over
+		   them.  This is to prevent keyloggers.  However, feature reports
+		   can still be sent and received.  Retry opening the device, but
+		   without read/write access. */
+		dev->device_handle = open_device(path, FALSE);
+
+		/* Check the validity of the limited device_handle. */
+		if (dev->device_handle == INVALID_HANDLE_VALUE) {
+			/* Unable to open the device, even without read-write mode. */
+			register_error(dev, "CreateFile");
+			goto err;
+		}
 	}
 
 	/* Set the Input Report buffer size to 64 reports. */
@@ -838,6 +825,55 @@ int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device *dev, unsigned
 #endif
 }
 
+
+int HID_API_EXPORT HID_API_CALL hid_get_input_report(hid_device *dev, unsigned char *data, size_t length)
+{
+	BOOL res;
+#if 0
+	res = HidD_GetInputReport(dev->device_handle, data, length);
+	if (!res) {
+		register_error(dev, "HidD_GetInputReport");
+		return -1;
+	}
+	return length;
+#else
+	DWORD bytes_returned;
+
+	OVERLAPPED ol;
+	memset(&ol, 0, sizeof(ol));
+
+	res = DeviceIoControl(dev->device_handle,
+		IOCTL_HID_GET_INPUT_REPORT,
+		data, length,
+		data, length,
+		&bytes_returned, &ol);
+
+	if (!res) {
+		if (GetLastError() != ERROR_IO_PENDING) {
+			/* DeviceIoControl() failed. Return error. */
+			register_error(dev, "Send Input Report DeviceIoControl");
+			return -1;
+		}
+	}
+
+	/* Wait here until the write is done. This makes
+	   hid_get_feature_report() synchronous. */
+	res = GetOverlappedResult(dev->device_handle, &ol, &bytes_returned, TRUE/*wait*/);
+	if (!res) {
+		/* The operation failed. */
+		register_error(dev, "Send Input Report GetOverLappedResult");
+		return -1;
+	}
+
+	/* bytes_returned does not include the first byte which contains the
+	   report ID. The data buffer actually contains one more byte than
+	   bytes_returned. */
+	bytes_returned++;
+
+	return bytes_returned;
+#endif
+}
+
 void HID_API_EXPORT HID_API_CALL hid_close(hid_device *dev)
 {
 	if (!dev)
@@ -901,7 +937,14 @@ int HID_API_EXPORT_CALL HID_API_CALL hid_get_indexed_string(hid_device *dev, int
 
 HID_API_EXPORT const wchar_t * HID_API_CALL  hid_error(hid_device *dev)
 {
-	return (wchar_t*)dev->last_error_str;
+	if (dev) {
+		if (dev->last_error_str == NULL)
+			return L"Success";
+		return (wchar_t*)dev->last_error_str;
+	}
+
+	// Global error messages are not (yet) implemented on Windows.
+	return L"hid_error for global errors is not implemented yet";
 }
 
 

@@ -1,4 +1,4 @@
-// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo
+// +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo openbsd,cgo
 
 //-----------------------------------------------------------------------------
 /*
@@ -20,67 +20,67 @@ extern void goLibusbLog(const char *s);
 #define ENABLE_LOGGING 1
 #define ENABLE_DEBUG_LOGGING 1
 #define ENUM_DEBUG
+#define DEFAULT_VISIBILITY
 
 #cgo CFLAGS: -I./c
 
-#cgo linux CFLAGS: -DDEFAULT_VISIBILITY="" -DOS_LINUX -D_GNU_SOURCE -DPOLL_NFDS_TYPE=int
+#cgo linux CFLAGS: -DOS_LINUX -D_GNU_SOURCE -DPOLL_POSIX -DTHREADS_POSIX -DHAVE_CLOCK_GETTIME
 #cgo linux,!android LDFLAGS: -lrt
-#cgo freebsd CFLAGS: -DOS_FREEBSD
+
+#cgo freebsd CFLAGS: -DOS_FREEBSD -DPOLL_POSIX -DTHREADS_POSIX
 #cgo freebsd LDFLAGS: -lusb
-#cgo darwin CFLAGS: -DOS_DARWIN -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+
+#cgo openbsd CFLAGS: -DOS_OPENBSD -DPOLL_POSIX -DTHREADS_POSIX
+#cgo openbsd LDFLAGS: -L/usr/local/lib -lusb-1.0
+
+#cgo darwin CFLAGS: -DOS_DARWIN -DPOLL_POSIX -DTHREADS_POSIX
 #cgo darwin LDFLAGS: -framework CoreFoundation -framework IOKit -lobjc
-#cgo windows CFLAGS: -DOS_WINDOWS -DDEFAULT_VISIBILITY="" -DPOLL_NFDS_TYPE="unsigned int"
+
+#cgo windows CFLAGS: -DOS_WINDOWS -DPOLL_WINDOWS -DTHREADS_WINDOWS
 #cgo windows LDFLAGS: -lsetupapi
 
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX)
 	#include <sys/poll.h>
-
+	#include "libusbi.h"
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/linux_usbfs.c"
 	#include "os/linux_netlink.c"
-#elif OS_FREEBSD
+#elif defined(OS_FREEBSD) || defined(OS_OPENBSD)
 	#include <stdlib.h>
-#elif OS_DARWIN
+#elif defined(OS_DARWIN)
 	#include <sys/poll.h>
-
+	#include "libusbi.h"
 	#include "os/threads_posix.c"
 	#include "os/poll_posix.c"
 	#include "os/darwin_usb.c"
-#elif OS_WINDOWS
+#elif defined(OS_WINDOWS)
 	#define HARDCODED_LIBUSB_DEVICE_FILTER "VID_1209"
-
 	#include <oledlg.h>
-
-	#include "os/poll_windows.c"
+	#include "libusbi.h"
 	#include "os/threads_windows.c"
+	#include "os/poll_windows.c"
+	#include "os/windows_common.c"
+	#include "os/windows_usbdk.c"
+	#include "os/windows_winusb.c"
 #endif
 
-#ifndef OS_FREEBSD
+#if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
 	#include "core.c"
 	#include "descriptor.c"
 	#include "hotplug.c"
 	#include "io.c"
 	#include "strerror.c"
 	#include "sync.c"
-#else
-	#include <libusb.h>
 #endif
 
-#ifdef OS_WINDOWS
-	#include "os/windows_nt_common.c"
-	#include "os/windows_winusb.c"
-#endif
-
-#cgo freebsd LDFLAGS: -lusb
-
-#ifndef __FreeBSD__
+#if !(defined(OS_FREEBSD) || defined(OS_OPENBSD))
 #include "libusb.h"
 #else
 #include <libusb.h>
 
-// "fake" function so freebsd builds
+// "fake" function so freebsd and openbsd builds
 void libusb_cancel_sync_transfers_on_device(struct libusb_device_handle *dev_handle) {
 }
 #endif
@@ -1169,7 +1169,7 @@ func Setlocale(locale string) error {
 */
 
 func Strerror(errcode int) string {
-	return C.GoString(C.libusb_strerror(int32(errcode)))
+	return C.GoString(C.libusb_strerror(C.int(errcode)))
 }
 
 //-----------------------------------------------------------------------------

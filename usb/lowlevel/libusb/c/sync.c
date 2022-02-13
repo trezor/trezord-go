@@ -1,6 +1,9 @@
+/* -*- Mode: C; indent-tabs-mode:t ; c-basic-offset:8 -*- */
 /*
  * Synchronous I/O functions for libusb
  * Copyright © 2007-2008 Daniel Drake <dsd@gentoo.org>
+ * Copyright © 2019 Nathan Hjelm <hjelmn@cs.unm.edu>
+ * Copyright © 2019 Google LLC. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,14 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <config.h>
-
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "libusbi.h"
+
+#include <string.h>
 
 /**
  * @defgroup libusb_syncio Synchronous device I/O
@@ -56,6 +54,11 @@ static void sync_transfer_wait_for_completion(struct libusb_transfer *transfer)
 				 libusb_error_name(r));
 			libusb_cancel_transfer(transfer);
 			continue;
+		}
+		if (NULL == transfer->dev_handle) {
+			/* transfer completion after libusb_close() */
+			transfer->status = LIBUSB_TRANSFER_NO_DEVICE;
+			*completed = 1;
 		}
 	}
 }
@@ -107,7 +110,7 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 	if (!transfer)
 		return LIBUSB_ERROR_NO_MEM;
 
-	buffer = (unsigned char*) malloc(LIBUSB_CONTROL_SETUP_SIZE + wLength);
+	buffer = malloc(LIBUSB_CONTROL_SETUP_SIZE + wLength);
 	if (!buffer) {
 		libusb_free_transfer(transfer);
 		return LIBUSB_ERROR_NO_MEM;
@@ -163,7 +166,7 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 	return r;
 }
 
-// ============= OneKey LIBUSB CODE ============
+// ===== START TREZOR CODE =====
 
 // libusb does not have the option to cancel transfers, made through sync API
 // however, we did not want to rewrite everything into async API and
@@ -230,80 +233,64 @@ void API_EXPORTED libusb_cancel_sync_transfers_on_device(struct libusb_device_ha
 	}
 }
 
-// ============= OneKey LIBUSB CODE END ========
+// ===== END TREZOR CODE =====
 
 static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 	unsigned char endpoint, unsigned char *buffer, int length,
 	int *transferred, unsigned int timeout, unsigned char type)
 {
-	usbi_dbg("start");
 	struct libusb_transfer *transfer;
 	int completed = 0;
 	int r;
 
-	if (usbi_handling_events(HANDLE_CTX(dev_handle))) {
-		usbi_dbg("busy");
+	if (usbi_handling_events(HANDLE_CTX(dev_handle)))
 		return LIBUSB_ERROR_BUSY;
-  }
 
 	transfer = libusb_alloc_transfer(0);
-	if (!transfer) {
-		usbi_dbg("no memory");
+	if (!transfer)
 		return LIBUSB_ERROR_NO_MEM;
-	}
 
 	libusb_fill_bulk_transfer(transfer, dev_handle, endpoint, buffer, length,
 		sync_transfer_cb, &completed, timeout);
 	transfer->type = type;
 
-	usbi_dbg("submit transfer");
 	r = libusb_submit_transfer(transfer);
 	if (r < 0) {
-		usbi_dbg("errored, try to free, returning original error %d", r);
 		libusb_free_transfer(transfer);
 		return r;
 	}
 
-	usbi_dbg("save_running_transfer");
+	// ===== START TREZOR CODE =====
 	save_running_transfer(dev_handle, transfer);
+	// ===== END TREZOR CODE =====
 
-	usbi_dbg("sync_transfer_wait_for_completion");
 	sync_transfer_wait_for_completion(transfer);
 
-	// removing the transfer from the saved structure
-	usbi_dbg("get_and_remove_running_transfer");
+	// ===== START TREZOR CODE =====
 	get_and_remove_running_transfer(dev_handle);
+	// ===== END TREZOR CODE =====
 
 	if (transferred)
 		*transferred = transfer->actual_length;
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_COMPLETED:
-		usbi_dbg("completed");
 		r = 0;
 		break;
 	case LIBUSB_TRANSFER_TIMED_OUT:
-		usbi_dbg("timed out");
 		r = LIBUSB_ERROR_TIMEOUT;
 		break;
 	case LIBUSB_TRANSFER_STALL:
-		usbi_dbg("stall / pipe");
 		r = LIBUSB_ERROR_PIPE;
 		break;
 	case LIBUSB_TRANSFER_OVERFLOW:
-		usbi_dbg("overflow");
 		r = LIBUSB_ERROR_OVERFLOW;
 		break;
 	case LIBUSB_TRANSFER_NO_DEVICE:
-		usbi_dbg("no device");
 		r = LIBUSB_ERROR_NO_DEVICE;
 		break;
 	case LIBUSB_TRANSFER_ERROR:
-		usbi_dbg("transfer error");
-		r = LIBUSB_ERROR_IO;
-		break;
 	case LIBUSB_TRANSFER_CANCELLED:
-		usbi_dbg("cancelled");
 		r = LIBUSB_ERROR_IO;
 		break;
 	default:
@@ -312,7 +299,6 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 		r = LIBUSB_ERROR_OTHER;
 	}
 
-	usbi_dbg("regular freeing");
 	libusb_free_transfer(transfer);
 	return r;
 }
@@ -360,9 +346,9 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
  * \returns LIBUSB_ERROR_BUSY if called from event handling context
  * \returns another LIBUSB_ERROR code on other failures
  */
-int API_EXPORTED libusb_bulk_transfer(struct libusb_device_handle *dev_handle,
-	unsigned char endpoint, unsigned char *data, int length, int *transferred,
-	unsigned int timeout)
+int API_EXPORTED libusb_bulk_transfer(libusb_device_handle *dev_handle,
+	unsigned char endpoint, unsigned char *data, int length,
+	int *transferred, unsigned int timeout)
 {
 	return do_sync_bulk_transfer(dev_handle, endpoint, data, length,
 		transferred, timeout, LIBUSB_TRANSFER_TYPE_BULK);
@@ -412,9 +398,9 @@ int API_EXPORTED libusb_bulk_transfer(struct libusb_device_handle *dev_handle,
  * \returns LIBUSB_ERROR_BUSY if called from event handling context
  * \returns another LIBUSB_ERROR code on other error
  */
-int API_EXPORTED libusb_interrupt_transfer(
-	struct libusb_device_handle *dev_handle, unsigned char endpoint,
-	unsigned char *data, int length, int *transferred, unsigned int timeout)
+int API_EXPORTED libusb_interrupt_transfer(libusb_device_handle *dev_handle,
+	unsigned char endpoint, unsigned char *data, int length,
+	int *transferred, unsigned int timeout)
 {
 	return do_sync_bulk_transfer(dev_handle, endpoint, data, length,
 		transferred, timeout, LIBUSB_TRANSFER_TYPE_INTERRUPT);

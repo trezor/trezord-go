@@ -204,7 +204,7 @@ func main() {
 
 // Does OS allow sync canceling via our custom libusb patches?
 func allowCancel() bool {
-	return runtime.GOOS != "freebsd"
+	return runtime.GOOS != "freebsd" && runtime.GOOS != "openbsd"
 }
 
 // Does OS detach kernel driver in libusb?

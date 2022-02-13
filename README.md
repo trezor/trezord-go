@@ -36,9 +36,19 @@ status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustw
 
 onekey-bridge requires go >= 1.6
 
+*Note:*
+
+If you are new to Go and you are confused how come you should not clone the repository yourself, this is
+indeed the Go way. If you need to modify the code you can simply `cd` into the directory
+(`$GOPATH/src/github.com/OneKeyHQ/onekey-bridge`) and do whatever you please. Running `go build` inside that
+directory will produce a new executable at the same place. Running
+`go build github.com/OneKeyHQ/onekey-bridge` will produce a new executable in `$GOPATH/bin`. Both are built
+from your local copy in `$GOPATH/src`.
+
 ```
-go get github.com/OneKeyHQ/onekey-bridge
-go build github.com/OneKeyHQ/onekey-bridge
+go clean
+go get -u github.com/OneKeyHQ/onekey-bridge
+go build -a github.com/OneKeyHQ/onekey-bridge
 ./onekey-bridge -h
 ```
 
@@ -100,7 +110,7 @@ Server supports following API calls:
 | `/acquire/PATH/PREVIOUS` <br> POST | `PATH`: path of device<br>`PREVIOUS`: previous session (or string "null") | {`session`:&nbsp;string} | Acquires the device at `PATH`. By "acquiring" the device, you are claiming the device for yourself.<br>Before acquiring, checks that the current session is `PREVIOUS`.<br>If two applications call `acquire` on a newly connected device at the same time, only one of them succeed. |
 | `/release/SESSION`<br>POST | `SESSION`: session to release | {} | Releases the device with the given session.<br>By "releasing" the device, you claim that you don't want to use the device anymore. |
 | `/call/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | hexadecimal string | Both input and output are hexadecimal, encoded in following way:<br>first 2 bytes (4 characters in the hexadecimal) is the message type<br>next 4 bytes (8 in hex) is length of the data<br>the rest is the actual encoded protobuf data.<br>Protobuf messages are defined in [this protobuf file](https://github.com/trezor/trezor-common/blob/master/protob/messages.proto) and the app, calling onekey, should encode/decode it itself. |
-| `/post/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | 0 | Similar to `call`, just doesn't read response back. Usable mainly for debug link. |
+| `/post/SESSION`<br>POST | `SESSION`: session to call<br><br>request body: hexadecimal string | 0 | Similar to `call`, just doesn't read response back. Also forces the message to be sent even if another call is in progress. Usable mainly for debug link and workflow cancelling on Trezor.  |
 | `/read/SESSION`<br>POST | `SESSION`: session to call | 0 | Similar to `call`, just doesn't post, only reads. Usable mainly for debug link. |
 
 ## Debug link support
