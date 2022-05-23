@@ -4,6 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
+
+ExecStartPre=/usr/bin/touch /var/log/trezord.log
+ExecStartPre=/usr/bin/chown trezord:trezord /var/log/trezord.log
+ExecStartPre=/usr/bin/chmod 660 /var/log/trezord.log
+
 ExecStart=/usr/bin/trezord
 User=trezord
 
