@@ -92,6 +92,7 @@ func hasIface(dev lowlevel.Device, dIface libusbIfaceData, dClass uint8) (bool, 
 	if err != nil {
 		return false, err
 	}
+	defer lowlevel.Free_Config_Descriptor(config)
 
 	ifaces := config.Interface
 	for _, iface := range ifaces {
@@ -363,6 +364,7 @@ func (b *LibUSB) match(dev lowlevel.Device) (bool, core.DeviceType) {
 		b.mw.Log("error getting config descriptor " + err.Error())
 		return false, 0
 	}
+	defer lowlevel.Free_Config_Descriptor(c)
 
 	b.mw.Log("let's test")
 
