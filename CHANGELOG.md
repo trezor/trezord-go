@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.32] - unreleased
+
 ## [2.0.31] - 2021-03-12
 - hidapi: update to 0.10.1
 - libusb: update to 1.0.24
