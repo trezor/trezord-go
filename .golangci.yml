@@ -36,25 +36,20 @@ issues:
 
 linters:
   enable:
-    - govet
     - staticcheck
     - gosec
     - stylecheck
-    - interfacer
     - unconvert
     - dupl
     - goconst
     - gocyclo
     - gofmt
     - goimports
-    - maligned
     - depguard
     - misspell
     - unparam
     - nakedret
     - prealloc
-    - scopelint
-    - gochecknoinits
     - gocritic
 
 linters-settings:

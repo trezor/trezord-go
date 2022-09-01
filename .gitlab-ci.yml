@@ -10,9 +10,9 @@ go lint:
   stage: test
   # golangci-lint v1.45.1 is the first version that supports golang 1.18
   # see https://github.com/golangci/golangci-lint/releases/tag/v1.45.0
-  image: golang:1.17
+  image: golang
   script:
-    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.0
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.49.0
     - golangci-lint run
 
 version check:

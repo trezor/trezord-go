@@ -1,3 +1,4 @@
+//go:build (darwin && !ios && cgo) || (windows && cgo)
 // +build darwin,!ios,cgo windows,cgo
 
 package usb
@@ -44,6 +45,7 @@ func (b *HIDAPI) Enumerate() ([]core.USBInfo, error) {
 	b.mw.Log("low level done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev
 		if b.match(&dev) {
 			infos = append(infos, core.USBInfo{
 				Path:      b.identify(&dev),
@@ -70,6 +72,7 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 	b.mw.Log("enumerate done")
 
 	for _, dev := range devs { // enumerate all devices
+		dev := dev
 		if b.match(&dev) && b.identify(&dev) == path {
 			b.mw.Log("low level open")
 			d, err := dev.Open()

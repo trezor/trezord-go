@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/trezor/trezord-go/core"
 	"github.com/trezor/trezord-go/memorywriter"
@@ -35,7 +36,9 @@ func New(
 	longWriter.Log("starting")
 
 	https := &http.Server{
-		Addr: "127.0.0.1:21325",
+		Addr:              "127.0.0.1:21325",
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       5 * time.Second,
 	}
 
 	allWriter := io.MultiWriter(stderrWriter, shortWriter, longWriter)

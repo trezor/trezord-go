@@ -6,6 +6,7 @@
 
 // Package hid provides an interface for USB HID devices.
 
+//go:build (darwin && !ios && cgo) || (windows && cgo)
 // +build darwin,!ios,cgo windows,cgo
 
 package hidapi
@@ -69,8 +70,9 @@ type HidDeviceInfo struct {
 // for enumeration, causing crashes if called concurrently.
 //
 // For more details, see:
-//   https://developer.apple.com/documentation/iokit/1438371-iohidmanagersetdevicematching
-//   > "subsequent calls will cause the hid manager to release previously enumerated devices"
+//
+//	https://developer.apple.com/documentation/iokit/1438371-iohidmanagersetdevicematching
+//	> "subsequent calls will cause the hid manager to release previously enumerated devices"
 var enumerateLock sync.Mutex
 
 func init() {
@@ -80,9 +82,9 @@ func init() {
 
 // Enumerate returns a list of all the HID devices attached to the system which
 // match the vendor and product id:
-//  - If the vendor id is set to 0 then any vendor matches.
-//  - If the product id is set to 0 then any product matches.
-//  - If the vendor and product id are both 0, all HID devices are returned.
+//   - If the vendor id is set to 0 then any vendor matches.
+//   - If the product id is set to 0 then any product matches.
+//   - If the vendor and product id are both 0, all HID devices are returned.
 func HidEnumerate(vendorID uint16, productID uint16) []HidDeviceInfo {
 	enumerateLock.Lock()
 	defer enumerateLock.Unlock()
