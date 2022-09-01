@@ -1,3 +1,4 @@
+//go:build (linux && cgo) || (freebsd && cgo) || (darwin && !ios && cgo) || (windows && cgo) || (openbsd && cgo)
 // +build linux,cgo freebsd,cgo darwin,!ios,cgo windows,cgo openbsd,cgo
 
 //-----------------------------------------------------------------------------
