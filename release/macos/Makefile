@@ -5,7 +5,7 @@ IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
 GITHASH  := $(shell git rev-parse --short HEAD)
 
-IMPORT_PATH = ../..
+IMPORT_PATH = $(shell realpath ../..)
 
 all: clean .package
 
@@ -16,8 +16,26 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-X 'main.githash=$(GITHASH)'" -targets=darwin-10.10/amd64 $(IMPORT_PATH)
-	mv -f trezord-go-darwin-10.10-amd64 build/trezord
+	docker run -it --rm \
+		-v $(IMPORT_PATH):/trezord \
+		-w /trezord \
+		-e CGO_ENABLED=1 \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-debian10 \
+		--build-cmd "go build -o release/macos/build/trezord-amd64" \
+		-p "darwin/amd64"
+	docker run -it --rm \
+		-v $(IMPORT_PATH):/trezord \
+		-w /trezord \
+		-e CGO_ENABLED=1 \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-arm64-debian10 \
+		--build-cmd "go build -o release/macos/build/trezord-arm64" \
+		-p "darwin/arm64"
+	docker run -it --rm \
+		-v $(IMPORT_PATH):/trezord \
+		-w /trezord \
+		-e CGO_ENABLED=1 \
+		--entrypoint /trezord/release/macos/build-fat.sh \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-arm64-debian10
 	cp ../../VERSION build
 
 .package: .binary .docker-image
