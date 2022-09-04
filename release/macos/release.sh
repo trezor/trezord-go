@@ -26,14 +26,19 @@ cp -r /release/flat-uninstall /release/build
 cd /release/build/flat-uninstall/uninstall.pkg
 
 cd scripts
-find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Scripts
+find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Scripts-zip
 cd ..
+ls -l payload/
+ls -l scripts/
 rm -r scripts
+mv Scripts-zip Scripts
 cd payload
-find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Payload
+find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Payload-zip
 cd ..
+ls -l payload/
 mkbom -u 0 -g 80 payload/ Bom
 rm -r payload
+mv Payload-zip Payload
 cd ..
 sed -i s/VERSION/$VERSION/g Distribution
 sed -i s/VERSION/$VERSION/g uninstall.pkg/PackageInfo
@@ -49,9 +54,10 @@ rm -rf /release/build/flat-install
 cp -r /release/flat-install /release/build
 cd /release/build/flat-install/install.pkg
 cd scripts
-find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Scripts
+find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Scripts-zip
 cd ..
 rm -r scripts
+mv Scripts-zip Scripts
 cd payload
 
 cp /release/build/trezord Applications/Utilities/TREZOR\ Bridge/
@@ -60,11 +66,12 @@ cp ../../../uninstall.pkg Applications/Utilities/TREZOR\ Bridge/
 FILES=$(find . | wc -l)
 KBYTES=$(du -k -s . | cut -f 1)
 
-find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Payload
+find . | cpio -o --format odc --owner 0:80 | gzip -c > ../Payload-zip
 cd ..
 mkbom -u 0 -g 80 payload/ Bom
 
 rm -r payload
+mv Payload-zip Payload
 cd ..
 sed -i s/VERSION/$VERSION/g Distribution
 sed -i s/KBYTES/$KBYTES/g Distribution
