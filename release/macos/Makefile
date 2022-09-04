@@ -14,7 +14,7 @@ clean:
 	rm -rf build
 
 .binary:
-	$(info Building with xgo ...)
+	$(info Building with crossbuild ...)
 	mkdir -p build
 	docker run -it --rm \
 		-v $(IMPORT_PATH):/trezord \
