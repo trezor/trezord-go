@@ -8,7 +8,7 @@ RUN dnf update -y
 
 # install tools
 
-RUN dnf install -y gcc gcc-c++ git make gzip cpio findutils autoconf libxml2-devel openssl-devel
+RUN dnf install -y gcc gcc-c++ git make gzip cpio findutils autoconf libxml2-devel openssl-devel cargo
 
 # build bomutils and xar from sources with fixes
 
@@ -17,3 +17,5 @@ RUN cd xar && cd xar && ./autogen.sh --noconfigure && ./configure && make && mak
 
 RUN git clone https://github.com/BC-SECURITY/bomutils
 RUN cd bomutils && CFLAGS="-fsigned-char" make && make install
+
+RUN cargo install apple-codesign
