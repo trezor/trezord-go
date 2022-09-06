@@ -5,6 +5,13 @@ release/linux/privkey.asc
 release/linux/build/
 release/macos/cert0*
 release/macos/key.pem
+release/macos/certs/installer.passphrase
+release/macos/certs/installer.p12
+release/macos/certs/app.passphrase
+release/macos/certs/app.p12
+release/macos/certs/notarization-key-id
+release/macos/certs/notarization-issuer-id
+release/macos/certs/notarization-authkey.p8
 release/macos/build/
 release/windows/authenticode.*
 release/windows/build/
