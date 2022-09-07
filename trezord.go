@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -96,6 +97,17 @@ func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.US
 }
 
 func main() {
+	// set git hash
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		log.Fatalf("cannot read build info")
+	}
+	for _, v := range info.Settings {
+		if v.Key == "vcs.revision" {
+			githash = v.Value[0:7]
+		}
+	}
+
 	var logfile string
 	var ports udpPorts
 	var touples udpTouples
