@@ -1,0 +1,11 @@
+FROM messense/rust-musl-cross:aarch64-musl AS go-arm64-musl
+COPY --from=golang:1.19.1 /usr/local/go/ /usr/local/go/
+ENV TREZORD_BUILD=go-arm64-musl
+
+FROM messense/rust-musl-cross:i686-musl AS go-386-musl
+COPY --from=golang:1.19.1 /usr/local/go/ /usr/local/go/
+ENV TREZORD_BUILD=go-386-musl
+
+FROM messense/rust-musl-cross:x86_64-musl AS go-amd64-musl
+COPY --from=golang:1.19.1 /usr/local/go/ /usr/local/go/
+ENV TREZORD_BUILD=go-amd64-musl
