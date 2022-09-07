@@ -1,3 +1,4 @@
+//go:build linux || freebsd || openbsd
 // +build linux freebsd openbsd
 
 // shim for linux and freebsd so that trezord.go builds
