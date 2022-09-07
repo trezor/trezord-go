@@ -3,8 +3,6 @@ BITS      = 32
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-GITHASH  := $(shell git rev-parse --short HEAD)
-
 WDI_VOL_MOUNT = -v $(shell pwd):/release
 WDI_IMAGETAG  = trezord-go-wdi-build
 
@@ -22,7 +20,7 @@ clean:
 .binary:
 	$(info Building with xgo ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui -X 'main.githash=$(GITHASH)'" -targets=windows-6.0/386,windows-6.0/amd64 $(IMPORT_PATH)
+	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/386,windows-6.0/amd64 $(IMPORT_PATH)
 	mv -f trezord-go-windows-6.0-386.exe build/trezord-32b.exe
 	mv -f trezord-go-windows-6.0-amd64.exe build/trezord-64b.exe
 	cp ../../VERSION build

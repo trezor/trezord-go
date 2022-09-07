@@ -1,9 +1,7 @@
 NAME         := trezord
 PLATFORMS    := linux-arm64 linux-x64 win-x64 # mac-x64
 
-GITHASH      := $(shell git rev-parse --short HEAD)
-
-GOFLAGS      := -a -ldflags="-X 'main.githash=$(GITHASH)'"
+GOFLAGS      := -a
 
 LINUX_CFLAGS := -Wno-deprecated-declarations
 MAC_CFLAGS   := -Wno-deprecated-declarations -Wno-unknown-warning-option

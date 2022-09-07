@@ -3,8 +3,6 @@ BITS      = 64
 VOL_MOUNT = -v $(shell pwd):/release
 IMAGETAG  = trezord-go-build-env-$(PLATFORM)
 
-GITHASH  := $(shell git rev-parse --short HEAD)
-
 IMPORT_PATH = $(shell realpath ../..)
 
 all: clean .package
