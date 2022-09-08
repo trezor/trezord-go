@@ -9,7 +9,7 @@ WDI_IMAGETAG  = trezord-go-wdi-build
 DEVCON_VOL_MOUNT = -v $(shell pwd):/release
 DEVCON_IMAGETAG  = trezord-go-devcon-build
 
-IMPORT_PATH = ../..
+IMPORT_PATH = $(shell realpath ../..)
 
 all: clean .package
 
@@ -18,11 +18,23 @@ clean:
 	rm -rf build
 
 .binary:
-	$(info Building with xgo ...)
+	$(info Building with crossbuild ...)
 	mkdir -p build
-	xgo -ldflags="-H=windowsgui" -targets=windows-6.0/386,windows-6.0/amd64 $(IMPORT_PATH)
-	mv -f trezord-go-windows-6.0-386.exe build/trezord-32b.exe
-	mv -f trezord-go-windows-6.0-amd64.exe build/trezord-64b.exe
+	docker run -it --rm \
+		-v $(IMPORT_PATH):/trezord \
+		-w /trezord \
+		-e CGO_ENABLED=1 \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
+		--build-cmd "go build -o release/windows/build/trezord-64b.exe -ldflags=\"-H=windowsgui\"" \
+		-p "windows/amd64"
+	docker run -it --rm \
+		-v $(IMPORT_PATH):/trezord \
+		-w /trezord \
+		-e CGO_ENABLED=1 \
+		-e CGO_CFLAGS="-D_WIN32_WINNT=0x0600" \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
+		--build-cmd "go build -o release/windows/build/trezord-32b.exe -ldflags=\"-H=windowsgui\"" \
+		-p "windows/386"
 	cp ../../VERSION build
 
 .package: .binary .docker-image .wdi .devcon
