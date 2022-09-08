@@ -14,8 +14,8 @@ cd /release/build
 cp /release/trezord.nsis trezord.nsis
 cp /release/trezord.ico trezord.ico
 
-# openssl pkcs12 -in authenticode.p12 -out authenticode.crt -clcerts -nokeys
-# openssl pkcs12 -in authenticode.p12 -out authenticode.key -nocerts -nodes
+# To sign for Windows, put code signing key and signature
+# to authenticode.key and authenticode.crt in this folder
 
 SIGNKEY=/release/authenticode
 

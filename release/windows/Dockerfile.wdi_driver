@@ -8,7 +8,6 @@ RUN apt-get update && \
     build-essential \
     dos2unix \
     g++-mingw-w64 \
-    gcc-multilib \
     git \
     libtool \
     mingw-w64-common \
