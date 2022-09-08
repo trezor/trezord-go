@@ -1,3 +1,9 @@
+# General
+.DS_Store
+.fseventsd
+.Spotlight-V100
+
+# Project related 
 trezord-go
 build/
 release/installers/
