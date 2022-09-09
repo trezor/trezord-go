@@ -39,6 +39,9 @@
 /* As defined in AppKit.h, but we don't need the entire AppKit for a single constant. */
 extern const double NSAppKitVersionNumber;
 
+/* Both kIOMasterPortDefault or kIOMainPortDefault are synonyms for 0. */
+static const mach_port_t darwin_default_master_port = 0;
+
 /* Barrier implementation because Mac OSX doesn't have pthread_barrier.
    It also doesn't have clock_gettime(). So much for POSIX and SUSv2.
    This implementation came from Brent Priddy and was posted on
@@ -835,7 +838,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 	dev = new_hid_device();
 
 	/* Get the IORegistry entry for the given path */
-	entry = IORegistryEntryFromPath(kIOMasterPortDefault, path);
+	entry = IORegistryEntryFromPath(darwin_default_master_port, path);
 	if (entry == MACH_PORT_NULL) {
 		/* Path wasn't valid (maybe device was removed?) */
 		goto return_error;

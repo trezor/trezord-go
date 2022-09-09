@@ -24,6 +24,7 @@ clean:
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
+		-e CGO_CFLAGS="-D_WIN32_WINNT=0x0600" \
 		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
 		--build-cmd "go build -o release/windows/build/trezord-64b.exe -ldflags=\"-H=windowsgui\"" \
 		-p "windows/amd64"
