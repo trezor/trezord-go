@@ -3,6 +3,8 @@
 set -ex
 PATH=$PATH:/usr/local/go/bin
 
+git config --global --add safe.directory /trezord
+
 case $TREZORD_BUILD in
   "go-arm64-musl")
     CGO_ENABLED=1 CC="/usr/local/musl/bin/aarch64-unknown-linux-musl-gcc" GOARCH=arm64 \
