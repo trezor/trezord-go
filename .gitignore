@@ -3,14 +3,16 @@
 .fseventsd
 .Spotlight-V100
 
-# Project related 
+# Project related
 trezord-go
 build/
 release/installers/
+release/binaries/
 release/linux/privkey.asc
 release/linux/build/
 release/macos/cert0*
 release/macos/key.pem
+release/macos/gpg-privkey.asc
 release/macos/certs/installer.passphrase
 release/macos/certs/installer.p12
 release/macos/certs/app.passphrase
@@ -21,3 +23,4 @@ release/macos/certs/notarization-authkey.p8
 release/macos/build/
 release/windows/authenticode.*
 release/windows/build/
+release/windows/gpg-privkey.asc

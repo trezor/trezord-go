@@ -8,7 +8,7 @@ RUN dnf update -y
 
 # install tools
 
-RUN dnf install -y gcc gcc-c++ git make gzip cpio findutils autoconf libxml2-devel openssl-devel cargo
+RUN dnf install -y gcc gcc-c++ git make gzip cpio findutils autoconf libxml2-devel openssl-devel cargo gpg
 
 # build bomutils and xar from sources with fixes
 
