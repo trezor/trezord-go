@@ -36,7 +36,7 @@ static void LIBUSB_CALL sync_transfer_cb(struct libusb_transfer *transfer)
 {
 	int *completed = transfer->user_data;
 	*completed = 1;
-	usbi_dbg("actual_length=%d", transfer->actual_length);
+	usbi_dbg(TRANSFER_CTX(transfer), "actual_length=%d", transfer->actual_length);
 	/* caller interprets result and frees transfer */
 }
 
@@ -189,31 +189,31 @@ static struct running_transfer running_transfers[MAX_SAVED_TRANSFERS];
 static usbi_mutex_static_t running_transfers_lock = USBI_MUTEX_INITIALIZER;
 
 static void save_running_transfer(struct libusb_device_handle *dev_handle, struct libusb_transfer *transfer) {
-	usbi_dbg("wait for lock");
+	usbi_dbg(TRANSFER_CTX(transfer), "wait for lock");
 	usbi_mutex_static_lock(&running_transfers_lock);
-	usbi_dbg("wait for lock finished");
+	usbi_dbg(TRANSFER_CTX(transfer), "wait for lock finished");
 	int i = 0;
 	for (i = 0; i < MAX_SAVED_TRANSFERS; i++) {
 		if (running_transfers[i].dev_handle == NULL) {
-			usbi_dbg("saved at %d", i);
+			usbi_dbg(HANDLE_CTX(dev_handle), "saved at %d", i);
 			running_transfers[i].dev_handle = dev_handle;
 			running_transfers[i].transfer = transfer;
 			usbi_mutex_static_unlock(&running_transfers_lock);
 			return;
 		}
 	}
-	usbi_dbg("not saved");
+	usbi_dbg(TRANSFER_CTX(transfer), "not saved");
 	usbi_mutex_static_unlock(&running_transfers_lock);
 }
 
 static struct libusb_transfer* get_and_remove_running_transfer(struct libusb_device_handle *dev_handle) {
-	usbi_dbg("wait for lock");
+	usbi_dbg(HANDLE_CTX(dev_handle), "wait for lock");
 	usbi_mutex_static_lock(&running_transfers_lock);
-	usbi_dbg("wait for lock finished");
+	usbi_dbg(HANDLE_CTX(dev_handle), "wait for lock finished");
 	int i = 0;
 	for (i = 0; i < MAX_SAVED_TRANSFERS; i++) {
 		if (running_transfers[i].dev_handle == dev_handle) {
-			usbi_dbg("got at %d", i);
+			usbi_dbg(HANDLE_CTX(dev_handle), "got at %d", i);
 			struct libusb_transfer* res = running_transfers[i].transfer;
 			running_transfers[i].dev_handle = NULL;
 			running_transfers[i].transfer = NULL;
@@ -221,7 +221,7 @@ static struct libusb_transfer* get_and_remove_running_transfer(struct libusb_dev
 			return res;
 		}
 	}
-	usbi_dbg("did not get any");
+	usbi_dbg(HANDLE_CTX(dev_handle), "did not get any");
 	usbi_mutex_static_unlock(&running_transfers_lock);
 	return NULL;
 }
