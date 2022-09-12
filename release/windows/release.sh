@@ -38,3 +38,14 @@ if [ -r $SIGNKEY.key ]; then
     osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha384 -t "http://timestamp.comodoca.com?td=sha384" -in $INSTALLER.unsigned -out $INSTALLER
     osslsigncode verify -in $INSTALLER
 fi
+
+GPG_PRIVKEY=/release/gpg-privkey.asc
+echo 1
+if [ -r $GPG_PRIVKEY ]; then
+    echo 2
+    export GPG_TTY=$(tty)
+    export LC_ALL=C.UTF-8
+    gpg --import /release/privkey.asc
+    GPGSIGNKEY=$(gpg --list-keys --with-colons | grep '^pub' | cut -d ":" -f 5)
+    gpg -u $GPGSIGNKEY --armor --detach-sig $INSTALLER
+fi

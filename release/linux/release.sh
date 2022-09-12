@@ -4,7 +4,6 @@ set -e
 
 cd $(dirname $0)
 
-GPGSIGNKEY=54067D8BBF00554181B5AB8F26A3A56662F0E7E2
 TARGET=$1
 VERSION=$(cat /release/build/VERSION)
 
@@ -21,6 +20,7 @@ if [ -r $GPG_PRIVKEY ]; then
     export LC_ALL=C.UTF-8
     gpg --import /release/privkey.asc
     GPG_SIGN=gpg
+    GPGSIGNKEY=$(gpg --list-keys --with-colons | grep '^pub' | cut -d ":" -f 5)
 fi
 
 NAME=trezor-bridge

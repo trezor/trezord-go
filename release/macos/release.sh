@@ -157,3 +157,12 @@ if [ -r $NOT_KEY_ID_F ]; then
         $INSTALLER
     rm $NOT_JSON
 fi
+
+GPG_PRIVKEY=/release/gpg-privkey.asc
+if [ -r $GPG_PRIVKEY ]; then
+    export GPG_TTY=$(tty)
+    export LC_ALL=C.UTF-8
+    gpg --import /release/privkey.asc
+    GPGSIGNKEY=$(gpg --list-keys --with-colons | grep '^pub' | cut -d ":" -f 5)
+    gpg -u $GPGSIGNKEY --armor --detach-sig /release/build/*.pkg
+fi
