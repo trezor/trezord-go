@@ -42,7 +42,7 @@ extern void goLibusbLog(const char *s);
 
 
 #if defined(OS_LINUX)
-	#include <sys/poll.h>
+	#include <poll.h>
 	#include "libusbi.h"
 	#include "os/threads_posix.c"
 	#include "os/events_posix.c"
@@ -930,10 +930,6 @@ func (e *libusb_error) Error() string {
 
 //-----------------------------------------------------------------------------
 // Library initialization/deinitialization
-
-func Set_Debug(ctx Context, level int) {
-	C.libusb_set_debug(ctx, C.int(level))
-}
 
 func Init(ctx *Context) error {
 	rc := int(C.libusb_init((**C.struct_libusb_context)(ctx)))
