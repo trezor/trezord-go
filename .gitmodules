@@ -1,0 +1,3 @@
+[submodule "usb/lowlevel/hidapi/c"]
+	path = usb/lowlevel/hidapi/c
+	url = https://github.com/libusb/hidapi.git
