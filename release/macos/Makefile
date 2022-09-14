@@ -16,21 +16,21 @@ clean:
 	mkdir -p build
 	# we need to use ldflags because of this issue
 	# https://github.com/indygreg/PyOxidizer/issues/636
-	docker run -it --rm \
+	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
 		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-debian10 \
 		--build-cmd "go build -o release/macos/build/trezord-amd64 -ldflags=-s" \
 		-p "darwin/amd64"
-	docker run -it --rm \
+	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
 		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-arm64-debian10 \
 		--build-cmd "go build -o release/macos/build/trezord-arm64 -ldflags=-s" \
 		-p "darwin/arm64"
-	docker run -it --rm \
+	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
@@ -40,7 +40,7 @@ clean:
 
 .package: .binary .docker-image
 	$(info Packaging ...)
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh $(PLATFORM)$(BITS)
+	docker run --rm $(VOL_MOUNT) $(IMAGETAG) /release/release.sh $(PLATFORM)$(BITS)
 
 .docker-image:
 	$(info Preparing docker image ...)

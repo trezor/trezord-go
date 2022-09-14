@@ -14,7 +14,7 @@ clean:
 .binary:
 	$(info Building with crossbuild ...)
 	mkdir -p build
-	docker run -it --rm \
+	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
@@ -22,7 +22,7 @@ clean:
 		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
 		--build-cmd "go build -o release/windows/build/trezord-64b.exe -ldflags=\"-H=windowsgui\"" \
 		-p "windows/amd64"
-	docker run -it --rm \
+	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
@@ -34,7 +34,7 @@ clean:
 
 .package: .binary .docker-image
 	$(info Packaging ...)
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /release/release.sh $(PLATFORM)$(BITS)
+	docker run --rm  $(VOL_MOUNT) $(IMAGETAG) /release/release.sh $(PLATFORM)$(BITS)
 
 .docker-image: Dockerfile
 	$(info Preparing docker image ...)

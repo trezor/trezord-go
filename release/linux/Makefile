@@ -15,16 +15,16 @@ clean:
 .binary: .docker-image-build
 	$(info Building with musl crosbuild ...)
 	mkdir -p build
-	docker run -it --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-arm64 /trezord/release/linux/build.sh
-	docker run -it --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-386 /trezord/release/linux/build.sh
-	docker run -it --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-amd64 /trezord/release/linux/build.sh
+	docker run --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-arm64 /trezord/release/linux/build.sh
+	docker run --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-386 /trezord/release/linux/build.sh
+	docker run --rm -v $(IMPORT_PATH):/trezord -w /trezord $(IMAGETAG_BUILD)-amd64 /trezord/release/linux/build.sh
 	cp ../../VERSION build
 
 .package: .binary .docker-image-package
 	$(info Packaging ...)
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-386
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-amd64
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-arm64
+	docker run --rm $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-386
+	docker run --rm $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-amd64
+	docker run --rm $(VOL_MOUNT) $(IMAGETAG_PACKAGE) /release/release.sh linux-arm64
 
 .docker-image-build:
 	$(info Preparing docker images for build ...)
@@ -37,7 +37,7 @@ clean:
 	docker build -t $(IMAGETAG_PACKAGE) . -f Dockerfile.package
 
 shell: .docker-image
-	docker run -i -t $(VOL_MOUNT) $(IMAGETAG) /bin/bash
+	docker run $(VOL_MOUNT) $(IMAGETAG) /bin/bash
 
 privkey:
 	gpg --armor --export-secret-key > privkey.asc
