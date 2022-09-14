@@ -1,4 +1,4 @@
-name: "[Check] unsigned installers and binaries"
+name: "[Build] unsigned installers and binaries"
 on:
   push:
     branches: [ "master" ]
@@ -6,6 +6,7 @@ on:
     branches: [ "master" ]
 permissions:
   contents: read
+
 jobs:
   build-installers:
     runs-on: ubuntu-latest

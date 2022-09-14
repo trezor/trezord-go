@@ -6,6 +6,7 @@ on:
     branches: [ "master" ]
 permissions:
   contents: read
+
 jobs:
   validate-go:
     runs-on: ubuntu-latest
