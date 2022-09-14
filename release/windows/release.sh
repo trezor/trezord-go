@@ -20,7 +20,7 @@ cp /release/trezord.ico trezord.ico
 SIGNKEY=/release/authenticode
 
 if [ -r $SIGNKEY.key ]; then
-    for BINARY in {trezord,devcon,wdi-simple}-{32b,64b}.exe ; do
+    for BINARY in {trezord}-{32b,64b}.exe ; do
         mv $BINARY $BINARY.unsigned
         osslsigncode sign -certs $SIGNKEY.crt -key $SIGNKEY.key -n "Trezor Bridge" -i "https://trezor.io/" -h sha384 -t "http://timestamp.comodoca.com?td=sha384" -in $BINARY.unsigned -out $BINARY
         osslsigncode verify -in $BINARY
