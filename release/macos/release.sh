@@ -105,7 +105,7 @@ rm -r scripts
 mv Scripts-zip Scripts
 cd payload
 
-if [ -r $SIGN_INSTALLER_APP_F ]; then
+if [ -r $SIGN_APP_PASSPHRASE_F ]; then
     rcodesign sign --p12-file $SIGN_APP_CERT --p12-password-file $SIGN_APP_PASSPHRASE_F --code-signature-flags runtime /release/build/trezord
 fi
 
