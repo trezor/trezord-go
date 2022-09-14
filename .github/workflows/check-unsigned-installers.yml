@@ -1,0 +1,27 @@
+name: "[Check] unsigned installers and binaries"
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+permissions:
+  contents: read
+jobs:
+  build-installers:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Build installers
+      run: make build-release
+    - name: Upload binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: release/binaries
+    - name: Upload installers
+      uses: actions/upload-artifact@v3
+      with:
+        name: installers
+        path: release/installers
