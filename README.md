@@ -1,84 +1,77 @@
 # trezord-go
 
-[![Build Status](https://travis-ci.org/trezor/trezord-go.svg?branch=master)](https://travis-ci.org/trezor/trezord-go) [![gitter](https://badges.gitter.im/trezor/community.svg)](https://gitter.im/trezor/community) [![Go Report Card](https://goreportcard.com/badge/trezor/trezord-go)](https://goreportcard.com/report/trezor/trezord-go)
+![Build status](https://github.com/trezor/trezord-go/actions/workflows/check-go-validation.yml/badge.svg) ![Installer build status](https://github.com/trezor/trezord-go/actions/workflows/build-unsigned-installers.yml/badge.svg) [![Go Report Card](https://goreportcard.com/badge/trezor/trezord-go)](https://goreportcard.com/report/trezor/trezord-go)
 
-Trezor Communication Daemon aka Trezor Bridge (written in Go)
+Trezor Communication Daemon aka Trezor Bridge.
 
 **Only compatible with Chrome (version 53 or later) and Firefox (version 55 or later).**
 
-status: [spec](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy) [Chrome](https://bugs.chromium.org/p/chromium/issues/detail?id=607878) [Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=903966) [Edge](https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/11963735/)
+We officially don't support Windows 7 and older; it could run, but we don't guarantee it.
+
+## What does trezord do and why it is needed?
+
+Trezord is a tiny http server, that allows webpages (like Trezor Suite in web mode) to communicate with Trezor directly.
+
+Our new devices now support WebUSB, which should eliminate the need for Trezor Bridge; however, there are some reasons, why bridge is still needed.
+
+1. Firefox does not allow WebUSB ([see discussion here](https://github.com/mozilla/standards-positions/issues/100)).
+2. Devices with old firmware (2018 and older) support only HID and not WebUSB.
+3. WebUSB does not allow synchronization of USB access between domains.
 
 ## Install and run from source
 
-trezord-go requires go >= 1.12
+trezord-go requires go >= 1.12, but 1.18 is recommended for git version stamping (and for better speed in general).
 
 ```
-GO111MODULE=auto go get github.com/trezor/trezord-go
-GO111MODULE=auto go build github.com/trezor/trezord-go
+git clone https://github.com/trezor/trezord-go.git
+cd trezord-go
+go build .
 ./trezord-go -h
 ```
 
-*Note:*
-
-If you are new to Go and you are confused how come you should not clone the repository yourself, this is
-indeed the Go way. If you need to modify the code you can simply `cd` into the directory
-(`$GOPATH/src/github.com/trezor/trezord-go`) and do whatever you please. Running `go build` inside that
-directory will produce a new executable at the same place. Running
-`go build github.com/trezor/trezord-go` will produce a new executable in `$GOPATH/bin`. Both are built
-from your local copy in `$GOPATH/src`.
+On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
 
 #### Debug mode
 
 When built with `-tags debug` a debug mode is enabled. This disables CORS which is helpful for local development and when run inside a docker image.
 
-## Update from source
-```
-go clean
-GO111MODULE=auto go get -u github.com/trezor/trezord-go
-GO111MODULE=auto go build -a github.com/trezor/trezord-go
-```
-
-On Linux don't forget to install the [udev rules](https://github.com/trezor/trezor-common/blob/master/udev/51-trezor.rules) if you are running from source and not using pre-built packages.
-
-## Guide to compiling packages
+## Build release packages
 
 Prerequisites:
 
-* `go get github.com/karalabe/xgo`
-* `docker pull karalabe/xgo-latest`
-* make sure `xgo` and `docker` are in `$PATH`
-* `cd release && make all`; the installers are in `installers`
+* install `docker`
+* make sure `docker` is in `$PATH`
+* `make build-release`; the installers are in `release/installers`, binaries in `release/binaries`
 
-## Quick guide to cross-compiling
+The base docker images are all built for both ARM and Intel 64, so they should work on both x64 architectures and ARM.
 
-Prerequisites:
+The base images are quite big and can take a while to download (mainly the musl cross-compiler, about 1 GB) and build (mainly the Rust-based apple-codesign). However, it should be cached correctly and run fast next time.
 
-* `go get github.com/karalabe/xgo`
-* `docker pull karalabe/xgo-latest`
+## Signing release packages
 
-Compiling for officially supported platforms:
+By default, the binaries and installers are unsigned and unnotarized. The build does not require any certificates or private keys, but produces unsigned binaries and packages.
 
-* `$GOPATH/bin/xgo -targets=windows/amd64,windows/386,darwin/amd64,linux/amd64,linux/386 .`
+The notarization and signing is all done in Docker, so it can run everywhere. (No need to run the mac notarization on macOS, etc.)
+
+If you want to sign the packages, you need the following:
+
+* For Linux, you need to put GPG private key into `release/linux/privkey.asc`.
+* For Windows, you need to put GPG private key into `release/windows/privkey.asc` and an authenticode to `release/windows/authenticode.key` and `release/windows/authenticode.crt`.
+* For macOS:
+  1. You need to put GPG private key into `release/macos/privkey.asc`.
+  2. Then you need to generate and put a lot of things for notarization and signing into `release/macos/certs`; see the details in top comment of `release/macos/release.sh`.
+
+All those files are ignored by `.gitignore` so they are not accidentally put into git.
 
 ## Emulator support
 
-Trezord supports emulators for both Trezor versions. However, you need to enable it manually; it is disabled by default. After enabling, services that work with emulator can work with all services that support trezord.
+Trezord supports emulators for all Trezor versions. However, you need to enable it manually; it is disabled by default. After enabling, services that work with emulator can work with all services that support trezord.
 
-To enable emulator, run trezord with a parameter `-e` followed by port, for every emulator with an enabled port
+To enable emulator, run trezord with a parameter `-e` followed by port, for every emulator with an enabled port:
 
 `./trezord-go -e 21324`
 
-If you want to run this automatically on linux, do
-
-`sudo systemctl edit --full trezord.service`
-
-and edit the service file (and maybe restart the trezord service). On mac, you will need to edit
-
-`/Library/LaunchAgents/com.bitcointrezor.trezorBridge.trezord.plist`
-
-and edit the last `<string>` in the plist. (And also probably restart the pc.)
-
-You can disable all USB in order to run on some virtuaized environments, for example Travis
+You can disable all USB in order to run on some virtuaized environments, for example on CI:
 
 `./trezord-go -e 21324 -u=false`
 
@@ -107,7 +100,7 @@ To support an emulator with debug link, run
 
 `./trezord-go -ed 21324:21325 -u=false`
 
-this will detect emulator debug link on port 21325, with regular device on 21324. 
+this will detect emulator debug link on port 21325, with regular device on 21324.
 
 To support WebUSB devices with debug link, no option is needed, just run trezord-go.
 
