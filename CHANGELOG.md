@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.32] - unreleased
+- libusb: update to 1.0.26
+- hidapi: update to 0.12.0 and move to a submodule
+- Fix build and notarization for all platforms
+- Remove custom patches for Windows 7 
 
 ## [2.0.31] - 2021-03-12
 - hidapi: update to 0.10.1
