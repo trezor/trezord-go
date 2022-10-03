@@ -1,6 +1,7 @@
 package status
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/trezor/trezord-go/core"
@@ -15,6 +16,7 @@ import (
 
 type status struct {
 	core                                *core.Core
+	port                                int
 	version                             string
 	githash                             string
 	shortMemoryWriter, longMemoryWriter *memorywriter.MemoryWriter
@@ -30,12 +32,13 @@ func ServeStatusRedirect(r *mux.Router) {
 }
 
 func redirect(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "http://127.0.0.1:21325/status/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/status/", http.StatusMovedPermanently)
 }
 
-func ServeStatus(r *mux.Router, c *core.Core, v, h string, mw, dmw *memorywriter.MemoryWriter) {
+func ServeStatus(r *mux.Router, c *core.Core, p int, v, h string, mw, dmw *memorywriter.MemoryWriter) {
 	status := &status{
 		core:              c,
+		port:              p,
 		version:           v,
 		githash:           h,
 		shortMemoryWriter: mw,
@@ -47,7 +50,7 @@ func ServeStatus(r *mux.Router, c *core.Core, v, h string, mw, dmw *memorywriter
 	r.Use(csrf.Protect([]byte(csrfkey), csrf.Secure(false)))
 	r.Use(OriginCheck(map[string]string{
 		"/status/":       "",
-		"/status/log.gz": "http://127.0.0.1:21325",
+		"/status/log.gz": fmt.Sprintf("http://127.0.0.1:%d", status.port),
 	}))
 }
 

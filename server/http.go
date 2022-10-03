@@ -27,6 +27,7 @@ type Server struct {
 
 func New(
 	c *core.Core,
+	port int,
 	stderrWriter io.Writer,
 	shortWriter *memorywriter.MemoryWriter,
 	longWriter *memorywriter.MemoryWriter,
@@ -36,7 +37,7 @@ func New(
 	longWriter.Log("starting")
 
 	https := &http.Server{
-		Addr:              "127.0.0.1:21325",
+		Addr:              fmt.Sprintf("127.0.0.1:%d", port),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 	}
@@ -54,7 +55,7 @@ func New(
 	postRouter := r.Methods("POST").Subrouter()
 	redirectRouter := r.Methods("GET").Path("/").Subrouter()
 
-	status.ServeStatus(statusRouter, c, version, githash, shortWriter, longWriter)
+	status.ServeStatus(statusRouter, c, port, version, githash, shortWriter, longWriter)
 	api.ServeAPI(postRouter, c, version, githash, longWriter)
 
 	status.ServeStatusRedirect(redirectRouter)

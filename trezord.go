@@ -109,6 +109,7 @@ func main() {
 	}
 
 	var logfile string
+	var port int
 	var ports udpPorts
 	var touples udpTouples
 	var withusb bool
@@ -121,6 +122,12 @@ func main() {
 		"l",
 		"",
 		"Log into a file, rotating after 20MB",
+	)
+	flag.IntVar(
+		&port,
+		"p",
+		21325,
+		"Use a different port for the HTTP server. Default is 21325.",
 	)
 	flag.Var(
 		&ports,
@@ -185,7 +192,7 @@ func main() {
 
 	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
 
-	printWelcomeInfo(stderrLogger)
+	printWelcomeInfo(stderrLogger, port)
 	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
 
 	longMemoryWriter.Log(fmt.Sprintf("UDP port count - %d", len(ports)))
@@ -213,7 +220,7 @@ func main() {
 	longMemoryWriter.Log("Creating core")
 	c := core.New(b, longMemoryWriter, allowCancel(), reset)
 	longMemoryWriter.Log("Creating HTTP server")
-	s, err := server.New(c, stderrWriter, shortMemoryWriter, longMemoryWriter, version, githash)
+	s, err := server.New(c, port, stderrWriter, shortMemoryWriter, longMemoryWriter, version, githash)
 
 	if err != nil {
 		stderrLogger.Fatalf("https: %s", err)
@@ -228,8 +235,8 @@ func main() {
 	longMemoryWriter.Log("Main ended successfully")
 }
 
-func printWelcomeInfo(stderrLogger *log.Logger) {
-	stderrLogger.Printf("trezord v%s (rev %s) is starting", version, githash)
+func printWelcomeInfo(stderrLogger *log.Logger, port int) {
+	stderrLogger.Printf("trezord v%s (rev %s) is starting on port %d", version, githash, port)
 	if core.IsDebugBinary() {
 		stderrLogger.Print("!! DEBUG mode enabled! Please contact Trezor support in case you did not initiate this. !!")
 	}
