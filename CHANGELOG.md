@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 
 ## [2.0.32] - 2022-10-03 (in Trezor Suite)
+- Fix possible memory leak in libusb config descriptor
 - libusb: update to 1.0.26
 - hidapi: update to 0.12.0 and move to a submodule
 - Fix build and notarization for all platforms
