@@ -25,4 +25,4 @@ copy:
 	cp linux/build/trezord-linux-* binaries/
 
 clean:
-	rm -rf installers binaries
+	rm -rf installers binaries macos/build linux/build windows/build
