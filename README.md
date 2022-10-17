@@ -20,7 +20,7 @@ Our new devices now support WebUSB, which should eliminate the need for Trezor B
 
 ## Install and run from source
 
-trezord-go requires go >= 1.12, but 1.18 is recommended for git version stamping (and for better speed in general).
+trezord-go requires go >= 1.18.
 
 ```
 git clone https://github.com/trezor/trezord-go.git
