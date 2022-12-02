@@ -23,7 +23,7 @@ Our new devices now support WebUSB, which should eliminate the need for Trezor B
 trezord-go requires go >= 1.18.
 
 ```
-git clone https://github.com/trezor/trezord-go.git
+git clone --recursive https://github.com/trezor/trezord-go.git
 cd trezord-go
 go build .
 ./trezord-go -h
