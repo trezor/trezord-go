@@ -98,9 +98,19 @@ func (b *HIDAPI) Connect(path string, debug bool, reset bool) (core.USBDevice, e
 func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	vid := d.VendorID
 	pid := d.ProductID
+	// note that "trezor1" is just the old hidapi one; t2 has the new vid/pid
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
-	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return (trezor1 || trezor2) && (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
+	if trezor1 {
+		var dCopy lowlevel.HidDeviceInfo = *d
+		// sanitize potentially sensitive info
+		dCopy.Serial = ""
+		dCopy.Path = ""
+		dCopy.Release = 0
+		matchedInterface := (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
+		b.mw.Log(fmt.Sprintf("matched HID - %+v, %t", dCopy, matchedInterface))
+		return matchedInterface
+	}
+	return false
 }
 
 func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {
