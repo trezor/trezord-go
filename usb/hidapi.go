@@ -100,7 +100,11 @@ func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	pid := d.ProductID
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 	trezor2 := vid == core.VendorT2 && (pid == core.ProductT2Firmware || pid == core.ProductT2Bootloader)
-	return (trezor1 || trezor2) && (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
+	matched := (trezor1 || trezor2) && (d.Interface == int(normalIface.number) || d.UsagePage == hidUsagePage)
+	if matched {
+		b.mw.Log(fmt.Sprintf("matched HID - %+v", d))
+	}
+	return matched
 }
 
 func (b *HIDAPI) identify(dev *lowlevel.HidDeviceInfo) string {
