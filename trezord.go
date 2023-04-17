@@ -18,7 +18,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var version = "2.0.33"
+var version = "2.0.34"
 var githash = "unknown"
 
 type udpTouples []usb.PortTouple
