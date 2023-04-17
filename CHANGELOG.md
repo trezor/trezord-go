@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.33] - unreleased
+## [2.0.34] - unreleased
+
+## [2.0.33] - 2023-04-19 (in Trezor Suite)
 - Fix duplicite device detected on macOS 13.3
 
 ## [2.0.32] - 2022-10-03 (in Trezor Suite)
