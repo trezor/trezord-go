@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.33] - unreleased
-
+- Fix duplicite device detected on macOS 13.3
 
 ## [2.0.32] - 2022-10-03 (in Trezor Suite)
 - Fix possible memory leak in libusb config descriptor
