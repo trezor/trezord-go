@@ -1,14 +1,13 @@
-FROM golang:latest
+FROM golang:1.18
 
 RUN mkdir /trezord-go
 WORKDIR /trezord-go
-COPY ./scripts/run_in_docker.sh /trezord-go
+COPY . /trezord-go
 
 RUN apt-get update
 RUN apt-get install -y redir
 
-RUN go get github.com/trezor/trezord-go
-RUN go build github.com/trezor/trezord-go
+RUN go build .
 
-ENTRYPOINT '/trezord-go/run_in_docker.sh'
+ENTRYPOINT '/trezord-go/scripts/run_in_docker.sh'
 EXPOSE 11325
