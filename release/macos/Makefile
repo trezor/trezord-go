@@ -20,14 +20,14 @@ clean:
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
-		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-debian10 \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.22.1-darwin-debian10 \
 		--build-cmd "go build -o release/macos/build/trezord-amd64 -ldflags=-s" \
 		-p "darwin/amd64"
 	docker run --rm \
 		-v $(IMPORT_PATH):/trezord \
 		-w /trezord \
 		-e CGO_ENABLED=1 \
-		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-arm64-debian10 \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.22.1-darwin-arm64-debian10 \
 		--build-cmd "go build -o release/macos/build/trezord-arm64 -ldflags=-s" \
 		-p "darwin/arm64"
 	docker run --rm \
@@ -35,7 +35,7 @@ clean:
 		-w /trezord \
 		-e CGO_ENABLED=1 \
 		--entrypoint /trezord/release/macos/build-fat.sh \
-		docker.elastic.co/beats-dev/golang-crossbuild:1.19-darwin-arm64-debian10
+		docker.elastic.co/beats-dev/golang-crossbuild:1.22.1-darwin-arm64-debian10
 	cp ../../VERSION build
 
 .package: .binary .docker-image
