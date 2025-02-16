@@ -390,7 +390,7 @@ const HOTPLUG_MATCH_ANY = C.LIBUSB_HOTPLUG_MATCH_ANY
 // This descriptor is documented in section 9.6.6 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_Endpoint_Descriptor = C.struct_libusb_endpoint_descriptor
+type Struct_Libusb_Endpoint_Descriptor C.struct_libusb_endpoint_descriptor
 
 type Endpoint_Descriptor struct {
 	ptr              *Struct_Libusb_Endpoint_Descriptor
@@ -441,7 +441,7 @@ func (x *Endpoint_Descriptor) String() string {
 // This descriptor is documented in section 9.6.5 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_Interface_Descriptor = C.struct_libusb_interface_descriptor
+type Struct_Libusb_Interface_Descriptor C.struct_libusb_interface_descriptor
 
 type Interface_Descriptor struct {
 	ptr                *Struct_Libusb_Interface_Descriptor
@@ -508,7 +508,7 @@ func (x *Interface_Descriptor) String() string {
 
 // A collection of alternate settings for a particular USB interface.
 
-type Struct_Libusb_Interface = C.struct_libusb_interface
+type Struct_Libusb_Interface C.struct_libusb_interface
 
 type Interface struct {
 	ptr            *Struct_Libusb_Interface
@@ -550,7 +550,7 @@ func Interface_str(x *Interface) string {
 // This descriptor is documented in section 9.6.3 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_Config_Descriptor = C.struct_libusb_config_descriptor
+type Struct_Libusb_Config_Descriptor C.struct_libusb_config_descriptor
 
 type Config_Descriptor struct {
 	ptr                 *Struct_Libusb_Config_Descriptor
@@ -616,7 +616,7 @@ func (x *Config_Descriptor) String() string {
 // This descriptor is documented in section 9.6.7 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_SS_Endpoint_Companion_Descriptor = C.struct_libusb_ss_endpoint_companion_descriptor
+type Struct_Libusb_SS_Endpoint_Companion_Descriptor C.struct_libusb_ss_endpoint_companion_descriptor
 
 type SS_Endpoint_Companion_Descriptor struct {
 	ptr               *Struct_Libusb_SS_Endpoint_Companion_Descriptor
@@ -644,7 +644,7 @@ func (x *Struct_Libusb_SS_Endpoint_Companion_Descriptor) c2go() *SS_Endpoint_Com
 // It is advised to check BDevCapabilityType and call the matching
 // Get_*_Descriptor function to get a structure fully matching the type.
 
-type Struct_Libusb_BOS_Dev_Capability_Descriptor = C.struct_libusb_bos_dev_capability_descriptor
+type Struct_Libusb_BOS_Dev_Capability_Descriptor C.struct_libusb_bos_dev_capability_descriptor
 
 type BOS_Dev_Capability_Descriptor struct {
 	ptr                 *Struct_Libusb_BOS_Dev_Capability_Descriptor
@@ -656,11 +656,13 @@ type BOS_Dev_Capability_Descriptor struct {
 
 func (x *Struct_Libusb_BOS_Dev_Capability_Descriptor) c2go() *BOS_Dev_Capability_Descriptor {
 	return &BOS_Dev_Capability_Descriptor{
-		ptr:                 x,
-		BLength:             uint8(x.bLength),
-		BDescriptorType:     uint8(x.bDescriptorType),
-		BDevCapabilityType:  uint8(x.bDevCapabilityType),
-		Dev_capability_data: C.GoBytes(unsafe.Pointer(C.dev_capability_data_ptr(x)), C.int(x.bLength-3)),
+		ptr:                x,
+		BLength:            uint8(x.bLength),
+		BDescriptorType:    uint8(x.bDescriptorType),
+		BDevCapabilityType: uint8(x.bDevCapabilityType),
+		Dev_capability_data: C.GoBytes(
+			unsafe.Pointer(C.dev_capability_data_ptr((*C.struct_libusb_bos_dev_capability_descriptor)(x))),
+			C.int(x.bLength-3)),
 	}
 }
 
@@ -670,7 +672,7 @@ func (x *Struct_Libusb_BOS_Dev_Capability_Descriptor) c2go() *BOS_Dev_Capability
 // This descriptor is documented in section 9.6.2 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_BOS_Descriptor = C.struct_libusb_bos_descriptor
+type Struct_Libusb_BOS_Descriptor C.struct_libusb_bos_descriptor
 
 type BOS_Descriptor struct {
 	ptr             *Struct_Libusb_BOS_Descriptor
@@ -685,7 +687,8 @@ func (x *Struct_Libusb_BOS_Descriptor) c2go() *BOS_Descriptor {
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
 	hdr.Cap = int(x.bNumDeviceCaps)
 	hdr.Len = int(x.bNumDeviceCaps)
-	hdr.Data = uintptr(unsafe.Pointer(C.dev_capability_ptr(x)))
+	hdr.Data = uintptr(unsafe.Pointer(
+		C.dev_capability_ptr((*C.struct_libusb_bos_descriptor)(x))))
 	dev_capability := make([]*BOS_Dev_Capability_Descriptor, x.bNumDeviceCaps)
 	for i := range dev_capability {
 		dev_capability[i] = list[i].c2go()
@@ -705,7 +708,7 @@ func (x *Struct_Libusb_BOS_Descriptor) c2go() *BOS_Descriptor {
 // This descriptor is documented in section 9.6.2.1 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_USB_2_0_Extension_Descriptor = C.struct_libusb_usb_2_0_extension_descriptor
+type Struct_Libusb_USB_2_0_Extension_Descriptor C.struct_libusb_usb_2_0_extension_descriptor
 
 type USB_2_0_Extension_Descriptor struct {
 	ptr                *Struct_Libusb_USB_2_0_Extension_Descriptor
@@ -731,7 +734,7 @@ func (x *Struct_Libusb_USB_2_0_Extension_Descriptor) c2go() *USB_2_0_Extension_D
 // This descriptor is documented in section 9.6.2.2 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_SS_USB_Device_Capability_Descriptor = C.struct_libusb_ss_usb_device_capability_descriptor
+type Struct_Libusb_SS_USB_Device_Capability_Descriptor C.struct_libusb_ss_usb_device_capability_descriptor
 
 type SS_USB_Device_Capability_Descriptor struct {
 	ptr                   *Struct_Libusb_SS_USB_Device_Capability_Descriptor
@@ -765,7 +768,7 @@ func (x *Struct_Libusb_SS_USB_Device_Capability_Descriptor) c2go() *SS_USB_Devic
 // This descriptor is documented in section 9.6.2.3 of the USB 3.0 specification.
 // All multiple-byte fields, except UUIDs, are represented in host-endian format.
 
-type Struct_Libusb_Container_ID_Descriptor = C.struct_libusb_container_id_descriptor
+type Struct_Libusb_Container_ID_Descriptor C.struct_libusb_container_id_descriptor
 
 type Container_ID_Descriptor struct {
 	ptr                *Struct_Libusb_Container_ID_Descriptor
@@ -806,7 +809,7 @@ struct libusb_control_setup {
 // This descriptor is documented in section 9.6.1 of the USB 3.0 specification.
 // All multiple-byte fields are represented in host-endian format.
 
-type Struct_Libusb_Device_Descriptor = C.struct_libusb_device_descriptor
+type Struct_Libusb_Device_Descriptor C.struct_libusb_device_descriptor
 
 type Device_Descriptor struct {
 	ptr                *Struct_Libusb_Device_Descriptor
@@ -893,7 +896,7 @@ struct libusb_transfer {
 // completed, the library populates the transfer with the results and passes
 // it back to the user.
 
-type Struct_Libusb_Transfer = C.struct_libusb_transfer
+type Struct_Libusb_Transfer C.struct_libusb_transfer
 
 type Transfer struct {
 	ptr *Struct_Libusb_Transfer
@@ -919,7 +922,7 @@ func (x *Transfer) String() string {
 
 // Structure providing the version of the libusb runtime.
 
-type Struct_Libusb_Version = C.struct_libusb_version
+type Struct_Libusb_Version C.struct_libusb_version
 
 type Version struct {
 	ptr      *Struct_Libusb_Version
@@ -1213,7 +1216,7 @@ func Strerror(errcode int) string {
 
 func Get_Device_Descriptor(dev Device) (*Device_Descriptor, error) {
 	var desc Struct_Libusb_Device_Descriptor
-	rc := int(C.libusb_get_device_descriptor(dev, &desc))
+	rc := int(C.libusb_get_device_descriptor(dev, (*C.struct_libusb_device_descriptor)(&desc)))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
@@ -1221,99 +1224,115 @@ func Get_Device_Descriptor(dev Device) (*Device_Descriptor, error) {
 }
 
 func Get_Active_Config_Descriptor(dev Device) (*Config_Descriptor, error) {
-	var desc *Struct_Libusb_Config_Descriptor
-	rc := int(C.libusb_get_active_config_descriptor(dev, &desc))
+	var desc_c *C.struct_libusb_config_descriptor
+	rc := int(C.libusb_get_active_config_descriptor(dev, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_Config_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Get_Config_Descriptor(dev Device, config_index uint8) (*Config_Descriptor, error) {
-	var desc *Struct_Libusb_Config_Descriptor
-	rc := int(C.libusb_get_config_descriptor(dev, (C.uint8_t)(config_index), &desc))
+	var desc_c *C.struct_libusb_config_descriptor
+	rc := int(C.libusb_get_config_descriptor(dev, (C.uint8_t)(config_index), &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_Config_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Get_Config_Descriptor_By_Value(dev Device, bConfigurationValue uint8) (*Config_Descriptor, error) {
-	var desc *Struct_Libusb_Config_Descriptor
-	rc := int(C.libusb_get_config_descriptor_by_value(dev, (C.uint8_t)(bConfigurationValue), &desc))
+	var desc_c *C.struct_libusb_config_descriptor
+	rc := int(C.libusb_get_config_descriptor_by_value(dev, (C.uint8_t)(bConfigurationValue), &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_Config_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_Config_Descriptor(config *Config_Descriptor) {
-	C.libusb_free_config_descriptor(config.ptr)
+	C.libusb_free_config_descriptor((*C.struct_libusb_config_descriptor)(config.ptr))
 }
 
 func Get_SS_Endpoint_Companion_Descriptor(ctx Context, endpoint *Endpoint_Descriptor) (*SS_Endpoint_Companion_Descriptor, error) {
-	var desc *Struct_Libusb_SS_Endpoint_Companion_Descriptor
-	rc := int(C.libusb_get_ss_endpoint_companion_descriptor(ctx, endpoint.ptr, &desc))
+	var desc_c *C.struct_libusb_ss_endpoint_companion_descriptor
+	endpoint_ptr_c := (*C.struct_libusb_endpoint_descriptor)(endpoint.ptr)
+	rc := int(C.libusb_get_ss_endpoint_companion_descriptor(ctx, endpoint_ptr_c, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_SS_Endpoint_Companion_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_SS_Endpoint_Companion_Descriptor(ep_comp *SS_Endpoint_Companion_Descriptor) {
-	C.libusb_free_ss_endpoint_companion_descriptor(ep_comp.ptr)
+	C.libusb_free_ss_endpoint_companion_descriptor(
+		(*C.struct_libusb_ss_endpoint_companion_descriptor)(ep_comp.ptr))
 }
 
 func Get_BOS_Descriptor(hdl Device_Handle) (*BOS_Descriptor, error) {
-	var desc *Struct_Libusb_BOS_Descriptor
-	rc := int(C.libusb_get_bos_descriptor(hdl, &desc))
+	var desc_c *C.struct_libusb_bos_descriptor
+	rc := int(C.libusb_get_bos_descriptor(hdl, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_BOS_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_BOS_Descriptor(bos *BOS_Descriptor) {
-	C.libusb_free_bos_descriptor(bos.ptr)
+	C.libusb_free_bos_descriptor((*C.struct_libusb_bos_descriptor)(bos.ptr))
 }
 
 func Get_USB_2_0_Extension_Descriptor(ctx Context, dev_cap *BOS_Dev_Capability_Descriptor) (*USB_2_0_Extension_Descriptor, error) {
-	var desc *Struct_Libusb_USB_2_0_Extension_Descriptor
-	rc := int(C.libusb_get_usb_2_0_extension_descriptor(ctx, dev_cap.ptr, &desc))
+	var desc_c *C.struct_libusb_usb_2_0_extension_descriptor
+	dev_cap_ptr_c := (*C.struct_libusb_bos_dev_capability_descriptor)(dev_cap.ptr)
+	rc := int(C.libusb_get_usb_2_0_extension_descriptor(ctx, dev_cap_ptr_c, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_USB_2_0_Extension_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_USB_2_0_Extension_Descriptor(usb_2_0_extension *USB_2_0_Extension_Descriptor) {
-	C.libusb_free_usb_2_0_extension_descriptor(usb_2_0_extension.ptr)
+	C.libusb_free_usb_2_0_extension_descriptor(
+		(*C.struct_libusb_usb_2_0_extension_descriptor)(usb_2_0_extension.ptr))
 }
 
 func Get_SS_USB_Device_Capability_Descriptor(ctx Context, dev_cap *BOS_Dev_Capability_Descriptor) (*SS_USB_Device_Capability_Descriptor, error) {
-	var desc *Struct_Libusb_SS_USB_Device_Capability_Descriptor
-	rc := int(C.libusb_get_ss_usb_device_capability_descriptor(ctx, dev_cap.ptr, &desc))
+	var desc_c *C.struct_libusb_ss_usb_device_capability_descriptor
+	dev_cap_ptr_c := (*C.struct_libusb_bos_dev_capability_descriptor)(dev_cap.ptr)
+	rc := int(C.libusb_get_ss_usb_device_capability_descriptor(ctx, dev_cap_ptr_c, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_SS_USB_Device_Capability_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_SS_USB_Device_Capability_Descriptor(ss_usb_device_cap *SS_USB_Device_Capability_Descriptor) {
-	C.libusb_free_ss_usb_device_capability_descriptor(ss_usb_device_cap.ptr)
+	C.libusb_free_ss_usb_device_capability_descriptor(
+		(*C.struct_libusb_ss_usb_device_capability_descriptor)(ss_usb_device_cap.ptr))
 }
 
 func Get_Container_ID_Descriptor(ctx Context, dev_cap *BOS_Dev_Capability_Descriptor) (*Container_ID_Descriptor, error) {
-	var desc *Struct_Libusb_Container_ID_Descriptor
-	rc := int(C.libusb_get_container_id_descriptor(ctx, dev_cap.ptr, &desc))
+	var desc_c *C.struct_libusb_container_id_descriptor
+	dev_cap_ptr_c := (*C.struct_libusb_bos_dev_capability_descriptor)(dev_cap.ptr)
+	rc := int(C.libusb_get_container_id_descriptor(ctx, dev_cap_ptr_c, &desc_c))
 	if rc != 0 {
 		return nil, &libusb_error{rc}
 	}
+	desc := (*Struct_Libusb_Container_ID_Descriptor)(desc_c)
 	return desc.c2go(), nil
 }
 
 func Free_Container_ID_Descriptor(container_id *Container_ID_Descriptor) {
-	C.libusb_free_container_id_descriptor(container_id.ptr)
+	C.libusb_free_container_id_descriptor(
+		(*C.struct_libusb_container_id_descriptor)(container_id.ptr))
 }
 
 func Get_String_Descriptor_ASCII(hdl Device_Handle, desc_index uint8, data []byte) ([]byte, error) {
@@ -1366,7 +1385,8 @@ func Free_Streams(dev Device_Handle, endpoints []byte) error {
 }
 
 func Alloc_Transfer(iso_packets int) (*Transfer, error) {
-	ptr := C.libusb_alloc_transfer((C.int)(iso_packets))
+	ptr_c := C.libusb_alloc_transfer((C.int)(iso_packets))
+	ptr := (*Struct_Libusb_Transfer)(ptr_c)
 	if ptr == nil {
 		return nil, &libusb_error{ERROR_OTHER}
 	}
@@ -1374,11 +1394,12 @@ func Alloc_Transfer(iso_packets int) (*Transfer, error) {
 }
 
 func Free_Transfer(transfer *Transfer) {
-	C.libusb_free_transfer(transfer.ptr)
+	C.libusb_free_transfer((*C.struct_libusb_transfer)(transfer.ptr))
 }
 
 func Submit_Transfer(transfer *Transfer) error {
-	rc := int(C.libusb_submit_transfer(transfer.go2c()))
+	rc := int(C.libusb_submit_transfer(
+		(*C.struct_libusb_transfer)(transfer.go2c())))
 	if rc != 0 {
 		return &libusb_error{rc}
 	}
@@ -1386,7 +1407,8 @@ func Submit_Transfer(transfer *Transfer) error {
 }
 
 func Cancel_Transfer(transfer *Transfer) error {
-	rc := int(C.libusb_cancel_transfer(transfer.go2c()))
+	rc := int(C.libusb_cancel_transfer(
+		(*C.struct_libusb_transfer)(transfer.go2c())))
 	if rc != 0 {
 		return &libusb_error{rc}
 	}
@@ -1394,16 +1416,20 @@ func Cancel_Transfer(transfer *Transfer) error {
 }
 
 func Transfer_Set_Stream_ID(transfer *Transfer, stream_id uint32) {
-	C.libusb_transfer_set_stream_id(transfer.go2c(), (C.uint32_t)(stream_id))
+	C.libusb_transfer_set_stream_id(
+		(*C.struct_libusb_transfer)(transfer.go2c()),
+		(C.uint32_t)(stream_id))
 }
 
 func Transfer_Get_Stream_ID(transfer *Transfer) uint32 {
-	return uint32(C.libusb_transfer_get_stream_id(transfer.go2c()))
+	return uint32(C.libusb_transfer_get_stream_id(
+		(*C.struct_libusb_transfer)(transfer.go2c())))
 }
 
 func Control_Transfer_Get_Data(transfer *Transfer) *byte {
 	// should this return a slice? - what's the length?
-	return (*byte)(C.libusb_control_transfer_get_data(transfer.go2c()))
+	return (*byte)(C.libusb_control_transfer_get_data(
+		(*C.struct_libusb_transfer)(transfer.go2c())))
 }
 
 // static struct libusb_control_setup * 	libusb_control_transfer_get_setup (struct libusb_transfer *transfer)
