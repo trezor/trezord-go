@@ -19,7 +19,8 @@ clean:
 		-w /trezord \
 		-e CGO_ENABLED=1 \
 		-e CGO_CFLAGS="-D_WIN32_WINNT=0x0600" \
-		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
+		-e GOFLAGS="-buildvcs=false" \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.24.0-main-debian12 \
 		--build-cmd "go build -o release/windows/build/trezord-64b.exe -ldflags=\"-H=windowsgui\"" \
 		-p "windows/amd64"
 	docker run --rm \
@@ -27,7 +28,8 @@ clean:
 		-w /trezord \
 		-e CGO_ENABLED=1 \
 		-e CGO_CFLAGS="-D_WIN32_WINNT=0x0600" \
-		docker.elastic.co/beats-dev/golang-crossbuild:1.19-main-debian10 \
+		-e GOFLAGS="-buildvcs=false" \
+		docker.elastic.co/beats-dev/golang-crossbuild:1.24.0-main-debian12 \
 		--build-cmd "go build -o release/windows/build/trezord-32b.exe -ldflags=\"-H=windowsgui\"" \
 		-p "windows/386"
 	cp ../../VERSION build

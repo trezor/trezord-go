@@ -104,7 +104,6 @@ import "C"
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"unsafe"
 )
@@ -459,11 +458,7 @@ type Interface_Descriptor struct {
 }
 
 func (x *Struct_Libusb_Interface_Descriptor) c2go() *Interface_Descriptor {
-	var list []Struct_Libusb_Endpoint_Descriptor
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
-	hdr.Cap = int(x.bNumEndpoints)
-	hdr.Len = int(x.bNumEndpoints)
-	hdr.Data = uintptr(unsafe.Pointer(x.endpoint))
+	list := unsafe.Slice((*Struct_Libusb_Endpoint_Descriptor)(unsafe.Pointer(x.endpoint)), int(x.bNumEndpoints))
 	endpoints := make([]*Endpoint_Descriptor, x.bNumEndpoints)
 	for i := range endpoints {
 		endpoints[i] = (&list[i]).c2go()
@@ -517,11 +512,7 @@ type Interface struct {
 }
 
 func (x *Struct_Libusb_Interface) c2go() *Interface {
-	var list []Struct_Libusb_Interface_Descriptor
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
-	hdr.Cap = int(x.num_altsetting)
-	hdr.Len = int(x.num_altsetting)
-	hdr.Data = uintptr(unsafe.Pointer(x.altsetting))
+	list := unsafe.Slice((*Struct_Libusb_Interface_Descriptor)(unsafe.Pointer(x.altsetting)), int(x.num_altsetting))
 	altsetting := make([]*Interface_Descriptor, x.num_altsetting)
 	for i := range altsetting {
 		altsetting[i] = (&list[i]).c2go()
@@ -567,11 +558,7 @@ type Config_Descriptor struct {
 }
 
 func (x *Struct_Libusb_Config_Descriptor) c2go() *Config_Descriptor {
-	var list []Struct_Libusb_Interface
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
-	hdr.Cap = int(x.bNumInterfaces)
-	hdr.Len = int(x.bNumInterfaces)
-	hdr.Data = uintptr(unsafe.Pointer(x._interface))
+	list := unsafe.Slice((*Struct_Libusb_Interface)(unsafe.Pointer(x._interface)), int(x.bNumInterfaces))
 	interfaces := make([]*Interface, x.bNumInterfaces)
 	for i := range interfaces {
 		interfaces[i] = (&list[i]).c2go()
@@ -682,12 +669,8 @@ type BOS_Descriptor struct {
 }
 
 func (x *Struct_Libusb_BOS_Descriptor) c2go() *BOS_Descriptor {
-	var list []*Struct_Libusb_BOS_Dev_Capability_Descriptor
 	x_c := (*C.struct_libusb_bos_descriptor)(x)
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
-	hdr.Cap = int(x.bNumDeviceCaps)
-	hdr.Len = int(x.bNumDeviceCaps)
-	hdr.Data = uintptr(unsafe.Pointer(C.dev_capability_ptr(x_c)))
+	list := unsafe.Slice((**Struct_Libusb_BOS_Dev_Capability_Descriptor)(unsafe.Pointer(C.dev_capability_ptr(x_c))), int(x.bNumDeviceCaps))
 	dev_capability := make([]*BOS_Dev_Capability_Descriptor, x.bNumDeviceCaps)
 	for i := range dev_capability {
 		dev_capability[i] = list[i].c2go()
@@ -994,11 +977,7 @@ func Get_Device_List(ctx Context) ([]Device, error) {
 		return nil, &libusb_error{rc}
 	}
 	// turn the c array into a slice of device pointers
-	var list []Device
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&list))
-	hdr.Cap = rc
-	hdr.Len = rc
-	hdr.Data = uintptr(unsafe.Pointer(hdl))
+	list := unsafe.Slice((*Device)(unsafe.Pointer(hdl)), rc)
 	return list, nil
 }
 

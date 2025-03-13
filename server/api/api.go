@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -200,7 +200,7 @@ func (a *api) call(w http.ResponseWriter, r *http.Request, mode core.CallMode, d
 
 	var binbody []byte
 	if mode != core.CallModeRead {
-		hexbody, err := ioutil.ReadAll(r.Body)
+		hexbody, err := io.ReadAll(r.Body)
 		if err != nil {
 			a.respondError(w, err)
 			return
