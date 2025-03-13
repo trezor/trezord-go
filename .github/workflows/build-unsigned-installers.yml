@@ -11,18 +11,18 @@ jobs:
   build-installers:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Build installers
       run: make build-release
     - name: Upload binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: binaries
         path: release/binaries
     - name: Upload installers
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: installers
         path: release/installers

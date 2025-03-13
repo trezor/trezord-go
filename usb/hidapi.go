@@ -101,7 +101,7 @@ func (b *HIDAPI) match(d *lowlevel.HidDeviceInfo) bool {
 	// note that "trezor1" is just the old hidapi one; t2 has the new vid/pid
 	trezor1 := vid == core.VendorT1 && (pid == core.ProductT1Firmware)
 	if trezor1 {
-		var dCopy lowlevel.HidDeviceInfo = *d
+		var dCopy = *d
 		// sanitize potentially sensitive info
 		dCopy.Serial = ""
 		dCopy.Path = ""

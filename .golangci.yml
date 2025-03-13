@@ -1,5 +1,5 @@
 run:
-  deadline: 10m
+  timeout: 10m
 
 issues:
   exclude-rules:
@@ -53,6 +53,14 @@ linters:
     - gocritic
 
 linters-settings:
-  gofmt:
-    # causes errors in old go
-    simplify: true
+  gosec:
+    excludes:
+      - G115
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/gorilla
+          - github.com/trezor/trezord-go
+          - gopkg.in/natefinch/lumberjack.v2
