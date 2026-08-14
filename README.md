@@ -47,22 +47,24 @@ Run from source:
 go run ./desktop
 ```
 
-Build a double-clickable macOS app:
+Build a double-clickable macOS app (universal: Intel + Apple Silicon):
 
 ```
-# Option A: fyne CLI (recommended)
+# Recommended: universal .app for both Intel and Apple Silicon
+make desktop-app-macos
+# → Trezor Bridge.app in the repo root
+
+# Host-arch only via fyne CLI (optional)
 go install fyne.io/fyne/v2/cmd/fyne@latest
 make desktop
 # → desktop/Trezor Bridge.app
-
-# Option B: without fyne CLI
-make desktop-app-macos
-# → Trezor Bridge.app in the repo root
 ```
 
 Open the `.app` (or the Windows/Linux binary) to enable the bridge on port `21325`. Closing the window or clicking Quit stops the bridge.
 
 If the official Trezor Bridge LaunchAgent (or another `trezord`) is already using port `21325`, the desktop app stops it automatically and takes over the port.
+
+The macOS `.app` from `make desktop-app-macos` is a **universal binary** and runs natively on both Intel and Apple Silicon Macs.
 
 ## Build release packages
 

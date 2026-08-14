@@ -1,21 +1,36 @@
 native:
 	CGO_ENABLED=1 go build -buildvcs=false $(GOFLAGS)
 
+# Native (host arch only) desktop binary
 desktop-bin:
 	CGO_ENABLED=1 go build -o trezor-bridge-desktop ./desktop
+
+# Universal macOS binary: Intel (amd64) + Apple Silicon (arm64)
+desktop-bin-universal:
+	@echo "Building amd64…"
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 \
+		go build -o trezor-bridge-desktop-amd64 ./desktop
+	@echo "Building arm64…"
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
+		go build -o trezor-bridge-desktop-arm64 ./desktop
+	lipo -create -output trezor-bridge-desktop \
+		trezor-bridge-desktop-amd64 trezor-bridge-desktop-arm64
+	rm -f trezor-bridge-desktop-amd64 trezor-bridge-desktop-arm64
+	file trezor-bridge-desktop
 
 FYNE ?= $(shell go env GOPATH)/bin/fyne
 
 # Build a double-clickable macOS .app (or Windows/Linux package via fyne).
 # Requires: go install fyne.io/fyne/v2/cmd/fyne@latest
 # (newer installs: go install fyne.io/tools/cmd/fyne@latest)
+# Note: fyne package builds host arch only; prefer desktop-app-macos for universal.
 desktop:
 	@test -x "$(FYNE)" || { echo "Install fyne CLI: go install fyne.io/fyne/v2/cmd/fyne@latest"; exit 1; }
 	cd desktop && CGO_ENABLED=1 "$(FYNE)" package -os darwin -name "Trezor Bridge" -icon Icon.png -appID io.trezor.bridge.desktop -release
 	@echo "Built: desktop/Trezor Bridge.app"
 
-# Fallback macOS .app bundle without fyne CLI
-desktop-app-macos: desktop-bin
+# Universal double-clickable macOS .app (Intel + Apple Silicon)
+desktop-app-macos: desktop-bin-universal
 	rm -rf "Trezor Bridge.app"
 	mkdir -p "Trezor Bridge.app/Contents/MacOS" "Trezor Bridge.app/Contents/Resources"
 	cp trezor-bridge-desktop "Trezor Bridge.app/Contents/MacOS/Trezor Bridge"
@@ -33,9 +48,10 @@ desktop-app-macos: desktop-bin
 		'<key>LSMinimumSystemVersion</key><string>10.13</string>' \
 		'<key>NSHighResolutionCapable</key><true/>' \
 		'</dict></plist>' > "Trezor Bridge.app/Contents/Info.plist"
-	@echo "Built: Trezor Bridge.app (double-click to run)"
+	@echo "Built universal app:"; file "Trezor Bridge.app/Contents/MacOS/Trezor Bridge"
+	@echo "Built: Trezor Bridge.app (double-click to run on Intel and Apple Silicon)"
 
 build-release:
 	make -C release clean all
 
-.PHONY: native desktop desktop-bin desktop-app-macos build-release
+.PHONY: native desktop desktop-bin desktop-bin-universal desktop-app-macos build-release
