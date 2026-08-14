@@ -79,13 +79,32 @@ func main() {
 	})
 
 	go func() {
-		s, err := bridge.Start(bridge.Options{
-			Port:    21325,
+		const port = 21325
+		opts := bridge.Options{
+			Port:    port,
 			WithUSB: true,
 			Reset:   true,
 			Version: bridge.Version,
 			GitHash: bridge.ResolveGitHash(),
-		})
+		}
+
+		s, err := bridge.Start(opts)
+		if err != nil && strings.Contains(err.Error(), "address already in use") {
+			fyne.Do(func() {
+				statusLabel.SetText("Taking over port…")
+				versionLabel.SetText("Stopping the other Bridge so this app can start.")
+			})
+			if freeErr := bridge.FreePort(port); freeErr != nil {
+				fyne.Do(func() {
+					statusLabel.SetText("Failed to start")
+					versionLabel.SetText(fmt.Sprintf("%v\n\nAlso could not free port: %v", err, freeErr))
+					portLabel.SetText("")
+					devicesLabel.SetText("")
+				})
+				return
+			}
+			s, err = bridge.Start(opts)
+		}
 		if err != nil {
 			fyne.Do(func() {
 				statusLabel.SetText("Failed to start")

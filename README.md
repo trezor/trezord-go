@@ -62,7 +62,7 @@ make desktop-app-macos
 
 Open the `.app` (or the Windows/Linux binary) to enable the bridge on port `21325`. Closing the window or clicking Quit stops the bridge.
 
-Do not run this desktop app at the same time as another Bridge instance (for example the system LaunchAgent installer). Only one process can bind to `127.0.0.1:21325`.
+If the official Trezor Bridge LaunchAgent (or another `trezord`) is already using port `21325`, the desktop app stops it automatically and takes over the port.
 
 ## Build release packages
 
