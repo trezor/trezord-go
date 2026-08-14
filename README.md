@@ -35,6 +35,35 @@ On Linux don't forget to install the [udev rules](https://github.com/trezor/trez
 
 When built with `-tags debug` a debug mode is enabled. This disables CORS which is helpful for local development and when run inside a docker image.
 
+## Desktop app
+
+A simple desktop UI starts Trezor Bridge when you open the app and stops it when you close the window.
+
+Requirements: Go with CGO enabled (same as the CLI), plus a desktop environment (macOS, Windows, or Linux with GUI libraries for Fyne).
+
+Run from source:
+
+```
+go run ./desktop
+```
+
+Build a double-clickable macOS app:
+
+```
+# Option A: fyne CLI (recommended)
+go install fyne.io/fyne/v2/cmd/fyne@latest
+make desktop
+# → desktop/Trezor Bridge.app
+
+# Option B: without fyne CLI
+make desktop-app-macos
+# → Trezor Bridge.app in the repo root
+```
+
+Open the `.app` (or the Windows/Linux binary) to enable the bridge on port `21325`. Closing the window or clicking Quit stops the bridge.
+
+Do not run this desktop app at the same time as another Bridge instance (for example the system LaunchAgent installer). Only one process can bind to `127.0.0.1:21325`.
+
 ## Build release packages
 
 Prerequisites:

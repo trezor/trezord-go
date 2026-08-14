@@ -5,6 +5,10 @@
 
 # Project related
 trezord-go
+trezor-bridge-desktop
+Trezor Bridge.app
+desktop/Trezor Bridge.app
+desktop/*.exe
 build/
 release/installers/
 release/binaries/

@@ -3,23 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"os"
-	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 
-	"github.com/trezor/trezord-go/core"
-	"github.com/trezor/trezord-go/memorywriter"
-	"github.com/trezor/trezord-go/server"
+	"github.com/trezor/trezord-go/bridge"
 	"github.com/trezor/trezord-go/usb"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-var version = "2.0.34"
-var githash = "unknown"
 
 type udpTouples []usb.PortTouple
 
@@ -73,41 +63,7 @@ func (i *udpPorts) Set(value string) error {
 	return nil
 }
 
-func initUsb(init bool, wr *memorywriter.MemoryWriter, sl *log.Logger) []core.USBBus {
-	if init {
-		wr.Log("Initing libusb")
-
-		w, err := usb.InitLibUSB(wr, !usb.HIDUse, allowCancel(), detachKernelDriver())
-		if err != nil {
-			sl.Fatalf("libusb: %s", err)
-		}
-
-		if !usb.HIDUse {
-			return []core.USBBus{w}
-		}
-
-		wr.Log("Initing hidapi")
-		h, err := usb.InitHIDAPI(wr)
-		if err != nil {
-			sl.Fatalf("hidapi: %s", err)
-		}
-		return []core.USBBus{w, h}
-	}
-	return nil
-}
-
 func main() {
-	// set git hash
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		log.Fatalf("cannot read build info")
-	}
-	for _, v := range info.Settings {
-		if v.Key == "vcs.revision" {
-			githash = v.Value[0:7]
-		}
-	}
-
 	var logfile string
 	var port int
 	var ports udpPorts
@@ -165,89 +121,30 @@ func main() {
 	)
 	flag.Parse()
 
+	githash := bridge.ResolveGitHash()
+
 	if versionFlag {
-		fmt.Printf("trezord version %s (rev %s)", version, githash)
+		fmt.Printf("trezord version %s (rev %s)", bridge.Version, githash)
 		return
 	}
 
-	var stderrWriter io.Writer
-	if logfile != "" {
-		stderrWriter = &lumberjack.Logger{
-			Filename:   logfile,
-			MaxSize:    20, // megabytes
-			MaxBackups: 3,
-		}
-	} else {
-		stderrWriter = os.Stderr
-	}
-
-	stderrLogger := log.New(stderrWriter, "", log.LstdFlags)
-
-	shortMemoryWriter := memorywriter.New(2000, 200, false, nil)
-
-	verboseWriter := stderrWriter
-	if !verbose {
-		verboseWriter = nil
-	}
-
-	longMemoryWriter := memorywriter.New(90000, 200, true, verboseWriter)
-
-	printWelcomeInfo(stderrLogger, port)
-	bus := initUsb(withusb, longMemoryWriter, stderrLogger)
-
-	longMemoryWriter.Log(fmt.Sprintf("UDP port count - %d", len(ports)))
-
-	if len(ports)+len(touples) > 0 {
-		for _, t := range ports {
-			touples = append(touples, usb.PortTouple{
-				Normal: t,
-				Debug:  0,
-			})
-		}
-		e, errUDP := usb.InitUDP(touples, longMemoryWriter)
-		if errUDP != nil {
-			panic(errUDP)
-		}
-		bus = append(bus, e)
-	}
-
-	if len(bus) == 0 {
-		stderrLogger.Fatalf("No transports enabled")
-	}
-
-	b := usb.Init(bus...)
-	defer b.Close()
-	longMemoryWriter.Log("Creating core")
-	c := core.New(b, longMemoryWriter, allowCancel(), reset)
-	longMemoryWriter.Log("Creating HTTP server")
-	s, err := server.New(c, port, stderrWriter, shortMemoryWriter, longMemoryWriter, version, githash)
-
+	svc, err := bridge.Start(bridge.Options{
+		Port:     port,
+		Logfile:  logfile,
+		Verbose:  verbose,
+		WithUSB:  withusb,
+		Reset:    reset,
+		UDPPorts: ports,
+		UDPPairs: touples,
+		Version:  bridge.Version,
+		GitHash:  githash,
+	})
 	if err != nil {
-		stderrLogger.Fatalf("https: %s", err)
+		log.Fatalf("%v", err)
 	}
 
-	longMemoryWriter.Log("Running HTTP server")
-	err = s.Run()
+	err = svc.Wait()
 	if err != nil {
-		stderrLogger.Fatalf("https: %s", err)
+		log.Fatalf("https: %s", err)
 	}
-
-	longMemoryWriter.Log("Main ended successfully")
-}
-
-func printWelcomeInfo(stderrLogger *log.Logger, port int) {
-	stderrLogger.Printf("trezord v%s (rev %s) is starting on port %d", version, githash, port)
-	if core.IsDebugBinary() {
-		stderrLogger.Print("!! DEBUG mode enabled! Please contact Trezor support in case you did not initiate this. !!")
-	}
-}
-
-// Does OS allow sync canceling via our custom libusb patches?
-func allowCancel() bool {
-	return runtime.GOOS != "freebsd" && runtime.GOOS != "openbsd"
-}
-
-// Does OS detach kernel driver in libusb?
-func detachKernelDriver() bool {
-	return runtime.GOOS == "linux"
 }
