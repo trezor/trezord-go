@@ -35,6 +35,7 @@ desktop-app-macos: desktop-bin-universal
 	mkdir -p "Trezor Bridge.app/Contents/MacOS" "Trezor Bridge.app/Contents/Resources"
 	cp trezor-bridge-desktop "Trezor Bridge.app/Contents/MacOS/Trezor Bridge"
 	cp desktop/Icon.png "Trezor Bridge.app/Contents/Resources/Icon.png"
+	cp desktop/AppIcon.icns "Trezor Bridge.app/Contents/Resources/AppIcon.icns"
 	printf '%s\n' \
 		'<?xml version="1.0" encoding="UTF-8"?>' \
 		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
@@ -42,12 +43,15 @@ desktop-app-macos: desktop-bin-universal
 		'<key>CFBundleExecutable</key><string>Trezor Bridge</string>' \
 		'<key>CFBundleIdentifier</key><string>io.trezor.bridge.desktop</string>' \
 		'<key>CFBundleName</key><string>Trezor Bridge</string>' \
+		'<key>CFBundleIconFile</key><string>AppIcon</string>' \
 		'<key>CFBundlePackageType</key><string>APPL</string>' \
 		'<key>CFBundleVersion</key><string>2.0.34</string>' \
 		'<key>CFBundleShortVersionString</key><string>2.0.34</string>' \
 		'<key>LSMinimumSystemVersion</key><string>10.13</string>' \
 		'<key>NSHighResolutionCapable</key><true/>' \
 		'</dict></plist>' > "Trezor Bridge.app/Contents/Info.plist"
+	@# Refresh Finder/Dock icon cache for this bundle
+	touch "Trezor Bridge.app"
 	@echo "Built universal app:"; file "Trezor Bridge.app/Contents/MacOS/Trezor Bridge"
 	@echo "Built: Trezor Bridge.app (double-click to run on Intel and Apple Silicon)"
 

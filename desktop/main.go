@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"image/color"
 	"strings"
@@ -17,10 +18,15 @@ import (
 	"github.com/trezor/trezord-go/core"
 )
 
+//go:embed Icon.png
+var iconPNG []byte
+
 func main() {
 	a := app.NewWithID("io.trezor.bridge.desktop")
 	a.Settings().SetTheme(&bridgeTheme{})
+	a.SetIcon(fyne.NewStaticResource("Icon.png", iconPNG))
 	w := a.NewWindow("Trezor Bridge")
+	w.SetIcon(fyne.NewStaticResource("Icon.png", iconPNG))
 	w.Resize(fyne.NewSize(420, 360))
 	w.SetFixedSize(true)
 	w.CenterOnScreen()
