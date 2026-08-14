@@ -1,0 +1,8 @@
+[Details]
+  Name = "Trezor Bridge"
+  ID = "io.trezor.bridge.desktop"
+  Version = "2.0.34"
+  Build = 2
+
+[Migrations]
+  RunOnStart = false

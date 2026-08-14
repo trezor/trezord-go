@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,4 +88,9 @@ func (s *Server) logRequest(handler http.Handler) http.Handler {
 
 func (s *Server) Run() error {
 	return s.ListenAndServe()
+}
+
+// Shutdown gracefully stops the HTTP server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.Server.Shutdown(ctx)
 }
